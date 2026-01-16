@@ -6,7 +6,7 @@ import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 
 export function LoginPage() {
   const { login } = useApp();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('owner@florapos.com');
   const [password, setPassword] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
 

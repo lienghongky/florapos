@@ -1,5 +1,6 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useApp, Expense, Sale, ExpenseCategory, Income } from '@/app/context/AppContext';
+import { SmartCategorySelect } from '@/app/components/expenses/SmartCategorySelect';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 import {
@@ -38,6 +39,7 @@ import { toast } from 'sonner';
 export function ExpensesPage() {
     const { user, expenses, sales, expenseCategories, addExpense, deleteExpense, addCategory, deleteCategory, incomes, addIncome, deleteIncome } = useApp();
     const [activeTab, setActiveTab] = useState('overview'); // overview, list, categories, reports
+    const [listTab, setListTab] = useState<'expenses' | 'income'>('expenses');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
@@ -231,6 +233,24 @@ export function ExpensesPage() {
         .sort(([, a], [, b]) => b - a)
         .slice(0, 5);
 
+    // Income Breakdown Logic
+    const incomesByCategory = filteredIncomes.reduce((acc: Record<string, number>, inc: Income) => {
+        const catName = getCategoryName(inc.categoryId);
+        acc[catName] = (acc[catName] || 0) + inc.amount;
+        return acc;
+    }, {} as Record<string, number>);
+
+    if (salesRevenue > 0) {
+        incomesByCategory['Sales Revenue'] = (incomesByCategory['Sales Revenue'] || 0) + salesRevenue;
+    }
+
+    const incomePieData = Object.entries(incomesByCategory).map(([name, value]) => ({ name, value }));
+    const IN_COLORS = ['#10B981', '#34D399', '#6EE7B7', '#059669', '#047857', '#065F46'];
+
+    const topIncomes = (Object.entries(incomesByCategory) as [string, number][])
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5);
+
     // Combine for List View
     const allTransactions = [
         ...filteredExpenses.map(e => ({ ...e, type: 'expense' as const })),
@@ -317,6 +337,27 @@ export function ExpensesPage() {
             <div className="space-y-6">
                 {activeTab === 'list' && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                        {/* List Toggle */}
+                        <div className="flex border-b border-border">
+                            <button
+                                onClick={() => setListTab('expenses')}
+                                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${listTab === 'expenses'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                                    }`}
+                            >
+                                Expenses
+                            </button>
+                            <button
+                                onClick={() => setListTab('income')}
+                                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${listTab === 'income'
+                                    ? 'border-green-600 text-green-700'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                                    }`}
+                            >
+                                Income
+                            </button>
+                        </div>
 
                         {/* Filters */}
                         <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-white p-4 shadow-sm">
@@ -376,52 +417,62 @@ export function ExpensesPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {allTransactions.length > 0 ? (
-                                        allTransactions.map((item: any) => (
-                                            <tr key={`${item.type}-${item.id}`} className="hover:bg-muted/50 transition-colors group">
-                                                <td className="py-4 px-6 text-sm text-muted-foreground">
-                                                    {new Date(item.date).toLocaleDateString()}
-                                                </td>
-                                                <td className="py-4 px-6 font-medium">
-                                                    {item.description}
-                                                    {item.notes && <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>}
-                                                    {item.type === 'sale' && <p className="text-xs text-muted-foreground mt-0.5">Automated Enty</p>}
-                                                </td>
-                                                <td className="py-4 px-6">
-                                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${item.type === 'expense'
-                                                        ? 'bg-gray-100 text-gray-800 border-gray-200'
-                                                        : 'bg-green-100 text-green-800 border-green-200'
-                                                        }`}>
-                                                        {getCategoryName(item.categoryId)}
-                                                    </span>
-                                                </td>
-                                                <td className={`py-4 px-6 font-medium ${item.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
-                                                    {item.type === 'expense' ? '-' : '+'}${item.amount.toFixed(2)}
-                                                </td>
-                                                <td className="py-4 px-6 text-right">
-                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        {item.type !== 'sale' && (
-                                                            <>
-                                                                <button className="p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-primary transition-colors">
-                                                                    <Edit className="size-4" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        if (confirm('Are you sure?')) {
-                                                                            if (item.type === 'expense') deleteExpense(item.id);
-                                                                            if (item.type === 'income') deleteIncome(item.id);
-                                                                        }
-                                                                    }}
-                                                                    className="p-2 hover:bg-red-50 rounded-md text-muted-foreground hover:text-red-600 transition-colors"
-                                                                >
-                                                                    <Trash2 className="size-4" />
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                    {allTransactions.filter(item => {
+                                        if (listTab === 'expenses') return item.type === 'expense';
+                                        if (listTab === 'income') return item.type === 'income' || item.type === 'sale';
+                                        return true;
+                                    }).length > 0 ? (
+                                        allTransactions
+                                            .filter(item => {
+                                                if (listTab === 'expenses') return item.type === 'expense';
+                                                if (listTab === 'income') return item.type === 'income' || item.type === 'sale';
+                                                return true;
+                                            })
+                                            .map((item: any) => (
+                                                <tr key={`${item.type}-${item.id}`} className="hover:bg-muted/50 transition-colors group">
+                                                    <td className="py-4 px-6 text-sm text-muted-foreground">
+                                                        {new Date(item.date).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="py-4 px-6 font-medium">
+                                                        {item.description}
+                                                        {item.notes && <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>}
+                                                        {item.type === 'sale' && <p className="text-xs text-muted-foreground mt-0.5">Automated Enty</p>}
+                                                    </td>
+                                                    <td className="py-4 px-6">
+                                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${item.type === 'expense'
+                                                            ? 'bg-gray-100 text-gray-800 border-gray-200'
+                                                            : 'bg-green-100 text-green-800 border-green-200'
+                                                            }`}>
+                                                            {getCategoryName(item.categoryId)}
+                                                        </span>
+                                                    </td>
+                                                    <td className={`py-4 px-6 font-medium ${item.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
+                                                        {item.type === 'expense' ? '-' : '+'}${item.amount.toFixed(2)}
+                                                    </td>
+                                                    <td className="py-4 px-6 text-right">
+                                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            {item.type !== 'sale' && (
+                                                                <>
+                                                                    <button className="p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-primary transition-colors">
+                                                                        <Edit className="size-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            if (confirm('Are you sure?')) {
+                                                                                if (item.type === 'expense') deleteExpense(item.id);
+                                                                                if (item.type === 'income') deleteIncome(item.id);
+                                                                            }
+                                                                        }}
+                                                                        className="p-2 hover:bg-red-50 rounded-md text-muted-foreground hover:text-red-600 transition-colors"
+                                                                    >
+                                                                        <Trash2 className="size-4" />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
                                     ) : (
                                         <tr>
                                             <td colSpan={5} className="py-12 text-center text-muted-foreground">
@@ -429,7 +480,7 @@ export function ExpensesPage() {
                                                     <div className="p-3 bg-muted rounded-full">
                                                         <DollarSign className="size-6 opacity-40" />
                                                     </div>
-                                                    <p>No transactions found</p>
+                                                    <p>No {listTab} records found</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -538,12 +589,53 @@ export function ExpensesPage() {
                             ))}
                         </div>
 
-                        {/* Charts Area */}
+
+                        {/* Income Breakdown & Expense Breakdown */}
                         <div className="grid gap-6 md:grid-cols-2">
+                            {/* Income Breakdown Pie Chart */}
+                            <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
+                                <h3 className="mb-6 font-semibold flex items-center gap-2">
+                                    <PieChart className="size-5 text-green-600" />
+                                    Income Sources
+                                </h3>
+                                <div className="h-[300px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <RechartsPieChart>
+                                            <Pie
+                                                data={incomePieData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                            >
+                                                {incomePieData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={IN_COLORS[index % IN_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                                            <Legend />
+                                        </RechartsPieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="mt-4 space-y-2">
+                                    {topIncomes.map(([name, amount]: [string, number], i: number) => (
+                                        <div key={i} className="flex justify-between text-sm">
+                                            <span className="font-medium flex items-center gap-2">
+                                                <div className="size-2 rounded-full" style={{ backgroundColor: IN_COLORS[i % IN_COLORS.length] }} />
+                                                {name}
+                                            </span>
+                                            <span className="text-muted-foreground">${amount.toFixed(2)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                             {/* Expense Category Breakdown Pie Chart */}
                             <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
                                 <h3 className="mb-6 font-semibold flex items-center gap-2">
-                                    <PieChart className="size-5 text-primary" />
+                                    <PieChart className="size-5 text-red-600" />
                                     Expense Breakdown
                                 </h3>
                                 <div className="h-[300px] w-full">
@@ -579,39 +671,39 @@ export function ExpensesPage() {
                                     ))}
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Cash Flow Area Chart */}
-                            <div className="rounded-xl border border-border bg-white p-6 shadow-sm flex flex-col">
-                                <h3 className="text-lg font-medium mb-6 flex items-center gap-2">
-                                    <TrendingDown className="size-5 text-primary" />
-                                    Cash Flow Analysis
-                                </h3>
-                                <div className="flex-1 min-h-[300px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={chartData}>
-                                            <defs>
-                                                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#16a34a" stopOpacity={0.1} />
-                                                    <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
-                                                </linearGradient>
-                                                <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#dc2626" stopOpacity={0.1} />
-                                                    <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} tickFormatter={(val) => `$${val}`} />
-                                            <Tooltip
-                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                                formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
-                                            />
-                                            <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                            <Area type="monotone" dataKey="income" name="Income" stroke="#16a34a" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2} />
-                                            <Area type="monotone" dataKey="expense" name="Expenses" stroke="#dc2626" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={2} />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </div>
+                        {/* Cash Flow Area Chart */}
+                        <div className="rounded-xl border border-border bg-white p-6 shadow-sm flex flex-col">
+                            <h3 className="text-lg font-medium mb-6 flex items-center gap-2">
+                                <TrendingDown className="size-5 text-primary" />
+                                Cash Flow Analysis
+                            </h3>
+                            <div className="flex-1 min-h-[300px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={chartData}>
+                                        <defs>
+                                            <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#16a34a" stopOpacity={0.1} />
+                                                <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#dc2626" stopOpacity={0.1} />
+                                                <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} tickFormatter={(val) => `$${val}`} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                            formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
+                                        />
+                                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                        <Area type="monotone" dataKey="income" name="Income" stroke="#16a34a" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2} />
+                                        <Area type="monotone" dataKey="expense" name="Expenses" stroke="#dc2626" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={2} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
                             </div>
                         </div>
                     </motion.div>
@@ -790,15 +882,12 @@ export function ExpensesPage() {
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Category</label>
-                            <select
+                            <SmartCategorySelect
                                 value={newExpense.categoryId}
-                                onChange={(e) => setNewExpense({ ...newExpense, categoryId: e.target.value })}
-                                className="w-full h-10 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                            >
-                                {expenseCategories.filter((c: ExpenseCategory) => c.isActive).map((cat: ExpenseCategory) => (
-                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                ))}
-                            </select>
+                                onChange={(val) => setNewExpense({ ...newExpense, categoryId: val })}
+                                type="expense"
+                                placeholder="Select Expense Category"
+                            />
                         </div>
 
                         <div className="space-y-2">
@@ -874,16 +963,12 @@ export function ExpensesPage() {
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Category</label>
-                            <select
+                            <SmartCategorySelect
                                 value={newIncome.categoryId || ''}
-                                onChange={(e) => setNewIncome({ ...newIncome, categoryId: e.target.value })}
-                                className="w-full h-10 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                            >
-                                <option value="" disabled>Select Category</option>
-                                {expenseCategories.filter((c: ExpenseCategory) => c.isActive).map((cat: ExpenseCategory) => (
-                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                ))}
-                            </select>
+                                onChange={(val) => setNewIncome({ ...newIncome, categoryId: val })}
+                                type="income"
+                                placeholder="Select Income Category"
+                            />
                         </div>
 
                         <div className="space-y-2">
@@ -912,6 +997,6 @@ export function ExpensesPage() {
                     </div>
                 </div>
             </AnimatedModal>
-        </AnimatedPage>
+        </AnimatedPage >
     );
 }

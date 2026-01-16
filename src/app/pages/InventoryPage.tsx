@@ -1,10 +1,11 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useApp } from '@/app/context/AppContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, Package, Search, Filter, ArrowUpDown, Download, Upload, TrendingUp, TrendingDown, Edit, Save, X, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Package, Search, Filter, ArrowUpDown, Download, Upload, TrendingUp, TrendingDown, Edit, Save, X, RotateCcw, History } from 'lucide-react';
 import { useState } from 'react';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { toast } from 'sonner';
+import { InventoryHistoryDrawer } from '@/app/components/inventory/InventoryHistoryDrawer';
 
 export function InventoryPage() {
   const { products, updateProduct } = useApp();
@@ -13,6 +14,10 @@ export function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortOption, setSortOption] = useState('name-asc');
+
+  // History Drawer State
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
+  const [selectedProductForHistory, setSelectedProductForHistory] = useState<any>(null);
 
   // Adjustment Modal State
   const [showAdjustModal, setShowAdjustModal] = useState(false);
@@ -213,7 +218,7 @@ export function InventoryPage() {
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Stock Level</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Value</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">Adjustment</th>
+                <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -279,6 +284,16 @@ export function InventoryPage() {
                     >
                       <RotateCcw className="size-4" />
                     </button>
+                    <button
+                      onClick={() => {
+                        setSelectedProductForHistory(product);
+                        setShowHistoryDrawer(true);
+                      }}
+                      className="ml-2 rounded-lg border border-purple-200 bg-purple-50 p-2 text-purple-600 transition-colors hover:bg-purple-100 hover:text-purple-700 hover:border-purple-300"
+                      title="View History"
+                    >
+                      <History className="size-4" />
+                    </button>
                   </td>
                 </motion.tr>
               ))}
@@ -289,6 +304,7 @@ export function InventoryPage() {
 
       {/* Manual Adjustment Modal */}
       <AnimatedModal isOpen={showAdjustModal} onClose={() => setShowAdjustModal(false)}>
+        {/* ... (existing modal content) ... */}
         <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl">
           <h2 className="mb-2 text-xl font-semibold">Adjust Stock</h2>
           <p className="mb-6 text-sm text-muted-foreground">
@@ -303,8 +319,8 @@ export function InventoryPage() {
                   key={type}
                   onClick={() => setAdjustmentType(type as any)}
                   className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-all ${adjustmentType === type
-                      ? 'bg-white text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-white text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
                   {type === 'add' ? 'Add' : type === 'remove' ? 'Remove' : 'Set'}
@@ -357,6 +373,17 @@ export function InventoryPage() {
           </div>
         </div>
       </AnimatedModal>
+
+      {/* History Drawer */}
+      {selectedProductForHistory && (
+        <InventoryHistoryDrawer
+          isOpen={showHistoryDrawer}
+          onClose={() => setShowHistoryDrawer(false)}
+          productId={selectedProductForHistory.id}
+          productName={selectedProductForHistory.name}
+          currentStock={selectedProductForHistory.stock}
+        />
+      )}
     </AnimatedPage>
   );
 }

@@ -24,11 +24,50 @@ export interface SelectedOption {
   price: number;
 }
 
+// Product & Inventory Types
+export interface InventoryItem {
+  id: string;
+  name: string;
+  sku: string;
+  stock: number;
+  unit: 'piece' | 'stem' | 'bunch' | 'pack' | 'cm' | 'm';
+  cost: number;
+}
+
+export type ProductType = 'simple' | 'composite';
+
+export interface ProductRecipeItem {
+  inventoryItemId: string;
+  quantity: number;
+}
+
+export type InventoryActionType = 'sale' | 'adjustment' | 'restock' | 'damage' | 'expired';
+
+export interface InventoryHistoryLog {
+  id: string;
+  productId: string;
+  action: InventoryActionType;
+  quantityChange: number;
+  previousStock: number;
+  newStock: number;
+  date: string;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  note?: string;
+  referenceId?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
   price: number;
-  stock: number;
+  stock: number; // For simple products, this syncs with inventory. For composite, it's calculated or tracked separately.
+  unit: 'piece' | 'stem' | 'bouquet';
+  trackInventory: boolean;
+  type: ProductType;       // New
+  inventoryItemId?: string; // For simple products 1:1 link
+  recipe?: ProductRecipeItem[]; // For composite products
   category: string;
   image: string;
   lowStockThreshold: number;
@@ -68,9 +107,15 @@ export interface Store {
   name: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+}
+
 export interface ExpenseCategory {
   id: string;
   name: string;
+  type: 'expense' | 'income';
   isDefault?: boolean;
   isActive: boolean;
 }
@@ -107,6 +152,15 @@ interface AppContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
+
+  // Inventory
+  inventoryItems: InventoryItem[]; // New
+
+  // Categories
+  categories: Category[];
+  addProductCategory: (category: Omit<Category, 'id'>) => void;
+  updateProductCategory: (id: string, name: string) => void;
+  deleteProductCategory: (id: string) => void;
 
   // Cart
   cart: CartItem[];
@@ -151,55 +205,82 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // Mock data
+// Mock data
+const mockInventoryItems: InventoryItem[] = [
+  { id: 'inv_rose_red', name: 'Red Rose Stem', sku: 'FL-rose-red', stock: 500, unit: 'stem', cost: 1.50 },
+  { id: 'inv_rose_pink', name: 'Pink Rose Stem', sku: 'FL-rose-pink', stock: 300, unit: 'stem', cost: 1.20 },
+  { id: 'inv_lily_white', name: 'White Lily Stem', sku: 'FL-lily-white', stock: 200, unit: 'stem', cost: 2.00 },
+  { id: 'inv_tulip_mix', name: 'Mixed Tulip Bunch', sku: 'FL-tulip-mix', stock: 100, unit: 'bunch', cost: 5.00 },
+  { id: 'inv_vase_glass', name: 'Standard Glass Vase', sku: 'HW-vase-std', stock: 50, unit: 'piece', cost: 3.00 },
+  { id: 'inv_ribbon_satin', name: 'Satin Ribbon Red', sku: 'SUP-rib-red', stock: 200, unit: 'm', cost: 0.10 },
+  { id: 'inv_paper_wrap', name: 'Kraft Wrapping Paper', sku: 'SUP-wrap-kraft', stock: 500, unit: 'piece', cost: 0.20 },
+];
+
 const mockProducts: Product[] = [
   // Roses
   {
-    id: '1', name: 'Red Roses Dozen', price: 45.99, stock: 50, category: 'Rose', image: 'red-roses', lowStockThreshold: 10, isActive: true,
+    id: '1', name: 'Red Roses Dozen', price: 45.99, stock: 40, unit: 'bouquet', trackInventory: true,
+    type: 'composite',
+    recipe: [
+      { inventoryItemId: 'inv_rose_red', quantity: 12 },
+      { inventoryItemId: 'inv_ribbon_satin', quantity: 1 }
+    ],
+    category: 'Rose', image: 'red-roses', lowStockThreshold: 10, isActive: true,
     options: [
       { id: 'opt_ribbon', name: 'Add Satin Ribbon', price: 2.00, type: 'checkbox' },
       { id: 'opt_vase', name: 'Glass Vase', price: 12.00, type: 'checkbox' },
       { id: 'opt_card', name: 'Greeting Card', price: 3.50, type: 'checkbox' }
     ]
   },
-  { id: '2', name: 'Pink Roses Bouquet', price: 38.99, stock: 30, category: 'Rose', image: 'pink-roses', lowStockThreshold: 10, isActive: true },
+  { id: '2', name: 'Pink Roses Bouquet', price: 38.99, stock: 30, unit: 'bouquet', trackInventory: true, type: 'simple', inventoryItemId: 'inv_rose_pink', category: 'Rose', image: 'pink-roses', lowStockThreshold: 10, isActive: true },
 
   // Lilies
-  { id: '3', name: 'White Lilies', price: 38.99, stock: 30, category: 'Lily', image: 'white-lilies', lowStockThreshold: 10, isActive: true },
-  { id: '4', name: 'Tiger Lilies', price: 35.99, stock: 25, category: 'Lily', image: 'tiger-lilies', lowStockThreshold: 10, isActive: true },
+  { id: '3', name: 'White Lilies', price: 38.99, stock: 30, unit: 'stem', trackInventory: true, type: 'simple', inventoryItemId: 'inv_lily_white', category: 'Lily', image: 'white-lilies', lowStockThreshold: 10, isActive: true },
+  { id: '4', name: 'Tiger Lilies', price: 35.99, stock: 25, unit: 'stem', trackInventory: true, type: 'simple', category: 'Lily', image: 'tiger-lilies', lowStockThreshold: 10, isActive: true },
 
   // Tulips
-  { id: '5', name: 'Mixed Tulips', price: 32.99, stock: 40, category: 'Tulip', image: 'tulips', lowStockThreshold: 10, isActive: true },
+  { id: '5', name: 'Mixed Tulips', price: 32.99, stock: 40, unit: 'bouquet', trackInventory: true, type: 'simple', category: 'Tulip', image: 'tulips', lowStockThreshold: 10, isActive: true },
   {
-    id: '6', name: 'Yellow Tulips', price: 29.99, stock: 35, category: 'Tulip', image: 'yellow-tulips', lowStockThreshold: 10, isActive: true,
+    id: '6', name: 'Yellow Tulips', price: 29.99, stock: 35, unit: 'bouquet', trackInventory: true, type: 'simple', category: 'Tulip', image: 'yellow-tulips', lowStockThreshold: 10, isActive: true,
     options: [
       { id: 'opt_wrap', name: 'Premium Wrap', price: 5.00, type: 'checkbox' }
     ]
   },
 
   // Orchids
-  { id: '8', name: 'White Orchid Plant', price: 55.99, stock: 15, category: 'Orchid', image: 'white-orchid', lowStockThreshold: 5, isActive: true },
-  { id: '9', name: 'Purple Orchid Pot', price: 59.99, stock: 12, category: 'Orchid', image: 'purple-orchid', lowStockThreshold: 5, isActive: true },
+  { id: '8', name: 'White Orchid Plant', price: 55.99, stock: 15, unit: 'piece', trackInventory: true, type: 'simple', category: 'Orchid', image: 'white-orchid', lowStockThreshold: 5, isActive: true },
+  { id: '9', name: 'Purple Orchid Pot', price: 59.99, stock: 12, unit: 'piece', trackInventory: true, type: 'simple', category: 'Orchid', image: 'purple-orchid', lowStockThreshold: 5, isActive: true },
 
   // New
   {
-    id: '10', name: 'Seasonal Mix', price: 65.00, stock: 20, category: 'New', image: 'seasonal-mix', lowStockThreshold: 8, isActive: true,
+    id: '10', name: 'Seasonal Mix', price: 65.00, stock: 20, unit: 'bouquet', trackInventory: true, type: 'simple', category: 'New', image: 'seasonal-mix', lowStockThreshold: 8, isActive: true,
     options: [
       { id: 'opt_size_s', name: 'Standard', price: 0, type: 'radio' },
       { id: 'opt_size_l', name: 'Large (+5 stems)', price: 15.00, type: 'radio' },
       { id: 'opt_size_xl', name: 'Deluxe (+10 stems)', price: 25.00, type: 'radio' }
     ]
   },
-  { id: '11', name: 'Luxury Vase Arrangement', price: 89.99, stock: 10, category: 'New', image: 'luxury-vase', lowStockThreshold: 5, isActive: true },
+  { id: '11', name: 'Luxury Vase Arrangement', price: 89.99, stock: 10, unit: 'piece', trackInventory: true, type: 'simple', category: 'New', image: 'luxury-vase', lowStockThreshold: 5, isActive: true },
 
   // Discount
-  { id: '12', name: 'Yesterday\'s Blooms', price: 15.99, stock: 10, category: 'Discount', image: 'discount-flowers', lowStockThreshold: 0, isActive: true },
-  { id: '13', name: 'Succulent Trio', price: 25.00, stock: 18, category: 'Discount', image: 'succulents', lowStockThreshold: 5, isActive: true },
+  { id: '12', name: 'Yesterday\'s Blooms', price: 15.99, stock: 10, unit: 'bouquet', trackInventory: true, type: 'simple', category: 'Discount', image: 'discount-flowers', lowStockThreshold: 0, isActive: true },
+  { id: '13', name: 'Succulent Trio', price: 25.00, stock: 18, unit: 'piece', trackInventory: true, type: 'simple', category: 'Discount', image: 'succulents', lowStockThreshold: 5, isActive: true },
 
   // Others
-  { id: '14', name: 'Premium Wrap', price: 5.00, stock: 100, category: 'Others', image: 'wrap', lowStockThreshold: 20, isActive: true },
-  { id: '15', name: 'Greeting Card', price: 3.50, stock: 50, category: 'Others', image: 'card', lowStockThreshold: 10, isActive: true },
-  { id: '16', name: 'Satin Ribbon', price: 2.00, stock: 200, category: 'Others', image: 'ribbon', lowStockThreshold: 30, isActive: true },
-  { id: '17', name: 'Metal Bucket', price: 12.00, stock: 15, category: 'Others', image: 'bucket', lowStockThreshold: 5, isActive: true },
+  { id: '14', name: 'Premium Wrap', price: 5.00, stock: 100, unit: 'piece', trackInventory: true, type: 'simple', category: 'Others', image: 'wrap', lowStockThreshold: 20, isActive: true },
+  { id: '15', name: 'Greeting Card', price: 3.50, stock: 50, unit: 'piece', trackInventory: true, type: 'simple', category: 'Others', image: 'card', lowStockThreshold: 10, isActive: true },
+  { id: '16', name: 'Satin Ribbon', price: 2.00, stock: 200, unit: 'piece', trackInventory: true, type: 'simple', category: 'Others', image: 'ribbon', lowStockThreshold: 30, isActive: true },
+  { id: '17', name: 'Metal Bucket', price: 12.00, stock: 15, unit: 'piece', trackInventory: true, type: 'simple', category: 'Others', image: 'bucket', lowStockThreshold: 5, isActive: true },
+];
+
+const mockCategories: Category[] = [
+  { id: '1', name: 'Rose' },
+  { id: '2', name: 'Lily' },
+  { id: '3', name: 'Tulip' },
+  { id: '4', name: 'Orchid' },
+  { id: '5', name: 'New' },
+  { id: '6', name: 'Discount' },
+  { id: '7', name: 'Others' },
 ];
 
 const mockSales: Sale[] = [
@@ -288,6 +369,8 @@ const mockStores: Store[] = [
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>(mockProducts);
+  const [inventoryItems] = useState<InventoryItem[]>(mockInventoryItems); // In real app, this would be fetched
+  const [categories, setCategories] = useState<Category[]>(mockCategories);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [sales, setSales] = useState<Sale[]>(mockSales);
   const [stores] = useState<Store[]>(mockStores);
@@ -299,16 +382,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Expenses State (Mock)
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([
-    { id: '1', name: 'Rent', isDefault: true, isActive: true },
-    { id: '2', name: 'Electricity', isDefault: true, isActive: true },
-    { id: '3', name: 'Water', isDefault: true, isActive: true },
-    { id: '4', name: 'Internet', isDefault: true, isActive: true },
-    { id: '5', name: 'Staff Salary', isDefault: true, isActive: true },
-    { id: '6', name: 'Product Stocking', isDefault: true, isActive: true },
-    { id: '7', name: 'Packaging', isDefault: true, isActive: true },
-    { id: '8', name: 'Transport', isDefault: true, isActive: true },
-    { id: '9', name: 'Marketing', isDefault: true, isActive: true },
-    { id: '10', name: 'Miscellaneous', isDefault: true, isActive: true },
+    { id: '1', name: 'Rent', type: 'expense', isDefault: true, isActive: true },
+    { id: '2', name: 'Electricity', type: 'expense', isDefault: true, isActive: true },
+    { id: '3', name: 'Water', type: 'expense', isDefault: true, isActive: true },
+    { id: '4', name: 'Internet', type: 'expense', isDefault: true, isActive: true },
+    { id: '5', name: 'Staff Salary', type: 'expense', isDefault: true, isActive: true },
+    { id: '6', name: 'Product Stocking', type: 'expense', isDefault: true, isActive: true },
+    { id: '7', name: 'Packaging', type: 'expense', isDefault: true, isActive: true },
+    { id: '8', name: 'Transport', type: 'expense', isDefault: true, isActive: true },
+    { id: '9', name: 'Marketing', type: 'expense', isDefault: true, isActive: true },
+    { id: '10', name: 'Miscellaneous', type: 'expense', isDefault: true, isActive: true },
+    { id: '11', name: 'Services', type: 'income', isDefault: true, isActive: true },
+    { id: '12', name: 'Consulting', type: 'income', isDefault: true, isActive: true },
   ]);
 
   const [incomes, setIncomes] = useState<Income[]>([
@@ -320,15 +405,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Expense Methods
   const addExpense = (expense: Omit<Expense, 'id'>) => {
     const newExpense = { ...expense, id: Date.now().toString() };
-    setExpenses(prev => [newExpense, ...prev]);
+    setExpenses((prev: Expense[]) => [newExpense, ...prev]);
   };
 
   const updateExpense = (id: string, updates: Partial<Expense>) => {
-    setExpenses(prev => prev.map(exp => exp.id === id ? { ...exp, ...updates } : exp));
+    setExpenses((prev: Expense[]) => prev.map((exp: Expense) => exp.id === id ? { ...exp, ...updates } : exp));
   };
 
   const deleteExpense = (id: string) => {
-    setExpenses(prev => prev.filter(exp => exp.id !== id));
+    setExpenses((prev: Expense[]) => prev.filter((exp: Expense) => exp.id !== id));
   };
 
   const addCategory = (category: Omit<ExpenseCategory, 'id'>) => {
@@ -337,7 +422,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteCategory = (id: string) => {
-    setExpenseCategories(prev => prev.map(cat => cat.id === id ? { ...cat, isActive: false } : cat));
+    setExpenseCategories((prev: ExpenseCategory[]) => prev.map((cat: ExpenseCategory) => cat.id === id ? { ...cat, isActive: false } : cat));
   };
 
   const addIncome = (income: Omit<Income, 'id'>) => {
@@ -374,11 +459,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProduct = (id: string, updatedProduct: Partial<Product>) => {
-    setProducts(products.map(p => p.id === id ? { ...p, ...updatedProduct } : p));
+    setProducts(products.map((p: Product) => p.id === id ? { ...p, ...updatedProduct } : p));
   };
 
   const deleteProduct = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
+    setProducts(products.filter((p: Product) => p.id !== id));
+  };
+
+  const addProductCategory = (category: Omit<Category, 'id'>) => {
+    const newCategory = { ...category, id: Date.now().toString() };
+    setCategories([...categories, newCategory]);
+  };
+
+  const updateProductCategory = (id: string, name: string) => {
+    setCategories(categories.map((c: Category) => c.id === id ? { ...c, name } : c));
+  };
+
+  const deleteProductCategory = (id: string) => {
+    setCategories(categories.filter((c: Category) => c.id !== id));
   };
 
   const addToCart = (product: Product, selectedOptions: SelectedOption[] = []) => {
@@ -391,7 +489,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     // Find existing item with same product ID AND same options
-    const existingItem = cart.find(item =>
+    const existingItem = cart.find((item: CartItem) =>
       item.product.id === product.id && optionsMatch(item.selectedOptions, selectedOptions)
     );
 
@@ -409,18 +507,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromCart = (cartUuid: string) => {
-    setCart(cart.filter(item => item.uuid !== cartUuid));
+    setCart(cart.filter((item: CartItem) => item.uuid !== cartUuid));
   };
 
   const updateSaleStatus = (id: string, status: SaleStatus) => {
-    setSales(prev => prev.map(sale => sale.id === id ? { ...sale, status } : sale));
+    setSales(prev => prev.map((sale: Sale) => sale.id === id ? { ...sale, status } : sale));
   };
 
   const updateCartQuantity = (cartUuid: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(cartUuid);
     } else {
-      setCart(cart.map(item =>
+      setCart(cart.map((item: CartItem) =>
         item.uuid === cartUuid ? { ...item, quantity } : item
       ));
     }
@@ -440,7 +538,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSales([newSale, ...sales]);
 
     // Update inventory
-    sale.items.forEach(item => {
+    sale.items.forEach((item: CartItem) => {
       updateProduct(item.product.id, {
         stock: item.product.stock - item.quantity
       });
@@ -454,9 +552,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         products,
+        inventoryItems,
         addProduct,
         updateProduct,
         deleteProduct,
+        categories,
+        addProductCategory,
+        updateProductCategory,
+        deleteProductCategory,
         cart,
         addToCart,
         removeFromCart,
