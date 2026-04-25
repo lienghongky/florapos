@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: saas_pos
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d saas_pos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saas-pos-net
+
+  # ── NestJS API ───────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=admin
+      - DB_PASSWORD=password
+      - DB_NAME=saas_pos
+      - JWT_SECRET=super_secret_jwt_key_for_pos
+      - PORT=3000
+      - MASTER_EMAIL=master@florapos.com
+      - MASTER_PASSWORD=master123456
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads_data_prod:/app/apps/api/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - saas-pos-net
+
+  # ── React Frontend (via nginx) ──────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8001:80"
+    depends_on:
+      - api
+    networks:
+      - saas-pos-net
+
+volumes:
+  postgres_data_prod:
+  uploads_data_prod:
+
+networks:
+  saas-pos-net:

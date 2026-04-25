@@ -1,0 +1,212 @@
+export type UserRole = 'master' | 'owner' | 'sales' | 'staff';
+
+export interface User {
+    id: string;
+    name?: string;
+    full_name?: string;
+    email: string;
+    role: UserRole;
+    avatar?: string;
+    is_active: boolean;
+}
+
+export interface InventoryItem {
+    id: string;
+    store_id?: string;
+    name: string;
+    sku?: string;
+    barcode?: string;
+    current_stock: number;
+    reserved_qty: number;
+    min_stock_threshold: number;
+    reorder_qty: number;
+    unit_id?: string;
+    cost_price: number;
+    average_cost: number;
+    supplier?: string;
+    location?: string;
+    is_active: boolean;
+}
+
+export type ProductType = 'simple' | 'composite';
+export type PricingType = 'fixed' | 'variable';
+
+export interface ProductRecipeItem {
+    inventory_item_id: string;
+    quantity_required: number;
+}
+
+export interface ProductVariant {
+    id: string;
+    name: string;
+    sku?: string;
+    barcode?: string;
+    price_modifier: number;
+    cost_modifier: number;
+    is_default: boolean;
+    is_active: boolean;
+}
+
+export interface Addon {
+    id: string;
+    name: string;
+    price: number;
+    max_quantity: number;
+    required: boolean;
+    is_active: boolean;
+}
+
+export interface ProductAddon {
+    id: string;
+    addon_id: string;
+    display_order: number;
+    addon?: Addon;
+}
+
+export interface Product {
+    id: string;
+    store_id?: string;
+    name: string;
+    description?: string;
+    sku?: string;
+    barcode?: string;
+    category_id?: string;
+    product_type: ProductType;
+    pricing_type: PricingType;
+    base_price: number;
+    cost_price: number;
+    taxable: boolean;
+    tax_rate: number;
+    track_inventory: boolean;
+    allow_negative_stock: boolean;
+    image_url?: string;
+    is_active: boolean;
+
+    variants?: ProductVariant[];
+    product_addons?: ProductAddon[];
+    recipe?: ProductRecipeItem[];
+    
+    // UI specific
+    calculated_stock?: number;
+}
+
+export interface OrderItemAddon {
+    id?: string;
+    addon_id?: string;
+    name_snapshot: string;
+    price: number;
+    quantity: number;
+}
+
+export interface OrderItem {
+    id?: string;
+    product_id: string;
+    variant_id?: string;
+    product_name_snapshot: string;
+    quantity: number;
+    unit_price: number;
+    discount_amount: number;
+    tax_amount: number;
+    line_total: number;
+    addons?: OrderItemAddon[];
+    notes?: string;
+    product?: Product;
+}
+
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+export type OrderType = 'pickup' | 'delivery';
+
+export interface Order {
+    id: string;
+    store_id: string;
+    order_number: string;
+    order_type: OrderType;
+    status: OrderStatus;
+    customer_id?: string;
+    staff_id?: string;
+    session_id?: string;
+    subtotal: number;
+    discount_total: number;
+    tax_total: number;
+    grand_total: number;
+    delivery_fee?: number;
+    delivery_address?: string;
+    notes?: string;
+    items: OrderItem[];
+    created_at?: string;
+    payment_method?: string;
+    customer_name?: string;
+    customer_phone?: string;
+}
+
+export interface CartItem {
+    uuid: string; // Unique ID for cart entry
+    product: Product;
+    quantity: number;
+    selectedVariant?: ProductVariant; // maps to variant_id
+    selectedAddons?: Addon[]; // maps to order item addons
+}
+
+export interface Store {
+    id: string;
+    name: string;
+}
+
+export interface Category {
+    id: string;
+    store_id?: string;
+    name: string;
+    description?: string;
+    parent_id?: string;
+    display_order: number;
+    is_active: boolean;
+    color?: string;
+}
+
+export interface ExpenseCategory {
+    id: string;
+    name: string;
+    type: 'expense' | 'income';
+    isDefault?: boolean;
+    isActive: boolean;
+}
+
+export interface Expense {
+    id: string;
+    date: string;
+    description: string;
+    amount: number;
+    categoryId: string;
+    paymentMethod?: string;
+    notes?: string;
+    isRecurring?: boolean;
+}
+
+export interface Income {
+    id: string;
+    date: string;
+    source: string;
+    amount: number;
+    categoryId: string;
+    paymentMethod?: string;
+    notes?: string;
+}
+export type InventoryActionType = 'SALE' | 'STOCK_IN' | 'RESTOCK' | 'ADJUSTMENT' | 'DAMAGE' | 'EXPIRED' | 'COMPOSITE_DEDUCTION';
+
+export interface InventoryHistoryLog {
+    id: string;
+    store_id: string;
+    inventory_item_id: string;
+    action: InventoryActionType; // Map backend action_type to action if needed, or keep same name
+    quantityChange: number;
+    previousStock: number;
+    newStock: number;
+    date: string;
+    userName?: string;
+    userRole?: string;
+    referenceId?: string;
+    note?: string;
+    item?: {
+        name: string;
+    };
+}

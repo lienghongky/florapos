@@ -1,0 +1,233 @@
+import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
+import { ProductCard } from '@/app/components/pos/ProductCard';
+import { CartPanel } from '@/app/components/pos/CartPanel';
+import { CategoryRail } from '@/app/components/pos/CategoryRail';
+import { useApp } from '@/app/context/AppContext';
+import { Search, SlidersHorizontal, ShoppingBag, X, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'motion/react';
+
+import { ProductCustomizationModal } from '@/app/components/pos/ProductCustomizationModal';
+import { Product, ProductVariant, Addon } from '@/app/context/AppContext';
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false
+  );
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  return isMobile;
+}
+
+export function POSPage() {
+  const { products, addToCart, currentPage, categories, cart } = useApp();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
+  // Desktop: cart shown inline; Mobile: cart shown as bottom-sheet overlay
+  const [isCartOpen, setIsCartOpen] = useState(true);
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+
+  const isMobile = useIsMobile();
+
+  const categoryNames = ['All', ...Array.from(new Set(categories.map(c => c.name).filter(n => n !== 'All')))];
+
+  const filteredProducts = products.filter(product => {
+    const catName = categories.find(c => c.id === product.category_id)?.name || '';
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      catName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || catName === selectedCategory;
+    return matchesSearch && matchesCategory && product.is_active;
+  });
+
+  const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handleProductClick = (product: Product) => {
+    if ((product.variants && product.variants.length > 0) || (product.product_addons && product.product_addons.length > 0)) {
+      setCustomizingProduct(product);
+    } else {
+      addToCart(product, undefined, []);
+      toast.success(`${product.name} added to cart`);
+    }
+  };
+
+  const handleAddToCartFromModal = (product: Product, selectedVariant?: ProductVariant, selectedAddons?: Addon[], quantity: number = 1) => {
+    addToCart(product, selectedVariant, selectedAddons, quantity);
+    toast.success(`${product.name} added to cart`);
+  };
+
+  const pageHeight = currentPage === 'pos-fullscreen' ? 'h-[calc(100vh-2rem)]' : 'h-[calc(100vh-5rem)]';
+
+  // Decide which grid layout to show based on state
+  const productGridCols = isMobile
+    ? 'grid-cols-2 gap-3'
+    : isCartOpen
+      ? 'grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4'
+      : 'grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
+
+  return (
+    <AnimatedPage className={pageHeight}>
+      <div className="relative flex h-full gap-4 lg:gap-8 overflow-hidden">
+
+        {/* ── Main product area ────────────────────────────────────────────── */}
+        <div className="flex flex-1 flex-col gap-4 md:gap-6 overflow-hidden min-w-0">
+          {/* Search bar */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 size-4 md:size-5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="h-11 md:h-12 w-full rounded-2xl border border-slate-200 bg-white/50 pl-11 md:pl-12 pr-4 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-brand-primary/50 focus:bg-white focus:ring-4 focus:ring-brand-primary/5 text-sm md:text-base"
+              />
+            </div>
+            <button className="flex size-11 md:size-12 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 text-slate-600 shadow-sm transition-all hover:bg-white hover:text-brand-primary hover:shadow-md active:scale-95">
+              <SlidersHorizontal className="size-4 md:size-5" />
+            </button>
+          </div>
+
+          {/* Category rail */}
+          <div className="shrink-0 border-b border-slate-100/50 pb-2">
+            <CategoryRail
+              categories={categoryNames}
+              selectedCategory={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
+          </div>
+
+          {/* Product grid area */}
+          <div className="flex-1 overflow-y-auto pr-1 scrollbar-hide">
+            <div className="flex items-center justify-between mb-4 mt-2">
+              <h2 className="text-lg md:text-xl font-bold text-slate-900">
+                {selectedCategory === 'All' ? 'Menu' : selectedCategory}
+                <span className="ml-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{filteredProducts.length} Items</span>
+              </h2>
+            </div>
+
+            <div className={`grid pb-28 md:pb-24 ${productGridCols}`}>
+              {filteredProducts.map(product => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onClick={() => handleProductClick(product)}
+                  onAdd={() => handleProductClick(product)}
+                  compact={isMobile || !isCartOpen}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Desktop inline Cart Panel ────────────────────────────────────── */}
+        {!isMobile && (
+          <>
+            {/* Floating cart button when desktop cart is closed */}
+            {!isCartOpen && (
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className="fixed bottom-8 right-8 z-50 flex size-16 items-center justify-center rounded-full bg-brand-primary text-white shadow-2xl shadow-brand-primary/40 hover:bg-brand-primary/90 active:scale-95 transition-all"
+              >
+                <ShoppingBag className="size-7" />
+                {cartItemsCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex size-6 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold ring-2 ring-white">
+                    {cartItemsCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {isCartOpen && (
+              <div className="relative w-[380px] xl:w-[420px] shrink-0">
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="absolute -left-1 top-0 z-50 flex size-8 items-center justify-center rounded-full bg-white shadow-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+                  title="Collapse Cart"
+                >
+                  <X className="size-4" />
+                </button>
+                <CartPanel />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Mobile Cart: FAB + bottom sheet ─────────────────────────────── */}
+        {isMobile && (
+          <>
+            {/* Floating cart FAB */}
+            <button
+              onClick={() => setIsMobileCartOpen(true)}
+              className="fixed bottom-6 right-5 z-40 flex items-center gap-2 rounded-full bg-brand-primary px-5 py-3.5 text-white shadow-2xl shadow-brand-primary/40 active:scale-95 transition-all"
+            >
+              <ShoppingBag className="size-5" />
+              <span className="text-sm font-semibold">View Cart</span>
+              {cartItemsCount > 0 && (
+                <span className="flex size-5 items-center justify-center rounded-full bg-white text-brand-primary text-[10px] font-bold">
+                  {cartItemsCount}
+                </span>
+              )}
+            </button>
+
+            {/* Bottom sheet overlay */}
+            <AnimatePresence>
+              {isMobileCartOpen && (
+                <>
+                  {/* Backdrop */}
+                  <motion.div
+                    key="cart-backdrop"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+                    onClick={() => setIsMobileCartOpen(false)}
+                  />
+
+                  {/* Sheet */}
+                  <motion.div
+                    key="cart-sheet"
+                    initial={{ y: '100%' }}
+                    animate={{ y: 0 }}
+                    exit={{ y: '100%' }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 35 }}
+                    className="fixed inset-x-0 bottom-0 z-50 max-h-[90vh] overflow-hidden rounded-t-3xl bg-background shadow-2xl"
+                  >
+                    {/* Pull indicator + close */}
+                    <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                      <div className="mx-auto w-12 h-1.5 rounded-full bg-muted-foreground/30 absolute left-1/2 -translate-x-1/2 top-3" />
+                      <div className="size-6" /> {/* spacer */}
+                      <button
+                        onClick={() => setIsMobileCartOpen(false)}
+                        className="ml-auto flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <ChevronDown className="size-5" />
+                      </button>
+                    </div>
+
+                    {/* Cart content */}
+                    <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 56px)' }}>
+                      <CartPanel onClose={() => setIsMobileCartOpen(false)} />
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </>
+        )}
+      </div>
+
+      <ProductCustomizationModal
+        isOpen={!!customizingProduct}
+        onClose={() => setCustomizingProduct(null)}
+        product={customizingProduct}
+        onAddToCart={handleAddToCartFromModal}
+      />
+    </AnimatedPage>
+  );
+}

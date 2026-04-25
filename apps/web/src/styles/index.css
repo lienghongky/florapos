@@ -1,0 +1,90 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Mobile & touch improvements ─────────────────────────────────────────── */
+html, body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Remove tap flash on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Scrollbar hide utility (also used via JS class) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area support for notched / home-indicator devices */
+.pb-safe {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* Printing Support */
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show only the printable area or the specific receipt */
+  #printable-area, #printable-area *, 
+  .printable-receipt, .printable-receipt * {
+    visibility: visible;
+  }
+  
+  /* Reset positions and margins for the printable area */
+  #printable-area, .printable-receipt {
+    visibility: visible;
+    display: block;
+    width: 100% !important;
+    max-width: 400px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: static !important; /* Static is better for page breaks than relative/fixed */
+  }
+
+  /* Force page breaks between multiple receipts */
+  .page-break {
+    clear: both;
+    display: block !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+
+  /* Force background colors etc if needed */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide elements that shouldn't be printed */
+  .serrated-edge, button, .no-print {
+    display: none !important;
+  }
+}

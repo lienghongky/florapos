@@ -152,3 +152,8 @@ Temporary Items
 
 # Vite
 dist-ssr
+.vite/
+.agent/
+node_modules/
+.pnpm-debug.log*
+.DS_Store
