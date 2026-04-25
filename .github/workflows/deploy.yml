@@ -42,7 +42,22 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            set -e
+
+            echo "🔐 Login to GHCR"
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            echo "📂 Go to project directory"
             cd ~/florapos
-            git pull
+
+            echo "🔄 Pull latest docker-compose + config"
+            git pull origin main
+
+            echo "📦 Pull latest images"
             docker compose pull
-            docker compose up -d
+
+            echo "🚀 Restart containers"
+            docker compose up -d --remove-orphans
+
+            echo "🧹 Cleanup unused images"
+            docker image prune -f
