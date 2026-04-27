@@ -5,6 +5,7 @@ interface CategoryRailProps {
     categories: string[];
     selectedCategory: string;
     onSelect: (category: string) => void;
+    products: any[];
 }
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -18,11 +19,12 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
     Others: <Package className="size-5" />,
 };
 
-export function CategoryRail({ categories, selectedCategory, onSelect }: CategoryRailProps) {
-    // Mock counts for now, in a real app these would come from the products list
+export function CategoryRail({ categories, selectedCategory, onSelect, products }: CategoryRailProps) {
     const getCount = (cat: string) => {
-        if (cat === 'All') return 235;
-        return Math.floor(Math.random() * 50) + 5;
+        if (cat === 'All') return products.filter(p => p.is_active).length;
+        return products.filter(p => {
+            return p.is_active && (p.category_name === cat || p.category === cat);
+        }).length;
     };
 
     return (

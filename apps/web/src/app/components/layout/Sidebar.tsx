@@ -139,7 +139,7 @@ export function Sidebar() {
             className="overflow-hidden whitespace-nowrap"
           >
             <span className="block text-lg font-bold">FloraPos</span>
-            <span className="text-xs text-muted-foreground">Flower Shop POS</span>
+            <span className="text-xs text-muted-foreground">Smarter POS</span>
           </motion.div>
         )}
       </div>
@@ -231,7 +231,7 @@ export function Sidebar() {
             </div>
             <div className="flex-1 overflow-hidden">
               <span className="block text-lg font-bold">FloraPos</span>
-              <span className="text-xs text-muted-foreground">Flower Shop POS</span>
+              <span className="text-xs text-muted-foreground">Smarter POS</span>
             </div>
             <button
               onClick={() => setMobileSidebarOpen(false)}

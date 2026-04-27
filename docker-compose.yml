@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: saas_pos
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
     healthcheck:

@@ -122,7 +122,7 @@ interface AppContextType {
   
   globalStores: any[];
   refreshGlobalStores: () => Promise<void>;
-  updateGlobalStore: (storeId: string, data: { name?: string, currency?: string }) => Promise<void>;
+  updateGlobalStore: (storeId: string, data: Partial<Store>) => Promise<void>;
   transferStoreOwnership: (storeId: string, newOwnerId: string) => Promise<void>;
   updateStoreInfo: (storeId: string, data: any) => Promise<void>;
   uploadStoreBanner: (storeId: string, file: File) => Promise<void>;
@@ -150,7 +150,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
-  const [currentPage, setCurrentPage] = useState('login');
+  const [currentPage, setCurrentPageState] = useState(() => {
+    const path = window.location.pathname.replace('/', '');
+    return path || localStorage.getItem('current_page') || 'login';
+  });
+
+  // Sync path to state
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.replace('/', '');
+      if (path && path !== currentPage) {
+        setCurrentPageState(path);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    
+    // Set initial path if it's missing but we have a state
+    if (window.location.pathname === '/' && currentPage) {
+      window.history.replaceState({}, '', `/${currentPage}`);
+    }
+    
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentPage]);
+
+  const setCurrentPage = (page: string) => {
+    localStorage.setItem('current_page', page);
+    setCurrentPageState(page);
+    window.history.pushState({}, '', `/${page}`);
+  };
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -209,7 +236,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         variants: p.variants || [],
         product_addons: p.product_addons || [],
         recipe: p.recipe || [],
-        calculated_stock: Number(p.calculated_stock || 0)
+        calculated_stock: Number(p.calculated_stock || 0),
+        tags: Array.isArray(p.tags) ? p.tags.filter(Boolean) : (p.tags ? [p.tags] : []),
+        updated_at: p.updated_at,
       }));
 
       setProducts(mappedProducts);
@@ -593,9 +622,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setToken(data.access_token);
       const user: User = { ...data.user, name: data.user.full_name || data.user.name || data.user.email };
       setUser(user);
+      // Await stores so selectedStore is populated before dashboard mounts
+      await refreshStores();
       if (user.role === 'master') setCurrentPage('dashboard-master');
       else setCurrentPage(user.role === 'owner' ? 'dashboard-owner' : 'dashboard-sales');
-      refreshStores();
     } catch (error) { throw error; }
   };
 
@@ -605,6 +635,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('current_page');
     setToken(null);
     setUser(null);
     setCart([]);
@@ -734,14 +765,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (storedToken) {
         try {
           const userData = await request<User>('/auth/profile', { token: storedToken });
-          setUser({ ...userData, name: userData.full_name || userData.name || userData.email });
+          const hydratedUser = { ...userData, name: userData.full_name || userData.name || userData.email };
+          setUser(hydratedUser);
           setToken(storedToken);
-          refreshStores();
-          if (currentPage === 'login' || currentPage === 'register') {
-            if (userData.role === 'master') setCurrentPage('dashboard-master');
-            else setCurrentPage(userData.role === 'owner' ? 'dashboard-owner' : 'dashboard-sales');
+          // Await stores so selectedStore is set before pages that need it mount
+          await refreshStores();
+          // Restore saved page; if it was login/register redirect to the right dashboard
+          const savedPage = localStorage.getItem('current_page');
+          if (!savedPage || savedPage === 'login' || savedPage === 'register') {
+            if (hydratedUser.role === 'master') setCurrentPage('dashboard-master');
+            else setCurrentPage(hydratedUser.role === 'owner' ? 'dashboard-owner' : 'dashboard-sales');
           }
+          // else: savedPage is already in state (initialised from localStorage above)
         } catch (error) { logout(); }
+      } else {
+        // No token — ensure page is login
+        setCurrentPage('login');
       }
       setIsLoading(false);
     };

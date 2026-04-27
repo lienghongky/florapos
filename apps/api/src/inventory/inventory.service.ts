@@ -193,7 +193,8 @@ export class InventoryService {
                 { store_id: storeId, barcode: code },
                 { store_id: storeId, sku: code },
                 { store_id: storeId, name: code }
-            ]
+            ],
+            relations: ['category']
         });
 
         if (!item) {
@@ -208,7 +209,8 @@ export class InventoryService {
             if (product) {
                 // Try to find inventory item by product name
                 item = await this.inventoryRepository.findOne({
-                    where: { store_id: storeId, name: product.name }
+                    where: { store_id: storeId, name: product.name },
+                    relations: ['category']
                 });
             }
         }
@@ -217,6 +219,7 @@ export class InventoryService {
             // Try fuzzy search by name if exact match fails
             const fuzzyItem = await this.inventoryRepository
                 .createQueryBuilder('item')
+                .leftJoinAndSelect('item.category', 'category')
                 .where('item.store_id = :storeId', { storeId })
                 .andWhere('item.name ILIKE :name', { name: `%${code}%` })
                 .getOne();
@@ -278,7 +281,10 @@ export class InventoryService {
 
     async findAll(userId: string, storeId: string): Promise<InventoryItem[]> {
         await this.storesService.findOne(userId, storeId); // Verify access
-        return this.inventoryRepository.find({ where: { store_id: storeId } });
+        return this.inventoryRepository.find({ 
+            where: { store_id: storeId },
+            relations: ['category', 'unit']
+        });
     }
 
     async remove(userId: string, id: string): Promise<void> {

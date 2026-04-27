@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsUUID, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsUUID, IsOptional, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateInventoryItemDto {
@@ -37,4 +37,15 @@ export class CreateInventoryItemDto {
     @ApiProperty({ default: 0 })
     @IsNumber()
     cost_price: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsUUID()
+    category_id?: string;
+
+    @ApiProperty({ type: [String], required: false })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    tags?: string[];
 }

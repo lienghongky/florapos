@@ -27,6 +27,8 @@ export function POSPage() {
   const { products, addToCart, currentPage, categories, cart } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedTag, setSelectedTag] = useState('All');
+  const [showFilters, setShowFilters] = useState(true);
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   // Desktop: cart shown inline; Mobile: cart shown as bottom-sheet overlay
   const [isCartOpen, setIsCartOpen] = useState(true);
@@ -36,14 +38,23 @@ export function POSPage() {
 
   const categoryNames = ['All', ...Array.from(new Set(categories.map(c => c.name).filter(n => n !== 'All')))];
 
+  const allTags = ['All', ...Array.from(new Set(products.flatMap(p => p.tags || []))).sort()];
+
   const filteredProducts = products.filter(product => {
     const catName = categories.find(c => c.id === product.category_id)?.name || '';
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      catName.toLowerCase().includes(searchQuery.toLowerCase());
+      catName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (product.tags || []).some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = selectedCategory === 'All' || catName === selectedCategory;
-    return matchesSearch && matchesCategory && product.is_active;
+    const matchesTag = selectedTag === 'All' || (product.tags || []).map(t => t.toLowerCase()).includes(selectedTag.toLowerCase());
+    return matchesSearch && matchesCategory && matchesTag && product.is_active;
   });
+
+  const productsWithCategory = products.map(p => ({
+    ...p,
+    category_name: categories.find(c => c.id === p.category_id)?.name || 'Uncategorized'
+  }));
 
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -88,19 +99,57 @@ export function POSPage() {
                 className="h-11 md:h-12 w-full rounded-2xl border border-slate-200 bg-white/50 pl-11 md:pl-12 pr-4 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-brand-primary/50 focus:bg-white focus:ring-4 focus:ring-brand-primary/5 text-sm md:text-base"
               />
             </div>
-            <button className="flex size-11 md:size-12 items-center justify-center rounded-2xl border border-slate-200 bg-white/50 text-slate-600 shadow-sm transition-all hover:bg-white hover:text-brand-primary hover:shadow-md active:scale-95">
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex size-11 md:size-12 items-center justify-center rounded-2xl border border-slate-200 shadow-sm transition-all active:scale-95 ${showFilters ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white/50 text-slate-600 hover:bg-white hover:text-brand-primary'}`}
+            >
               <SlidersHorizontal className="size-4 md:size-5" />
             </button>
           </div>
 
-          {/* Category rail */}
-          <div className="shrink-0 border-b border-slate-100/50 pb-2">
-            <CategoryRail
-              categories={categoryNames}
-              selectedCategory={selectedCategory}
-              onSelect={setSelectedCategory}
-            />
-          </div>
+          {/* Category rail & Tags */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="shrink-0 border-b border-slate-100/50 pb-2">
+                  <CategoryRail
+                    categories={categoryNames}
+                    selectedCategory={selectedCategory}
+                    onSelect={(cat) => {
+                      setSelectedCategory(cat);
+                      setSelectedTag('All'); // Reset tag when changing category
+                    }}
+                    products={productsWithCategory}
+                  />
+                  
+                  {/* Tag Filter Bar */}
+                  {allTags.length > 1 && (
+                    <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
+                      {allTags.map(tag => (
+                        <button
+                          key={tag}
+                          onClick={() => setSelectedTag(tag)}
+                          className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                            selectedTag === tag
+                              ? 'bg-brand-primary text-white shadow-md'
+                              : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300'
+                          }`}
+                        >
+                          {tag === 'All' ? 'All Tags' : `#${tag}`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Product grid area */}
           <div className="flex-1 overflow-y-auto pr-1 scrollbar-hide">

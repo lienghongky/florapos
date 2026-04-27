@@ -72,6 +72,11 @@ export function DashboardMasterPage() {
   const [selectedStore, setSelectedStore] = useState<any>(null);
   const [editStoreName, setEditStoreName] = useState('');
   const [editStoreCurrency, setEditStoreCurrency] = useState('USD');
+  const [editStoreAddress, setEditStoreAddress] = useState('');
+  const [editStorePhone, setEditStorePhone] = useState('');
+  const [editStoreTaxRate, setEditStoreTaxRate] = useState(0);
+  const [editStoreTaxId, setEditStoreTaxId] = useState('');
+  const [editStoreWebsite, setEditStoreWebsite] = useState('');
 
   // Transfer Ownership State
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -173,7 +178,15 @@ export function DashboardMasterPage() {
   const handleEditStore = async () => {
     if (!editStoreName) return toast.error('Store name is required');
     try {
-      await updateGlobalStore(selectedStore.id, { name: editStoreName, currency: editStoreCurrency });
+      await updateGlobalStore(selectedStore.id, { 
+        name: editStoreName, 
+        currency: editStoreCurrency,
+        address: editStoreAddress,
+        phone_number: editStorePhone,
+        tax_rate: Number(editStoreTaxRate),
+        tax_id: editStoreTaxId,
+        website: editStoreWebsite
+      });
       toast.success('Store updated successfully');
       setIsEditStoreModalOpen(false);
     } catch (e: any) {
@@ -650,6 +663,11 @@ export function DashboardMasterPage() {
                                   setSelectedStore(store);
                                   setEditStoreName(store.name);
                                   setEditStoreCurrency(store.currency || 'USD');
+                                  setEditStoreAddress(store.address || '');
+                                  setEditStorePhone(store.phone_number || '');
+                                  setEditStoreTaxRate(store.tax_rate || 0);
+                                  setEditStoreTaxId(store.tax_id || '');
+                                  setEditStoreWebsite(store.website || '');
                                   setIsEditStoreModalOpen(true);
                                 }}
                                 title="Edit Store"
@@ -1087,30 +1105,74 @@ export function DashboardMasterPage() {
           <motion.div 
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
           >
             <div className="p-6 border-b">
               <h3 className="text-xl font-bold">Edit Store Details</h3>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Store Name</label>
-                <Input 
-                  value={editStoreName}
-                  onChange={(e) => setEditStoreName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Currency</label>
-                <select 
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                  value={editStoreCurrency}
-                  onChange={(e) => setEditStoreCurrency(e.target.value)}
-                >
-                  <option value="USD">USD - US Dollar</option>
-                  <option value="KHR">KHR - Cambodian Riel</option>
-                  <option value="THB">THB - Thai Baht</option>
-                </select>
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Store Name</label>
+                  <Input 
+                    value={editStoreName}
+                    onChange={(e) => setEditStoreName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Currency</label>
+                  <select 
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    value={editStoreCurrency}
+                    onChange={(e) => setEditStoreCurrency(e.target.value)}
+                  >
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="KHR">KHR - Cambodian Riel</option>
+                    <option value="THB">THB - Thai Baht</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tax Rate (%)</label>
+                  <Input 
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00" 
+                    value={editStoreTaxRate}
+                    onChange={(e) => setEditStoreTaxRate(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tax ID / VAT</label>
+                  <Input 
+                    placeholder="VAT-123..." 
+                    value={editStoreTaxId}
+                    onChange={(e) => setEditStoreTaxId(e.target.value)}
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-sm font-medium">Physical Address</label>
+                  <Input 
+                    placeholder="123 Main St..." 
+                    value={editStoreAddress}
+                    onChange={(e) => setEditStoreAddress(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Phone Number</label>
+                  <Input 
+                    placeholder="+1..." 
+                    value={editStorePhone}
+                    onChange={(e) => setEditStorePhone(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Website</label>
+                  <Input 
+                    placeholder="https://..." 
+                    value={editStoreWebsite}
+                    onChange={(e) => setEditStoreWebsite(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
             <div className="p-6 bg-slate-50 flex items-center justify-end gap-3">

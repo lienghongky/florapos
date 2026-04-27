@@ -16,7 +16,7 @@ interface QuickAdjustModalProps {
 }
 
 export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
-  const { findInventoryItemByCode, adjustInventoryStock } = useApp();
+  const { findInventoryItemByCode, adjustInventoryStock, products, categories } = useApp();
   
   // State
   const [searchCode, setSearchCode] = useState('');
@@ -198,21 +198,36 @@ export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
                 className="space-y-6"
               >
                 {/* Item Details */}
-                <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="size-12 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                      <Package className="size-6 text-primary" />
+                {(() => {
+                  const ownerProduct = foundItem && !foundItem.category_id ? products.find(p => p.name === foundItem.name) : null;
+                  const categoryName = foundItem.category?.name || 
+                                      categories.find(c => c.id === foundItem.category_id)?.name ||
+                                      categories.find(c => c.id === ownerProduct?.category_id)?.name ||
+                                      'Uncategorized';
+                  return (
+                    <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="size-12 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                          <Package className="size-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg leading-tight">{foundItem.name}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground font-mono">{foundItem.sku || 'No SKU'}</span>
+                            <span className="size-1 rounded-full bg-muted-foreground/30" />
+                            <span className="text-xs font-semibold text-primary/80">
+                              {categoryName}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Stock</p>
+                        <p className="text-2xl font-black text-primary">{foundItem.current_stock}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-lg leading-tight">{foundItem.name}</h3>
-                      <p className="text-sm text-muted-foreground font-mono">{foundItem.sku || 'No SKU'}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Stock</p>
-                    <p className="text-2xl font-black text-primary">{foundItem.current_stock}</p>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Adjustment Controls */}
                 <div className="space-y-4">

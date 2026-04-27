@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Store } from '../../stores/entities/store.entity';
 import { Unit } from '../../settings/entities/unit.entity';
+import { Category } from '../../categories/entities/category.entity';
 
 @Entity('inventory_items')
 export class InventoryItem {
@@ -52,6 +53,16 @@ export class InventoryItem {
 
     @Column({ default: true })
     is_active: boolean;
+
+    @Column({ type: 'uuid', nullable: true })
+    category_id: string;
+
+    @ManyToOne(() => Category)
+    @JoinColumn({ name: 'category_id' })
+    category: Category;
+
+    @Column({ type: 'simple-array', nullable: true, default: null })
+    tags: string[];
 
     @ManyToOne(() => Store)
     @JoinColumn({ name: 'store_id' })

@@ -41,7 +41,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
   const [customerPhone, setCustomerPhone] = useState('');
   const [showOrderList, setShowOrderList] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'credit' | 'pay_later' | 'cash' | 'qr'>('credit');
+  const [paymentMethod, setPaymentMethod] = useState<'credit' | 'pay_later' | 'cash' | 'qr' | null>(null);
   const [serviceType, setServiceType] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [paymentStep, setPaymentStep] = useState<'select' | 'cash'>('select');
@@ -59,10 +59,11 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
       return sum + (Number(item.product.base_price) + variantPrice + addonsPrice) * item.quantity;
     }, 0);
 
-    const taxAmt = sub * 0.05;
+    const taxRate = selectedStore?.tax_rate || 0;
+    const taxAmt = sub * (taxRate / 100);
     const totalAmt = Math.max(0, sub + taxAmt + (serviceType === 'delivery' ? deliveryFee : 0));
-    return { subTotal: sub, tax: taxAmt, total: totalAmt };
-  }, [cart, serviceType, deliveryFee]);
+    return { subTotal: sub, tax: taxAmt, total: totalAmt, taxRate };
+  }, [cart, serviceType, deliveryFee, selectedStore]);
 
   // ── Checkout handler ──────────────────────────────────────────────────────
   const handleCheckout = async () => {
@@ -344,7 +345,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
               <span className="font-medium text-foreground">${subTotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Tax (5%)</span>
+              <span>Tax ({selectedStore?.tax_rate || 0}%)</span>
               <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
             </div>
             {serviceType === 'delivery' && (
@@ -419,10 +420,14 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
 
               <button
                 onClick={handleCheckout}
-                disabled={isProcessing}
+                disabled={isProcessing || !paymentMethod}
                 className="w-full rounded-xl bg-brand-primary py-3.5 font-bold text-white shadow-lg shadow-brand-primary/25 disabled:opacity-50"
               >
-                {isProcessing ? 'Processing...' : (paymentMethod === 'pay_later' ? 'Confirm & Pay Later' : 'Confirm Payment')}
+                {isProcessing 
+                  ? 'Processing...' 
+                  : !paymentMethod 
+                    ? 'Select Payment Method' 
+                    : (paymentMethod === 'pay_later' ? 'Confirm & Pay Later' : 'Confirm Payment')}
               </button>
             </>
           ) : (

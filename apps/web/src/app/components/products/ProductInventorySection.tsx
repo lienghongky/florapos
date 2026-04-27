@@ -139,7 +139,7 @@ export function ProductInventorySection({
                                                 <input
                                                     type="number"
                                                     value={stock}
-                                                    onChange={(e) => onStockChange(parseInt(e.target.value) || 0)}
+                                                    readOnly
                                                     className="w-full text-3xl font-bold text-gray-900 bg-transparent outline-none border-b-2 border-transparent focus:border-primary/20 placeholder-gray-300"
                                                     placeholder="0"
                                                 />
@@ -153,17 +153,15 @@ export function ProductInventorySection({
                                                 </div>
                                             )}
 
-                                            <div className="h-8 w-px bg-border/60 mx-2"></div>
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-xs font-bold text-slate-400 uppercase tracking-tight">Units</span>
+                                                <span className="text-sm font-medium text-slate-600">{unit}s</span>
+                                            </div>
+                                        </div>
 
-                                            <select
-                                                value={unit}
-                                                onChange={(e) => onUnitChange(e.target.value as any)}
-                                                className="bg-transparent text-sm font-medium text-gray-600 outline-none cursor-pointer hover:text-primary transition-colors pr-2"
-                                            >
-                                                <option value="piece">pcs</option>
-                                                <option value="stem">stems</option>
-                                                <option value="bouquet">bouquets</option>
-                                            </select>
+                                        <div className="mt-3 flex items-start gap-2 text-[10px] text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-100/50">
+                                            <Info className="size-3 shrink-0 mt-0.5" />
+                                            <span>Current stock is read-only here. To add or adjust stock levels, please go to the <strong>Inventory</strong> page.</span>
                                         </div>
 
                                         {/* Limiting Factor Alert (for Recipe Mode) */}

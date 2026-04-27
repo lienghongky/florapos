@@ -2,8 +2,8 @@ import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useApp } from '@/app/context/AppContext';
 import { InventoryItem } from '@/app/types';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, Package, Search, Filter, ArrowUpDown, Download, Upload, TrendingUp, TrendingDown, Edit, Save, X, RotateCcw, History, Trash2, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangle, Package, Search, Filter, ArrowUpDown, Download, Upload, TrendingUp, TrendingDown, Edit, Save, X, RotateCcw, History, Trash2, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,11 +21,25 @@ import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { PageHeader } from '@/app/components/ui/page-header';
 
 export function InventoryPage() {
-  const { inventoryItems, products, adjustInventoryStock, deleteInventoryItem } = useApp();
+  const { inventoryItems, products, categories, adjustInventoryStock, deleteInventoryItem, refreshInventory, refreshProducts, selectedStore } = useApp();
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortOption, setSortOption] = useState('name-asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 100;
+
+  // Fetch fresh data whenever this page mounts or the store changes
+  useEffect(() => {
+    refreshInventory();
+    refreshProducts();
+  }, [selectedStore?.id]);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   // History Drawer State
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
@@ -47,11 +61,23 @@ export function InventoryPage() {
 
   // Combine inventory items and composite products
   const combinedItems = [
-    ...inventoryItems.map(item => ({
-      ...item,
-      isComposite: false,
-      recipe: []
-    })),
+    ...inventoryItems.map(item => {
+      // Find a product that corresponds to this inventory item (either by name match or recipe link)
+      const ownerProduct = (products || []).find(p => p.name === item.name) || 
+                          (products || []).find(p => p.recipe?.some((r: any) => r.inventory_item_id === item.id));
+      
+      const categoryId = item.category_id || ownerProduct?.category_id;
+      const itemTags = (item.tags && item.tags.length > 0) ? item.tags : (ownerProduct?.tags || []);
+
+      return {
+        ...item,
+        isComposite: false,
+        recipe: [],
+        category: categories.find(c => c.id === categoryId)?.name || 'Uncategorized',
+        tags: itemTags,
+        updated_at: item.updated_at || ownerProduct?.updated_at
+      };
+    }),
     ...(products || []).filter(p => p.product_type === 'composite').map(p => ({
       id: p.id,
       name: p.name,
@@ -62,7 +88,10 @@ export function InventoryPage() {
       cost_price: p.cost_price || 0,
       isComposite: true,
       recipe: p.recipe || [],
-      unit_id: 'piece'
+      unit_id: 'piece',
+      category: categories.find(c => c.id === p.category_id)?.name || 'Uncategorized',
+      tags: p.tags || [],
+      updated_at: p.updated_at
     }))
   ];
 
@@ -78,7 +107,13 @@ export function InventoryPage() {
     const nameMatch = (p.name || '').toLowerCase().includes(searchStr);
     const skuMatch = (p.sku || '').toLowerCase().includes(searchStr);
     const barcodeMatch = (p.barcode || '').toLowerCase().includes(searchStr);
-    return nameMatch || skuMatch || barcodeMatch;
+    const tagMatch = (p.tags || []).some((tag: string) => tag.toLowerCase().includes(searchStr));
+    const categoryMatch = (p.category || '').toLowerCase().includes(searchStr);
+    const matchesSearch = nameMatch || skuMatch || barcodeMatch || tagMatch || categoryMatch;
+    
+    const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
   }).sort((a: any, b: any) => {
     const aStock = Number(a.current_stock) || 0;
     const bStock = Number(b.current_stock) || 0;
@@ -95,9 +130,14 @@ export function InventoryPage() {
       case 'stock-desc': return bStock - aStock;
       case 'value-asc': return aValue - bValue;
       case 'value-desc': return bValue - aValue;
+      case 'updated-desc': return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
+      case 'updated-asc': return new Date(a.updated_at || 0).getTime() - new Date(b.updated_at || 0).getTime();
       default: return 0;
     }
   });
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // Handlers
   const handleExport = () => {
@@ -255,6 +295,19 @@ export function InventoryPage() {
         </div>
         <div className="flex gap-3">
           <div className="relative">
+            <Filter className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="h-10 rounded-lg border border-border bg-muted/30 pl-9 pr-8 text-sm outline-none focus:border-primary/50"
+            >
+              <option value="All">All Categories</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="relative">
             <ArrowUpDown className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <select
               value={sortOption}
@@ -267,6 +320,8 @@ export function InventoryPage() {
               <option value="stock-desc">Stock (High-Low)</option>
               <option value="value-asc">Value (Low-High)</option>
               <option value="value-desc">Value (High-Low)</option>
+              <option value="updated-desc">Recently Updated</option>
+              <option value="updated-asc">Oldest Updated</option>
             </select>
           </div>
         </div>
@@ -280,6 +335,7 @@ export function InventoryPage() {
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Reference</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Product/Material</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Category</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Stock Level</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Value</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
@@ -287,7 +343,7 @@ export function InventoryPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((product: any, index: number) => (
+              {paginatedProducts.map((product: any, index: number) => (
                 <motion.tr
                   key={product.id}
                   initial={{ opacity: 0 }}
@@ -302,6 +358,9 @@ export function InventoryPage() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="font-medium">{product.name}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-muted-foreground">{product.category}</span>
                   </td>
 
                   <td className="px-6 py-4">
@@ -397,13 +456,67 @@ export function InventoryPage() {
         </div>
       </div>
 
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 py-4">
+          <div className="text-sm text-muted-foreground">
+            Showing <span className="font-medium text-foreground">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium text-foreground">{Math.min(currentPage * itemsPerPage, filteredProducts.length)}</span> of <span className="font-medium text-foreground">{filteredProducts.length}</span> items
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex size-9 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground transition-all hover:bg-muted disabled:opacity-40"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                // Only show a few page numbers if there are many
+                if (totalPages > 7 && page !== 1 && page !== totalPages && Math.abs(page - currentPage) > 1) {
+                  if (page === 2 || page === totalPages - 1) return <span key={page} className="px-1 text-muted-foreground">...</span>;
+                  return null;
+                }
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`size-9 rounded-lg text-sm font-bold transition-all ${
+                      currentPage === page 
+                        ? 'bg-brand-primary text-white shadow-md' 
+                        : 'border border-border bg-white text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex size-9 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground transition-all hover:bg-muted disabled:opacity-40"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Manual Adjustment Modal */}
       <AnimatedModal isOpen={showAdjustModal} onClose={() => setShowAdjustModal(false)}>
         {/* ... (existing modal content) ... */}
         <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl">
           <h2 className="mb-2 text-xl font-semibold">Adjust Stock</h2>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Update inventory for <span className="font-medium text-foreground">{adjustingProduct?.name}</span>
+          <p className="mb-6 text-sm text-muted-foreground flex flex-wrap items-center gap-x-2">
+            Update inventory for <span className="font-bold text-foreground">{adjustingProduct?.name}</span>
+            {adjustingProduct?.category && (
+              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground border border-border">
+                {adjustingProduct.category}
+              </span>
+            )}
           </p>
 
           <div className="space-y-4">

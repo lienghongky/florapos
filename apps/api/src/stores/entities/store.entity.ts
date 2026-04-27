@@ -38,6 +38,12 @@ export class Store {
 
     @Column({ nullable: true })
     invoice_prefix: string;
+    
+    @Column('decimal', { precision: 5, scale: 2, default: 0, transformer: {
+        to: (value: number) => value,
+        from: (value: string) => parseFloat(value)
+    } })
+    tax_rate: number;
 
     @OneToMany(() => StoreUser, (storeUser) => storeUser.store)
     users: StoreUser[];

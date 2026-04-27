@@ -16,7 +16,20 @@ import { ExpensesPage } from '@/app/pages/ExpensesPage';
 import { DashboardMasterPage } from '@/app/pages/DashboardMasterPage';
 
 function AppContent() {
-  const { currentPage } = useApp();
+  const { currentPage, isLoading, user } = useApp();
+
+  // Show a loading screen while auth token is being validated on startup.
+  // This prevents the login page from flashing before the stored session is restored.
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="size-10 animate-spin rounded-full border-4 border-border border-t-brand-primary" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderPage = () => {
     switch (currentPage) {
@@ -48,6 +61,12 @@ function AppContent() {
       case 'dashboard-master':
         return <DashboardMasterPage />;
       default:
+        // If user is logged in, default to their respective dashboard for unknown routes
+        if (user) {
+          if (user.role === 'owner') return <DashboardOwnerPage />;
+          if (user.role === 'staff') return <DashboardSalesPage />;
+          if (user.role === 'superadmin') return <DashboardMasterPage />;
+        }
         return <LoginPage />;
     }
   };

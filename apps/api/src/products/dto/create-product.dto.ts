@@ -163,4 +163,11 @@ export class CreateProductDto {
     @Transform(({ value }) => value === 'true' || value === true)
     @IsBoolean()
     is_active?: boolean;
+
+    @ApiProperty({ type: [String], required: false, description: 'Searchable tags for the product' })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    @Transform(({ value }) => typeof value === 'string' ? JSON.parse(value) : value)
+    tags?: string[];
 }

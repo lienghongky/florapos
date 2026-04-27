@@ -80,6 +80,9 @@ export class Product {
     @Column({ default: true })
     is_active: boolean;
 
+    @Column({ type: 'simple-array', nullable: true, default: null })
+    tags: string[];
+
     @OneToMany(() => ProductVariant, (variant) => variant.product)
     variants: ProductVariant[];
 

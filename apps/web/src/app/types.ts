@@ -26,6 +26,9 @@ export interface InventoryItem {
     supplier?: string;
     location?: string;
     is_active: boolean;
+    category_id?: string;
+    category?: Category;
+    tags?: string[];
 }
 
 export type ProductType = 'simple' | 'composite';
@@ -88,6 +91,8 @@ export interface Product {
     
     // UI specific
     calculated_stock?: number;
+    tags?: string[];
+    updated_at?: string;
 }
 
 export interface OrderItemAddon {
@@ -150,6 +155,16 @@ export interface CartItem {
 export interface Store {
     id: string;
     name: string;
+    address?: string;
+    phone_number?: string;
+    description?: string;
+    tax_id?: string;
+    tax_rate?: number;
+    website?: string;
+    receipt_footer_text?: string;
+    invoice_prefix?: string;
+    banner_image?: string;
+    logo_url?: string;
 }
 
 export interface Category {

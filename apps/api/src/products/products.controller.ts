@@ -38,9 +38,9 @@ export class ProductsController {
 
 
     @Get()
-    @ApiOperation({ summary: 'List products for a store' })
-    findAll(@Request() req: any, @Query('storeId') storeId: string) {
-        return this.productsService.findAll(req.user.userId, storeId);
+    @ApiOperation({ summary: 'List products for a store, optionally filtered by tags' })
+    findAll(@Request() req: any, @Query('storeId') storeId: string, @Query('tags') tags?: string) {
+        return this.productsService.findAll(req.user.userId, storeId, tags);
     }
 
     @Get(':id')

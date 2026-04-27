@@ -221,23 +221,49 @@ export function ExpensesPage() {
         return acc;
     }, {} as Record<string, number>);
 
-    // Chart Data Preparation
-    const getDaysArray = (start: string, end: string) => {
+    // ── Chart Data Preparation ──────────────────────────────────────────
+    const getDaysArray = (startStr: string, endStr: string) => {
         const arr = [];
-        for (let dt = new Date(start); dt <= new Date(end); dt.setDate(dt.getDate() + 1)) {
+        const start = new Date(startStr + 'T00:00:00');
+        const end = new Date(endStr + 'T00:00:00');
+        
+        const dt = new Date(start);
+        while (dt <= end) {
             arr.push(new Date(dt).toISOString().split('T')[0]);
+            dt.setDate(dt.getDate() + 1);
+            if (arr.length > 100) break; // Safety break
         }
         return arr;
     };
 
-    let runningBalance = startingBalance;
+    // Calculate balance before start date for accurate cumulative charting
+    const calculateBalanceAt = (beforeDate: string) => {
+        const historicalSales = (orders || []).filter(o => {
+            if (!o.created_at) return false;
+            const d = new Date(o.created_at);
+            if (isNaN(d.getTime())) return false;
+            const dateStr = d.toISOString().split('T')[0];
+            return dateStr < beforeDate;
+        }).reduce((sum, o) => sum + Number(o.grand_total), 0);
+        
+        const historicalIncome = (incomes || []).filter(i => i.date < beforeDate).reduce((sum, i) => sum + i.amount, 0);
+        const historicalExpenses = (expenses || []).filter(e => e.date < beforeDate).reduce((sum, e) => sum + e.amount, 0);
+        
+        return startingBalance + historicalSales + historicalIncome - historicalExpenses;
+    };
+
+    const initialBalanceForRange = calculateBalanceAt(dateRange.start);
+    let runningBalance = initialBalanceForRange;
+
     const chartData = getDaysArray(dateRange.start, dateRange.end).map(date => {
         const daysSales = filteredSales.filter((order: Order) => {
-            const dateObj = order.created_at ? new Date(order.created_at) : new Date();
-            return !isNaN(dateObj.getTime()) && dateObj.toISOString().split('T')[0] === date;
+            if (!order.created_at) return false;
+            const d = new Date(order.created_at);
+            if (isNaN(d.getTime())) return false;
+            return d.toISOString().split('T')[0] === date;
         }).reduce((sum: number, order: Order) => sum + Number(order.grand_total), 0);
         
-        const daysIncome = filteredIncomes.filter((i: Income) => i.date.startsWith(date)).reduce((sum: number, i: Income) => sum + i.amount, 0);
+        const daysIncome = filteredIncomes.filter((i: Income) => i.date === date).reduce((sum: number, i: Income) => sum + i.amount, 0);
         const totalDayIncome = daysSales + daysIncome;
 
         const daysExpenses = expensesByDate.filter((e: Expense) => e.date === date).reduce((sum: number, e: Expense) => sum + e.amount, 0);
@@ -739,7 +765,7 @@ export function ExpensesPage() {
                                 <TrendingDown className="size-5 text-primary" />
                                 Cash Flow Analysis
                             </h3>
-                            <div className="flex-1 min-h-[300px]">
+                            <div className="h-[400px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={chartData}>
                                         <defs>
@@ -757,16 +783,32 @@ export function ExpensesPage() {
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} tickFormatter={(val) => `$${val}`} />
-                                        <Tooltip
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                            formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
+                                        <XAxis 
+                                            dataKey="date" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fontSize: 10, fill: '#6B7280' }} 
+                                            minTickGap={30}
                                         />
-                                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                        <Area type="monotone" dataKey="income" name="Daily Income" stroke="#16a34a" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2} />
-                                        <Area type="monotone" dataKey="expense" name="Daily Expenses" stroke="#dc2626" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={2} />
-                                        <Area type="monotone" dataKey="balance" name="Cumulative Balance" stroke="#3b82f6" fillOpacity={1} fill="url(#colorBalance)" strokeWidth={3} />
+                                        <YAxis 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fontSize: 10, fill: '#6B7280' }} 
+                                            tickFormatter={(val) => `$${val >= 1000 ? (val/1000).toFixed(1) + 'k' : val}`} 
+                                        />
+                                        <Tooltip
+                                            contentStyle={{ 
+                                                borderRadius: '12px', 
+                                                border: '1px solid #E5E7EB', 
+                                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                                padding: '12px'
+                                            }}
+                                            formatter={(value: number) => [`$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, '']}
+                                        />
+                                        <Legend verticalAlign="top" height={36} iconType="circle" />
+                                        <Area type="monotone" dataKey="income" name="Income" stroke="#16a34a" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2} />
+                                        <Area type="monotone" dataKey="expense" name="Expenses" stroke="#dc2626" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={2} />
+                                        <Area type="monotone" dataKey="balance" name="Balance" stroke="#3b82f6" fillOpacity={1} fill="url(#colorBalance)" strokeWidth={3} />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>

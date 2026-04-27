@@ -18,6 +18,7 @@ export function StoreProfileSection() {
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   
   const [taxId, setTaxId] = useState('');
+  const [taxRate, setTaxRate] = useState(0);
   const [website, setWebsite] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('');
   const [invoicePrefix, setInvoicePrefix] = useState('');
@@ -36,6 +37,7 @@ export function StoreProfileSection() {
       setPhone(selectedStore.phone_number || '');
       setDescription(selectedStore.description || '');
       setTaxId(selectedStore.tax_id || '');
+      setTaxRate(selectedStore.tax_rate || 0);
       setWebsite(selectedStore.website || '');
       setReceiptFooter(selectedStore.receipt_footer_text || '');
       setInvoicePrefix(selectedStore.invoice_prefix || '');
@@ -64,6 +66,7 @@ export function StoreProfileSection() {
         phone_number: phone,
         description,
         tax_id: taxId,
+        tax_rate: Number(taxRate),
         website,
         receipt_footer_text: receiptFooter,
         invoice_prefix: invoicePrefix
@@ -242,6 +245,21 @@ export function StoreProfileSection() {
               onChange={(e) => setTaxId(e.target.value)} 
               placeholder="VAT-123456789"
             />
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Global Tax Rate (%)</Label>
+            <div className="relative">
+               <Input 
+                type="number"
+                step="0.01"
+                value={taxRate} 
+                onChange={(e) => setTaxRate(Number(e.target.value))} 
+                placeholder="0.00"
+                className="pr-8"
+              />
+              <span className="absolute right-3 top-2.5 text-sm font-bold text-muted-foreground">%</span>
+            </div>
           </div>
 
           <div className="space-y-2 md:col-span-2">

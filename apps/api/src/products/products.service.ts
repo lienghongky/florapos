@@ -55,6 +55,8 @@ export class ProductsService {
                     store_id: createProductDto.store_id,
                     current_stock: 0,
                     cost_price: createProductDto.cost_price || 0,
+                    category_id: createProductDto.category_id,
+                    tags: createProductDto.tags,
                 });
                 createdInventoryItem = await manager.save(inventoryItem);
             }
@@ -120,12 +122,23 @@ export class ProductsService {
         return { imported_count: 0 };
     }
 
-    async findAll(userId: string, storeId: string): Promise<Product[]> {
+    async findAll(userId: string, storeId: string, tags?: string): Promise<Product[]> {
         await this.storesService.findOne(userId, storeId);
-        const products = await this.productRepository.find({
+        let products = await this.productRepository.find({
             where: { store_id: storeId },
             relations: ['recipe', 'recipe.inventory_item', 'category', 'product_addons', 'product_addons.addon', 'variants']
         });
+
+        // Filter by tags (case-insensitive, ANY match)
+        if (tags) {
+            const filterTags = tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+            if (filterTags.length > 0) {
+                products = products.filter(p => {
+                    const productTags = (p.tags || []).map(t => t.toLowerCase());
+                    return filterTags.some(ft => productTags.includes(ft));
+                });
+            }
+        }
 
         return Promise.all(products.map(async (product) => {
             let calculated_stock = 999999; // Default for non-tracked items
@@ -201,8 +214,14 @@ export class ProductsService {
         await this.storesService.findOne(userId, product.store_id);
 
         return this.dataSource.transaction(async (manager) => {
-            // Update basic fields
-            await manager.update(Product, id, {
+            // Build update payload — only include image_url if we have something to set.
+            // If no new file was uploaded and no image_url was sent, skip the field
+            // entirely so the existing image is not accidentally cleared.
+            const imageUrl = image
+                ? `/uploads/products/${image.filename}`
+                : updateProductDto.image_url || undefined;
+
+            const updatePayload: Partial<Product> = {
                 name: updateProductDto.name,
                 description: updateProductDto.description,
                 sku: updateProductDto.sku,
@@ -216,9 +235,32 @@ export class ProductsService {
                 tax_rate: updateProductDto.tax_rate,
                 track_inventory: updateProductDto.track_inventory,
                 allow_negative_stock: updateProductDto.allow_negative_stock,
-                image_url: image ? `/uploads/products/${image.filename}` : updateProductDto.image_url,
                 is_active: updateProductDto.is_active,
-            });
+            };
+
+            // Only set image_url when explicitly provided
+            if (imageUrl !== undefined) {
+                updatePayload.image_url = imageUrl;
+            }
+
+            // Only update tags when explicitly provided
+            if (updateProductDto.tags !== undefined) {
+                updatePayload.tags = updateProductDto.tags;
+            }
+
+            await manager.update(Product, id, updatePayload);
+
+            // Keep linked InventoryItem in sync for SIMPLE products
+            if (product.product_type === ProductType.SIMPLE) {
+                const recipe = await manager.findOne(ProductRecipe, { where: { product_id: id } });
+                if (recipe) {
+                    await manager.update(InventoryItem, recipe.inventory_item_id, {
+                        name: updateProductDto.name,
+                        category_id: updateProductDto.category_id,
+                        tags: updateProductDto.tags,
+                    });
+                }
+            }
 
 
             // Sync Recipes (Components)
@@ -317,6 +359,7 @@ export class ProductsService {
             if (typeof dto.recipe === 'string') dto.recipe = JSON.parse(dto.recipe);
             if (typeof dto.addons === 'string') dto.addons = JSON.parse(dto.addons);
             if (typeof dto.variants === 'string') dto.variants = JSON.parse(dto.variants);
+            if (typeof dto.tags === 'string') dto.tags = JSON.parse(dto.tags);
         } catch (e) {
             // Ignore parse errors, fallback to DTO default
         }
