@@ -157,3 +157,4 @@ dist-ssr
 node_modules/
 .pnpm-debug.log*
 .DS_Store
+apps/api/uploads
