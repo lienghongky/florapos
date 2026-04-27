@@ -201,12 +201,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('starting_balance', val.toString());
   };
 
-  const refreshStores = async () => {
-    if (!token) return;
+  const refreshStores = async (explicitToken?: string) => {
+    const activeToken = explicitToken || token;
+    if (!activeToken) return;
     try {
-      const fetchedStores = await storesService.getStores(token);
+      const fetchedStores = await storesService.getStores(activeToken);
       setStores(fetchedStores);
-      if (!selectedStore && fetchedStores.length > 0) setSelectedStore(fetchedStores[0]);
+      if (fetchedStores.length > 0) {
+        // If no store selected, or current selection isn't in fetched list, pick first
+        setSelectedStore(prev => {
+          if (!prev) return fetchedStores[0];
+          if (fetchedStores.find(s => s.id === prev.id)) return prev;
+          return fetchedStores[0];
+        });
+      }
     } catch (e) { console.error("Failed to fetch stores", e); }
   };
 
@@ -623,7 +631,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const user: User = { ...data.user, name: data.user.full_name || data.user.name || data.user.email };
       setUser(user);
       // Await stores so selectedStore is populated before dashboard mounts
-      await refreshStores();
+      await refreshStores(data.access_token);
       if (user.role === 'master') setCurrentPage('dashboard-master');
       else setCurrentPage(user.role === 'owner' ? 'dashboard-owner' : 'dashboard-sales');
     } catch (error) { throw error; }
@@ -769,7 +777,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setUser(hydratedUser);
           setToken(storedToken);
           // Await stores so selectedStore is set before pages that need it mount
-          await refreshStores();
+          await refreshStores(storedToken);
           // Restore saved page; if it was login/register redirect to the right dashboard
           const savedPage = localStorage.getItem('current_page');
           if (!savedPage || savedPage === 'login' || savedPage === 'register') {
