@@ -1,11 +1,20 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
-import { Flower2, ArrowLeft } from 'lucide-react';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuthStore } from '@/app/store/auth-store';
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
+import { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
+import { ArrowLeft, Flower2 } from 'lucide-react';
 
 export function RegisterPage() {
-    const { register, setCurrentPage } = useApp();
+    const { register, user } = useAuthStore();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (user) {
+            navigate('/', { replace: true });
+        }
+    }, [user, navigate]);
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
@@ -28,9 +37,9 @@ export function RegisterPage() {
         setIsLoading(true);
         try {
             await register({ email, password, full_name: fullName, role: 'OWNER' });
-            setSuccess('Registration successful! Please check your email/console to activatate account or login.');
+            setSuccess('Registration successful! Redirecting to login...');
             // Optional: Redirect to login after delay
-            setTimeout(() => setCurrentPage('login'), 2000);
+            setTimeout(() => navigate('/login'), 2000);
         } catch (err: any) {
             setError(err.message || 'Registration failed');
         } finally {
@@ -47,12 +56,12 @@ export function RegisterPage() {
                 className="w-full max-w-md"
             >
                 <div className="mb-8 text-center">
-                    <button
-                        onClick={() => setCurrentPage('login')}
+                    <Link
+                        to="/login"
                         className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
                     >
                         <ArrowLeft className="size-6" />
-                    </button>
+                    </Link>
                     <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
                         <Flower2 className="size-8" />
                     </div>
@@ -175,9 +184,9 @@ export function RegisterPage() {
 
                     <div className="mt-6 text-center text-sm text-muted-foreground">
                         Already have an account?{' '}
-                        <button onClick={() => setCurrentPage('login')} className="font-medium text-primary hover:underline">
+                        <Link to="/login" className="font-medium text-primary hover:underline">
                             Sign In
-                        </button>
+                        </Link>
                     </div>
                 </motion.div>
             </motion.div>

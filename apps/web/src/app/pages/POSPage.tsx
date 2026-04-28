@@ -2,14 +2,17 @@ import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { ProductCard } from '@/app/components/pos/ProductCard';
 import { CartPanel } from '@/app/components/pos/CartPanel';
 import { CategoryRail } from '@/app/components/pos/CategoryRail';
-import { useApp } from '@/app/context/AppContext';
+import { useProductStore } from '@/app/store/product-store';
+import { useCartStore } from '@/app/store/cart-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { Search, SlidersHorizontal, ShoppingBag, X, ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
+import { useLocation } from 'react-router-dom';
 
 import { ProductCustomizationModal } from '@/app/components/pos/ProductCustomizationModal';
-import { Product, ProductVariant, Addon } from '@/app/context/AppContext';
+import { Product, ProductVariant, Addon } from '@/app/types';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() =>
@@ -24,7 +27,16 @@ function useIsMobile() {
 }
 
 export function POSPage() {
-  const { products, addToCart, currentPage, categories, cart } = useApp();
+  const { products, categories, refreshProducts, refreshProductCategories } = useProductStore();
+  const { addToCart, cart, clearCart } = useCartStore();
+  const { selectedStore } = useAuthStore();
+
+  useEffect(() => {
+    refreshProducts();
+    refreshProductCategories();
+    clearCart();
+  }, [selectedStore?.id]);
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedTag, setSelectedTag] = useState('All');
@@ -35,6 +47,7 @@ export function POSPage() {
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
   const isMobile = useIsMobile();
+  const isFullscreen = location.pathname === '/pos-fullscreen';
 
   const categoryNames = ['All', ...Array.from(new Set(categories.map(c => c.name).filter(n => n !== 'All')))];
 
@@ -72,7 +85,7 @@ export function POSPage() {
     toast.success(`${product.name} added to cart`);
   };
 
-  const pageHeight = currentPage === 'pos-fullscreen' ? 'h-[calc(100vh-2rem)]' : 'h-[calc(100vh-5rem)]';
+  const pageHeight = isFullscreen ? 'h-[calc(100vh-2rem)]' : 'h-[calc(100vh-5rem)]';
 
   // Decide which grid layout to show based on state
   const productGridCols = isMobile

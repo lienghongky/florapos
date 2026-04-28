@@ -1,5 +1,6 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
-import { useApp, Product } from '@/app/context/AppContext';
+import { useProductStore } from '@/app/store/product-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Edit2, Trash2, Search, Filter, ArrowUpDown, Eye, EyeOff, Image as ImageIcon, Upload, X, Check, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
@@ -16,7 +17,8 @@ export interface ProductOption {
 }
 
 export function ProductsPage() {
-  const { products, addProduct, updateProduct, deleteProduct, user, categories, addProductCategory, refreshProducts, refreshProductCategories, selectedStore } = useApp();
+  const { products, addProduct, updateProduct, deleteProduct, categories, addProductCategory, refreshProducts, refreshProductCategories } = useProductStore();
+  const { user, selectedStore } = useAuthStore();
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
 
@@ -24,7 +26,7 @@ export function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedTag, setSelectedTag] = useState('All');
-  const [sortOption, setSortOption] = useState('updated-desc');
+  const [sortOption, setSortOption] = useState('created-desc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 100;
 
@@ -75,7 +77,7 @@ export function ProductsPage() {
 
   const displayProducts = products.map(product => {
     const categoryName = categories.find(c => c.id === product.category_id)?.name || 'Uncategorized';
-    
+
     const variantOptions = (product.variants || []).map(v => ({
       id: v.id,
       name: v.name,
@@ -128,7 +130,16 @@ export function ProductsPage() {
         case 'price-desc': return b.price - a.price;
         case 'stock-asc': return a.stock - b.stock;
         case 'stock-desc': return b.stock - a.stock;
-        case 'updated-desc': return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
+        case 'updated-desc': {
+          const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+          const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+          return dateB - dateA || b.name.localeCompare(a.name);
+        }
+        case 'created-desc': {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA || b.name.localeCompare(a.name);
+        }
         default: return 0;
       }
     });
@@ -196,10 +207,10 @@ export function ProductsPage() {
         toast.error('Image size must be less than 5MB');
         return;
       }
-      setFormData({ 
-        ...formData, 
+      setFormData({
+        ...formData,
         imageFile: file,
-        imagePreview: URL.createObjectURL(file) 
+        imagePreview: URL.createObjectURL(file)
       });
     }
   };
@@ -208,7 +219,7 @@ export function ProductsPage() {
   const handleAddNewCategory = async () => {
     if (newCategoryName.trim()) {
       try {
-        await addProductCategory({ 
+        await addProductCategory({
           name: newCategoryName.trim(),
           display_order: 0,
           is_active: true
@@ -251,7 +262,7 @@ export function ProductsPage() {
     formDataToSend.append('is_active', formData.isActive.toString());
     formDataToSend.append('sku', formData.sku);
     formDataToSend.append('barcode', formData.barcode);
-    
+
     if (formData.imageFile) {
       // New file uploaded — send it as multipart
       formDataToSend.append('image', formData.imageFile);
@@ -312,8 +323,8 @@ export function ProductsPage() {
 
   return (
     <AnimatedPage className="space-y-6">
-      <PageHeader 
-        title="Products" 
+      <PageHeader
+        title="Products"
         subtitle="Manage your product catalog"
         action={user?.role === 'owner' && (
           <motion.button
@@ -343,7 +354,7 @@ export function ProductsPage() {
             />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 justify-between sm:justify-start  w-full sm:w-auto">
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <select
@@ -362,8 +373,9 @@ export function ProductsPage() {
               <select
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value)}
-                className="h-10 rounded-lg border border-border bg-muted/30 pl-9 pr-8 text-sm outline-none focus:border-primary/50"
+                className="h-10 rounded-lg border border-border bg-muted/30 pl-9 pr-0 text-sm outline-none focus:border-primary/50"
               >
+                <option value="created-desc">Newest First</option>
                 <option value="updated-desc">Recently Updated</option>
                 <option value="name-asc">Name (A-Z)</option>
                 <option value="name-desc">Name (Z-A)</option>
@@ -384,11 +396,10 @@ export function ProductsPage() {
               <button
                 key={tag}
                 onClick={() => setSelectedTag(tag)}
-                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                  selectedTag === tag
-                    ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-all ${selectedTag === tag
+                  ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20'
+                  : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
               >
                 {tag === 'All' ? '✦ All' : `# ${tag}`}
               </button>
@@ -448,11 +459,10 @@ export function ProductsPage() {
                           <button
                             key={tag}
                             onClick={() => setSelectedTag(selectedTag === tag ? 'All' : tag)}
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold transition-all ${
-                              selectedTag === tag
-                                ? 'bg-brand-primary text-white'
-                                : 'bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100'
-                            }`}
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold transition-all ${selectedTag === tag
+                              ? 'bg-brand-primary text-white'
+                              : 'bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100'
+                              }`}
                           >
                             # {tag}
                           </button>
@@ -474,7 +484,7 @@ export function ProductsPage() {
                           }`}
                       >
                         <span className={`size-1.5 rounded-full ${product.stock === 0 ? 'bg-gray-400' : 'bg-current'}`} />
-                        {product.stock === 0 ? 'Out of Stock' : `${product.stock} ${product.unit}(s)`}
+                        {product.stock === 0 ? 'Out of Stock' : product.stock}
                       </span>
                     ) : (
                       <span className="text-muted-foreground text-xs italic">Unlimited</span>
@@ -540,7 +550,7 @@ export function ProductsPage() {
             >
               <ChevronLeft className="size-4" />
             </button>
-            
+
             <div className="flex items-center gap-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
                 // Only show a few page numbers if there are many
@@ -552,11 +562,10 @@ export function ProductsPage() {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`size-9 rounded-lg text-sm font-bold transition-all ${
-                      currentPage === page 
-                        ? 'bg-brand-primary text-white shadow-md' 
-                        : 'border border-border bg-white text-muted-foreground hover:bg-muted'
-                    }`}
+                    className={`size-9 rounded-lg text-sm font-bold transition-all ${currentPage === page
+                      ? 'bg-brand-primary text-white shadow-md'
+                      : 'border border-border bg-white text-muted-foreground hover:bg-muted'
+                      }`}
                   >
                     {page}
                   </button>
@@ -577,14 +586,14 @@ export function ProductsPage() {
 
       {/* Product Creation/Edit Modal */}
       <AnimatedModal isOpen={showModal} onClose={() => setShowModal(false)}>
-        <div className="rounded-xl bg-white p-0 shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+        <div className="rounded-t-3xl sm:rounded-xl bg-white p-0 shadow-xl w-full max-w-5xl my-0 sm:my-auto max-h-fit lg:max-h-[90vh] flex flex-col">
           <div className="p-6 border-b border-border">
             <h2 className="text-xl font-semibold">
               {editingProduct ? 'Edit Product' : 'Add New Product'}
             </h2>
           </div>
 
-          <div className="overflow-y-auto flex-1 p-6 space-y-8">
+          <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-6 sm:space-y-8">
             <form id="product-form" onSubmit={handleSubmit} className="space-y-8">
               {/* Image Upload Section */}
               <div className="grid grid-cols-[120px_1fr] gap-6">
@@ -890,7 +899,7 @@ export function ProductsPage() {
 
               {/* Options Management */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <label className="block text-sm font-medium">Customization Options</label>
                     <p className="text-xs text-muted-foreground">Add-ons like vases, ribbons, etc.</p>

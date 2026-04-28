@@ -1,5 +1,7 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
-import { useApp } from '@/app/context/AppContext';
+import { useInventoryStore } from '@/app/store/inventory-store';
+import { useProductStore } from '@/app/store/product-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { InventoryItem } from '@/app/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, Package, Search, Filter, ArrowUpDown, Download, Upload, TrendingUp, TrendingDown, Edit, Save, X, RotateCcw, History, Trash2, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -21,7 +23,9 @@ import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { PageHeader } from '@/app/components/ui/page-header';
 
 export function InventoryPage() {
-  const { inventoryItems, products, categories, adjustInventoryStock, deleteInventoryItem, refreshInventory, refreshProducts, selectedStore } = useApp();
+  const { inventoryItems, adjustInventoryStock, deleteInventoryItem, refreshInventory } = useInventoryStore();
+  const { products, categories, refreshProducts } = useProductStore();
+  const { selectedStore } = useAuthStore();
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -130,8 +134,16 @@ export function InventoryPage() {
       case 'stock-desc': return bStock - aStock;
       case 'value-asc': return aValue - bValue;
       case 'value-desc': return bValue - aValue;
-      case 'updated-desc': return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
-      case 'updated-asc': return new Date(a.updated_at || 0).getTime() - new Date(b.updated_at || 0).getTime();
+      case 'updated-desc': {
+        const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        return dateB - dateA || b.name.localeCompare(a.name);
+      }
+      case 'updated-asc': {
+        const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        return dateA - dateB || a.name.localeCompare(b.name);
+      }
       default: return 0;
     }
   });

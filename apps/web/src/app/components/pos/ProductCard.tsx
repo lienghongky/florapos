@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { Plus } from 'lucide-react';
-import { Product } from '@/app/context/AppContext';
+import { Product } from '@/app/types';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 
 interface ProductCardProps {

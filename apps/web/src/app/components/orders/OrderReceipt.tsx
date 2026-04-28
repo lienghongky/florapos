@@ -2,7 +2,7 @@ import React from 'react';
 import { Order, OrderItem, Addon } from '@/app/types';
 import { Printer, Calendar, User, CreditCard, Tag, Info } from 'lucide-react';
 import { formatDateTime, formatPaymentMethod } from '@/app/utils/format';
-import { useApp } from '@/app/context/AppContext';
+import { useAuthStore } from '@/app/store/auth-store';
 
 const parsePrice = (val: any): number => {
     if (val && typeof val === 'object' && 'usd' in val) return Number(val.usd);
@@ -18,7 +18,7 @@ interface OrderReceiptProps {
 }
 
 export function OrderReceipt({ order, onPrint, storeOverride, customInvoiceCode, customNote }: OrderReceiptProps) {
-    const { user, selectedStore } = useApp();
+    const { user, selectedStore } = useAuthStore();
     const activeStore = storeOverride || selectedStore;
     const storeName = activeStore?.name || "FloraPos";
     const storeLogo = activeStore?.logo_url 

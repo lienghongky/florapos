@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Download, Search, Filter, History, ShoppingBag, Sliders, ArrowDown, AlertTriangle, Clock, User } from "lucide-react";
-import { useApp, InventoryHistoryLog, InventoryActionType } from "@/app/context/AppContext";
+import { useInventoryStore } from "@/app/store/inventory-store";
+import { InventoryHistoryLog, InventoryActionType } from "@/app/types";
 import { formatDateTime } from "@/app/utils/format";
 
 interface InventoryHistoryDrawerProps {
@@ -19,7 +20,7 @@ export function InventoryHistoryDrawer({
     productName,
     currentStock
 }: InventoryHistoryDrawerProps) {
-    const { getInventoryHistory } = useApp();
+    const { getInventoryHistory } = useInventoryStore();
     const [history, setHistory] = useState<InventoryHistoryLog[]>([]);
     const [loading, setLoading] = useState(false);
 

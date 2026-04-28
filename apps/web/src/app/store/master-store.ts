@@ -1,0 +1,169 @@
+import { create } from 'zustand';
+import { request } from '../services/api';
+import { useAuthStore } from './auth-store';
+import { storesService } from '../services/stores.service';
+import { toast } from 'sonner';
+
+interface MasterState {
+  masterStats: { totalOwners: number, totalStores: number, totalStaff: number } | null;
+  owners: any[];
+  globalStores: any[];
+  globalStaff: any[];
+  saasPayments: any[];
+  
+  refreshMasterData: () => Promise<void>;
+  refreshGlobalStores: () => Promise<void>;
+  refreshGlobalStaff: () => Promise<void>;
+  refreshSaaSPayments: () => Promise<void>;
+  
+  toggleUserActive: (id: string) => Promise<void>;
+  deleteGlobalUser: (id: string) => Promise<void>;
+  resetOwnerPassword: (id: string, newPassword: string) => Promise<void>;
+  inviteOwner: (data: any) => Promise<void>;
+  createStoreForOwner: (ownerId: string, storeData: { name: string, currency: string }) => Promise<void>;
+  getOwnerStaff: (ownerId: string) => Promise<any[]>;
+  updateGlobalStore: (storeId: string, data: any) => Promise<void>;
+  transferStoreOwnership: (storeId: string, newOwnerId: string) => Promise<void>;
+  recordSaaSPayment: (data: any) => Promise<void>;
+  fetchOwnerPayments: (ownerId: string) => Promise<any[]>;
+  uploadStoreBanner: (storeId: string, file: File) => Promise<void>;
+  uploadStoreLogo: (storeId: string, file: File) => Promise<void>;
+}
+
+export const useMasterStore = create<MasterState>((set, get) => ({
+  masterStats: null,
+  owners: [],
+  globalStores: [],
+  globalStaff: [],
+  saasPayments: [],
+
+  refreshMasterData: async () => {
+    const { token, user } = useAuthStore.getState();
+    if (!token || user?.role !== 'master') return;
+    try {
+      const stats = await request<any>('/master/stats', { token });
+      const ownersList = await request<any[]>('/master/owners', { token });
+      set({ masterStats: stats, owners: ownersList });
+    } catch (e) {
+      console.error("Failed to refresh master data", e);
+    }
+  },
+
+  refreshGlobalStores: async () => {
+    const { token, user } = useAuthStore.getState();
+    if (!token || user?.role !== 'master') return;
+    try {
+      const storesList = await request<any[]>('/master/stores', { token });
+      set({ globalStores: storesList });
+    } catch (e) {
+      console.error("Failed to fetch global stores", e);
+    }
+  },
+
+  refreshGlobalStaff: async () => {
+    const { token, user } = useAuthStore.getState();
+    if (!token || user?.role !== 'master') return;
+    try {
+      const staffList = await request<any[]>('/master/staff', { token });
+      set({ globalStaff: staffList });
+    } catch (e) {
+      console.error("Failed to fetch global staff", e);
+    }
+  },
+
+  refreshSaaSPayments: async () => {
+    const { token, user } = useAuthStore.getState();
+    if (!token || user?.role !== 'master') return;
+    try {
+      const paymentsList = await request<any[]>('/master/payments', { token });
+      set({ saasPayments: paymentsList });
+    } catch (e) {
+      console.error("Failed to fetch saas payments", e);
+    }
+  },
+
+  toggleUserActive: async (id) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await request(`/master/users/${id}/toggle-active`, { method: 'PATCH', token });
+    await get().refreshMasterData();
+  },
+
+  deleteGlobalUser: async (id) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await request(`/master/users/${id}`, { method: 'DELETE', token });
+    await get().refreshMasterData();
+  },
+
+  resetOwnerPassword: async (id, newPassword) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await request(`/master/users/${id}/password`, { 
+      method: 'PATCH', 
+      body: JSON.stringify({ password: newPassword }), 
+      token 
+    });
+    toast.success('Password updated successfully');
+  },
+
+  inviteOwner: async (data) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await request('/master/owners', { method: 'POST', body: JSON.stringify(data), token });
+    await get().refreshMasterData();
+  },
+
+  createStoreForOwner: async (ownerId, storeData) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await request(`/master/owners/${ownerId}/stores`, { method: 'POST', body: JSON.stringify(storeData), token });
+    await get().refreshMasterData();
+  },
+
+  getOwnerStaff: async (ownerId) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return [];
+    return await request<any[]>(`/master/owners/${ownerId}/staff`, { token });
+  },
+
+  updateGlobalStore: async (storeId, data) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await request(`/master/stores/${storeId}`, { method: 'PATCH', body: JSON.stringify(data), token });
+    await get().refreshGlobalStores();
+  },
+
+  transferStoreOwnership: async (storeId, newOwnerId) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await request(`/master/stores/${storeId}/transfer`, { method: 'POST', body: JSON.stringify({ newOwnerId }), token });
+    await get().refreshGlobalStores();
+    await get().refreshMasterData();
+  },
+
+  recordSaaSPayment: async (data) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await request('/master/payments', { method: 'POST', body: JSON.stringify(data), token });
+    await get().refreshSaaSPayments();
+  },
+
+  fetchOwnerPayments: async (ownerId) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return [];
+    return await request<any[]>(`/master/owners/${ownerId}/payments`, { token });
+  },
+
+  uploadStoreBanner: async (storeId, file) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await storesService.uploadBanner(token, storeId, file);
+  },
+
+  uploadStoreLogo: async (storeId, file) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await storesService.uploadLogo(token, storeId, file);
+  },
+}));

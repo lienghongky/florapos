@@ -6,7 +6,8 @@ import {
   AlertCircle, History, Loader2, ArrowRight
 } from 'lucide-react';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
-import { useApp, InventoryItem } from '@/app/context/AppContext';
+import { useProductStore } from '@/app/store/product-store';
+import { InventoryItem } from '@/app/types';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { toast } from 'sonner';
 
@@ -16,7 +17,7 @@ interface QuickAdjustModalProps {
 }
 
 export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
-  const { findInventoryItemByCode, adjustInventoryStock, products, categories } = useApp();
+  const { findInventoryItemByCode, adjustInventoryStock, products, categories } = useProductStore();
   
   // State
   const [searchCode, setSearchCode] = useState('');

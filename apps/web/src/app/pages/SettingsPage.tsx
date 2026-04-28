@@ -1,14 +1,21 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
-import { useApp } from '@/app/context/AppContext';
+import { useAuthStore } from '@/app/store/auth-store';
+import { useStaffStore } from '@/app/store/staff-store';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Bell, Globe, Shield, UserPlus, Trash2, Edit2, X, Check, Store } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { StoreProfileSection } from '@/app/components/settings/StoreProfileSection';
 import { PageHeader } from '@/app/components/ui/page-header';
 
 export function SettingsPage() {
-  const { user, users, createStaff, deleteStaff, updateStaff, toggleActiveStaff } = useApp();
+  const { user, selectedStore } = useAuthStore();
+  const { users, createStaff, deleteStaff, updateStaff, toggleActiveStaff, refreshUsers } = useStaffStore();
+
+  // Initial load
+  useEffect(() => {
+    refreshUsers();
+  }, [selectedStore?.id]);
   const [notifications, setNotifications] = useState({
     email: true,
     lowStock: true,
@@ -60,7 +67,7 @@ export function SettingsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="rounded-[2rem] border border-border bg-white p-8 shadow-sm"
+          className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
         >
           <div className="mb-8 flex items-center gap-4">
             <div className="flex size-12 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">
@@ -119,7 +126,7 @@ export function SettingsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="rounded-[2rem] border border-border bg-white p-8 shadow-sm"
+            className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
           >
             <StoreProfileSection />
           </motion.div>
@@ -131,11 +138,11 @@ export function SettingsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="rounded-[2rem] border border-border bg-white p-8 shadow-sm overflow-hidden"
+            className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm overflow-hidden"
           >
-            <div className="mb-8 flex items-center justify-between">
+            <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 shrink-0">
                   <UserPlus className="size-6" />
                 </div>
                 <div>
@@ -154,49 +161,51 @@ export function SettingsPage() {
 
             <div className="space-y-4">
               {users.filter(u => u.id !== user.id).map(staffUser => (
-                <div key={staffUser.id} className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all">
+                <div key={staffUser.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500">
+                    <div className="size-10 md:size-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 shrink-0">
                       {staffUser.full_name?.charAt(0) || 'U'}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-800">{staffUser.full_name || 'Unnamed Staff'}</p>
-                      <p className="text-xs text-slate-500">{staffUser.email}</p>
+                      <p className="font-bold text-slate-800 text-sm md:text-base">{staffUser.full_name || 'Unnamed Staff'}</p>
+                      <p className="text-[10px] md:text-xs text-slate-500">{staffUser.email}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
                     <span className="text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full">
                       {staffUser.role || 'Staff'}
                     </span>
-                    <div className="flex items-center gap-2 mr-2">
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={async () => {
-                          try {
-                            await toggleActiveStaff(staffUser.id);
-                            toast.success(`User ${staffUser.is_active ? 'deactivated' : 'activated'} successfully`);
-                          } catch (error: any) {
-                            toast.error(error.message || "Failed to update user status");
-                          }
-                        }}
-                        className={`relative h-5 w-9 rounded-full transition-colors ${staffUser.is_active ? 'bg-brand-primary' : 'bg-slate-300'}`}
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={async () => {
+                            try {
+                              await toggleActiveStaff(staffUser.id);
+                              toast.success(`User ${staffUser.is_active ? 'deactivated' : 'activated'} successfully`);
+                            } catch (error: any) {
+                              toast.error(error.message || "Failed to update user status");
+                            }
+                          }}
+                          className={`relative h-5 w-9 rounded-full transition-colors ${staffUser.is_active ? 'bg-brand-primary' : 'bg-slate-300'}`}
+                        >
+                          <motion.div
+                            animate={{ x: staffUser.is_active ? 18 : 2 }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                            className="absolute top-1 size-3 rounded-full bg-white shadow-sm"
+                          />
+                        </motion.button>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">
+                          {staffUser.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteStaff(staffUser.id, staffUser.full_name || staffUser.email)}
+                        className="p-2 text-slate-400 hover:text-red-500 transition-colors"
                       >
-                        <motion.div
-                          animate={{ x: staffUser.is_active ? 18 : 2 }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                          className="absolute top-1 size-3 rounded-full bg-white shadow-sm"
-                        />
-                      </motion.button>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">
-                        {staffUser.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                        <Trash2 className="size-4" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleDeleteStaff(staffUser.id, staffUser.full_name || staffUser.email)}
-                      className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
                   </div>
                 </div>
               ))}
@@ -213,10 +222,11 @@ export function SettingsPage() {
               {isAddingStaff && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="w-full max-w-md bg-white rounded-[2rem] p-8 shadow-2xl"
+                    initial={{ y: '100%' }}
+                    animate={{ y: 0 }}
+                    exit={{ y: '100%' }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                    className="w-full max-w-md bg-white rounded-t-[2.5rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl mt-auto sm:my-auto"
                   >
                     <div className="flex items-center justify-between mb-8">
                       <h3 className="text-2xl font-black text-slate-900">New Staff Member</h3>
@@ -287,7 +297,7 @@ export function SettingsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="rounded-[2rem] border border-border bg-white p-8 shadow-sm"
+          className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
         >
           <div className="mb-8 flex items-center gap-4">
             <div className="flex size-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
@@ -330,7 +340,7 @@ export function SettingsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="rounded-[2rem] border border-border bg-white p-8 shadow-sm"
+          className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
         >
           <div className="mb-8 flex items-center gap-4">
             <div className="flex size-12 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">

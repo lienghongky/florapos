@@ -29,6 +29,8 @@ export interface InventoryItem {
     category_id?: string;
     category?: Category;
     tags?: string[];
+    updated_at?: string;
+    created_at?: string;
 }
 
 export type ProductType = 'simple' | 'composite';
@@ -93,6 +95,7 @@ export interface Product {
     calculated_stock?: number;
     tags?: string[];
     updated_at?: string;
+    created_at?: string;
 }
 
 export interface OrderItemAddon {

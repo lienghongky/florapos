@@ -6,12 +6,13 @@ import {
   ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Package
 } from 'lucide-react';
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
-import { useApp, InventoryHistoryLog, InventoryActionType } from '@/app/context/AppContext';
+import { useInventoryStore } from '@/app/store/inventory-store';
+import { InventoryHistoryLog, InventoryActionType } from '@/app/types';
 import { toast } from 'sonner';
 import { formatDate, formatTime } from '@/app/utils/format';
 
 export function InventoryHistoryPage() {
-  const { getGlobalHistory } = useApp();
+  const { getGlobalHistory } = useInventoryStore();
   const [history, setHistory] = useState<InventoryHistoryLog[]>([]);
   const [loading, setLoading] = useState(true);
   

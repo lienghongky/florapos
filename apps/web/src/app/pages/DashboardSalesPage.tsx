@@ -1,40 +1,26 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { KPICard } from '@/app/components/cards/KPICard';
 import { DollarSign, ShoppingBag, ArrowRight } from 'lucide-react';
-import { useApp } from '@/app/context/AppContext';
+import { useAuthStore } from '@/app/store/auth-store';
+import { useOrderStore } from '@/app/store/order-store';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
-import { ordersService } from '@/app/services/orders.service';
+import { useEffect } from 'react';
 import { Skeleton } from '@/app/components/ui/skeleton';
+import { Link } from 'react-router-dom';
 
 /**
  * Staff-facing dashboard — shows today's sales performance
  * and a prominent CTA to the POS system.
  */
 export function DashboardSalesPage() {
-  const { setCurrentPage, selectedStore } = useApp();
-  const [stats, setStats] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { selectedStore } = useAuthStore();
+  const { stats, isDashboardLoading, refreshDashboardData } = useOrderStore();
 
   useEffect(() => {
-    const fetchTodayStats = async () => {
-      if (!selectedStore) return;
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem('auth_token') || '';
-        const data = await ordersService.getStats(token, selectedStore.id);
-        setStats(data);
-      } catch (error) {
-        console.error('Failed to fetch sales performance', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTodayStats();
+    refreshDashboardData();
   }, [selectedStore?.id]);
 
-  if (isLoading || !stats) {
+  if (isDashboardLoading || !stats) {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center space-y-8 animate-in fade-in duration-500">
         <Skeleton className="h-44 w-full max-w-4xl rounded-3xl" />
@@ -106,15 +92,18 @@ export function DashboardSalesPage() {
       </div>
 
       {/* CTA Button */}
-      <motion.button
+      <motion.div
         whileHover={{ scale: 1.03, boxShadow: '0 16px 40px -10px rgba(16, 185, 129, 0.35)' }}
         whileTap={{ scale: 0.97 }}
-        onClick={() => setCurrentPage('pos')}
-        className="flex items-center gap-3 rounded-xl bg-brand-primary px-10 py-4 text-lg font-semibold text-white shadow-lg shadow-brand-primary/25 transition-all"
       >
-        Go to Point of Sale
-        <ArrowRight className="size-5" />
-      </motion.button>
+        <Link
+          to="/pos"
+          className="flex items-center gap-3 rounded-xl bg-brand-primary px-10 py-4 text-lg font-semibold text-white shadow-lg shadow-brand-primary/25 transition-all"
+        >
+          Go to Point of Sale
+          <ArrowRight className="size-5" />
+        </Link>
+      </motion.div>
     </AnimatedPage>
   );
 }

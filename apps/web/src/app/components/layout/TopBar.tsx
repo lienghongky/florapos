@@ -1,10 +1,12 @@
 import { Flower2, ChevronDown, LogOut, Menu } from 'lucide-react';
-import { useApp } from '@/app/context/AppContext';
+import { useAuthStore } from '@/app/store/auth-store';
+import { useUIStore } from '@/app/store/ui-store';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 
 export function TopBar() {
-  const { user, logout, stores, selectedStore, setSelectedStore, isSidebarCollapsed, toggleMobileSidebar } = useApp();
+  const { user, logout, stores, selectedStore, setSelectedStore } = useAuthStore();
+  const { isSidebarCollapsed, toggleMobileSidebar } = useUIStore();
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 

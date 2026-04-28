@@ -1,5 +1,7 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
-import { useApp, Product } from '@/app/context/AppContext';
+import { useAuthStore } from '@/app/store/auth-store';
+import { useProductStore } from '@/app/store/product-store';
+import { Product } from '@/app/types';
 import { Order } from '@/app/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, FileText, TrendingUp, Users, CreditCard, Calendar, Search, Filter, ChevronDown, BarChart3, Receipt, DollarSign, UserCheck, Percent, RefreshCw, Printer, AlertCircle } from 'lucide-react';
@@ -15,7 +17,8 @@ import { ordersService } from '@/app/services/orders.service';
 // parsePrice is now imported from @/app/utils/format
 
 export function ReportsPage() {
-  const { user, products, selectedStore } = useApp();
+  const { user, selectedStore } = useAuthStore();
+  const { products } = useProductStore();
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState('sales'); // sales, history, invoices, financial, staff
 

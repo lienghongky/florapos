@@ -36,7 +36,7 @@ export class PriceTransformInterceptor implements NestInterceptor {
     }
 
     private transformPrices(data: any, exchangeRate: number): any {
-        if (!data) return data;
+        if (!data || data instanceof Date) return data;
 
         // Handle arrays
         if (Array.isArray(data)) {
@@ -53,7 +53,7 @@ export class PriceTransformInterceptor implements NestInterceptor {
                     transformed[key] = new MultiCurrencyPrice(Number(transformed[key]), exchangeRate);
                 }
                 // Transform nested objects/arrays
-                else if (typeof transformed[key] === 'object' && transformed[key] !== null) {
+                else if (typeof transformed[key] === 'object' && transformed[key] !== null && !(transformed[key] instanceof Date)) {
                     transformed[key] = this.transformPrices(transformed[key], exchangeRate);
                 }
             }

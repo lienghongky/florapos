@@ -1,7 +1,9 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
-import { useApp } from '@/app/context/AppContext';
+import { useAuthStore } from '@/app/store/auth-store';
+import { useUIStore } from '@/app/store/ui-store';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(() =>
@@ -16,27 +18,28 @@ function useIsDesktop() {
 }
 
 export function Layout({ children }: { children: ReactNode }) {
+  const { user } = useAuthStore();
   const {
-    user,
     isSidebarCollapsed,
     isMobileSidebarOpen,
     setMobileSidebarOpen,
-    currentPage,
-    setCurrentPage,
-  } = useApp();
+  } = useUIStore();
 
+  const location = useLocation();
+  const navigate = useNavigate();
   const isDesktop = useIsDesktop();
+  const isFullscreenPos = location.pathname === '/pos-fullscreen';
 
   // Fullscreen Mode — ESC exits
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && currentPage === 'pos-fullscreen') {
-        setCurrentPage('pos');
+      if (e.key === 'Escape' && isFullscreenPos) {
+        navigate('/pos');
       }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [currentPage, setCurrentPage]);
+  }, [isFullscreenPos, navigate]);
 
   // Auto-close mobile sidebar on resize to desktop
   useEffect(() => {
@@ -46,12 +49,12 @@ export function Layout({ children }: { children: ReactNode }) {
   if (!user) return <>{children}</>;
 
   // Fullscreen POS — no chrome
-  if (currentPage === 'pos-fullscreen') {
+  if (isFullscreenPos) {
     return (
       <div className="relative min-h-screen bg-muted/30 p-4">
         {children}
         <button
-          onClick={() => setCurrentPage('pos')}
+          onClick={() => navigate('/pos')}
           className="fixed bottom-6 left-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-black/80 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:bg-black opacity-60 hover:opacity-100 active:scale-95"
           title="Exit Fullscreen (ESC)"
         >

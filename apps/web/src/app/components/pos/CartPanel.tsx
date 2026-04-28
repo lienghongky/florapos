@@ -3,7 +3,9 @@ import {
   Minus, Plus, CreditCard, Banknote, ShoppingBag, Clock, Truck,
   ScanLine, Wallet, MapPin, StickyNote, Delete, ClipboardList, User, Phone
 } from 'lucide-react';
-import { useApp } from '@/app/context/AppContext';
+import { useCartStore } from '@/app/store/cart-store';
+import { useOrderStore } from '@/app/store/order-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { useState, useMemo } from 'react';
 import { AnimatedModal } from '../motion/AnimatedPage';
 import { toast } from 'sonner';
@@ -34,7 +36,9 @@ function getFlowerImage(name: string): string {
 }
 
 export function CartPanel({ onClose }: { onClose?: () => void }) {
-  const { cart, removeFromCart, updateCartQuantity, clearCart, checkoutOrder, selectedStore } = useApp();
+  const { cart, removeFromCart, updateCartQuantity, clearCart } = useCartStore();
+  const { checkoutOrder } = useOrderStore();
+  const { selectedStore } = useAuthStore();
 
   // ── Form state ─────────────────────────────────────────────────────────────
   const [customerName, setCustomerName] = useState('');

@@ -13,14 +13,17 @@ import {
   History,
   X
 } from 'lucide-react';
-import { useApp } from '@/app/context/AppContext';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/app/store/auth-store';
+import { useUIStore } from '@/app/store/ui-store';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface NavItem {
   id: string;
   label: string;
   icon: React.ReactNode;
-  roles: ('master' | 'owner' | 'staff')[];
+  roles: ('master' | 'owner' | 'sales' | 'staff')[];
+  path: string;
 }
 
 const navItems: NavItem[] = [
@@ -28,94 +31,98 @@ const navItems: NavItem[] = [
     id: 'dashboard',
     label: 'Dashboard',
     icon: <LayoutDashboard className="size-5" />,
-    roles: ['owner', 'staff'],
+    roles: ['owner'],
+    path: '/dashboard-owner',
+  },
+  {
+    id: 'dashboard-sales',
+    label: 'Dashboard',
+    icon: <LayoutDashboard className="size-5" />,
+    roles: ['staff'],
+    path: '/dashboard-sales',
   },
   {
     id: 'dashboard-master',
     label: 'Master Dashboard',
     icon: <LayoutDashboard className="size-5" />,
     roles: ['master'],
+    path: '/dashboard-master',
   },
   {
     id: 'pos',
     label: 'POS System',
     icon: <ShoppingCart className="size-5" />,
     roles: ['owner', 'staff'],
+    path: '/pos',
   },
   {
     id: 'orders',
     label: 'Orders',
     icon: <FileText className="size-5" />,
     roles: ['owner', 'staff'],
+    path: '/orders',
   },
   {
     id: 'products',
     label: 'Products',
     icon: <Package className="size-5" />,
     roles: ['owner', 'staff'],
+    path: '/products',
   },
   {
     id: 'inventory',
     label: 'Inventory',
     icon: <Warehouse className="size-5" />,
     roles: ['owner', 'staff'],
+    path: '/inventory',
   },
   {
     id: 'inventory-history',
     label: 'Inventory History',
     icon: <History className="size-5" />,
     roles: ['owner', 'staff'],
+    path: '/inventory-history',
   },
   {
     id: 'reports',
     label: 'Reports',
     icon: <FileText className="size-5" />,
     roles: ['owner'],
+    path: '/reports',
   },
   {
     id: 'expenses',
     label: 'Expenses',
     icon: <TrendingDown className="size-5" />,
     roles: ['owner'],
+    path: '/expenses',
   },
   {
     id: 'settings',
     label: 'Settings',
     icon: <Settings className="size-5" />,
     roles: ['owner', 'staff'],
+    path: '/settings',
   },
 ];
 
 export function Sidebar() {
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
   const {
-    user,
-    currentPage,
-    setCurrentPage,
     isSidebarCollapsed,
     toggleSidebar,
-    logout,
     isMobileSidebarOpen,
     setMobileSidebarOpen,
-  } = useApp();
+  } = useUIStore();
 
   if (!user) return null;
 
   const filteredItems = navItems.filter(item => item.roles.includes(user.role));
 
-  const getPageId = (page: string) => {
-    if (page.startsWith('dashboard')) return 'dashboard';
-    return page;
-  };
-
-  const handleNavClick = (itemId: string) => {
-    if (itemId === 'dashboard') {
-      setCurrentPage(user.role === 'owner' ? 'dashboard-owner' : 'dashboard-sales');
-    } else if (itemId === 'dashboard-master') {
-      setCurrentPage('dashboard-master');
-    } else {
-      setCurrentPage(itemId);
-    }
-    // Close mobile drawer after navigating
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
     setMobileSidebarOpen(false);
   };
 
@@ -147,36 +154,35 @@ export function Sidebar() {
       {/* Menu */}
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto scrollbar-hide">
         {filteredItems.map(item => {
-          const isActive = getPageId(currentPage) === item.id;
           return (
-            <motion.button
+            <NavLink
               key={item.id}
-              whileHover={{ x: isSidebarCollapsed ? 0 : 4 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => handleNavClick(item.id)}
-              onDoubleClick={() => {
-                if (item.id === 'pos') setCurrentPage('pos-fullscreen');
-              }}
+              to={item.path}
+              onClick={() => setMobileSidebarOpen(false)}
               title={isSidebarCollapsed ? item.label : undefined}
-              className={`group relative flex items-center rounded-xl transition-all duration-200 
+              className={({ isActive }) => `group relative flex items-center rounded-xl transition-all duration-200 
                 ${isSidebarCollapsed ? 'w-10 h-10 justify-center mx-auto' : 'w-full px-4 py-3 gap-3 text-left'}
                 ${isActive
                   ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/25'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
             >
-              <div className="shrink-0">{item.icon}</div>
-              {!isSidebarCollapsed && (
-                <span className="text-sm font-medium whitespace-nowrap overflow-hidden">{item.label}</span>
+              {({ isActive }) => (
+                <>
+                  <div className="shrink-0">{item.icon}</div>
+                  {!isSidebarCollapsed && (
+                    <span className="text-sm font-medium whitespace-nowrap overflow-hidden">{item.label}</span>
+                  )}
+                  {isActive && !isSidebarCollapsed && (
+                    <motion.div
+                      layoutId="active-pill-desktop"
+                      className="ml-auto size-1.5 rounded-full bg-white shrink-0"
+                      transition={{ duration: 0.2 }}
+                    />
+                  )}
+                </>
               )}
-              {isActive && !isSidebarCollapsed && (
-                <motion.div
-                  layoutId="active-pill-desktop"
-                  className="ml-auto size-1.5 rounded-full bg-white shrink-0"
-                  transition={{ duration: 0.2 }}
-                />
-              )}
-            </motion.button>
+            </NavLink>
           );
         })}
       </nav>
@@ -203,7 +209,7 @@ export function Sidebar() {
             </div>
           )}
           {!isSidebarCollapsed && (
-            <button onClick={logout} className="p-1 hover:bg-white rounded-lg text-muted-foreground hover:text-destructive transition-colors">
+            <button onClick={handleLogout} className="p-1 hover:bg-white rounded-lg text-muted-foreground hover:text-destructive transition-colors">
               <LogOut className="size-4" />
             </button>
           )}
@@ -244,23 +250,27 @@ export function Sidebar() {
           {/* Menu */}
           <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto scrollbar-hide">
             {filteredItems.map(item => {
-              const isActive = getPageId(currentPage) === item.id;
               return (
-                <button
+                <NavLink
                   key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  className={`group flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-all duration-200
+                  to={item.path}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={({ isActive }) => `group flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-all duration-200
                     ${isActive
                       ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/25'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                 >
-                  <div className="shrink-0">{item.icon}</div>
-                  <span className="text-sm font-medium">{item.label}</span>
-                  {isActive && (
-                    <div className="ml-auto size-1.5 rounded-full bg-white shrink-0" />
+                  {({ isActive }) => (
+                    <>
+                      <div className="shrink-0">{item.icon}</div>
+                      <span className="text-sm font-medium">{item.label}</span>
+                      {isActive && (
+                        <div className="ml-auto size-1.5 rounded-full bg-white shrink-0" />
+                      )}
+                    </>
                   )}
-                </button>
+                </NavLink>
               );
             })}
           </nav>
@@ -277,7 +287,7 @@ export function Sidebar() {
                 <p className="truncate text-sm font-semibold">{user?.name}</p>
                 <p className="truncate text-xs text-muted-foreground capitalize">{user?.role}</p>
               </div>
-              <button onClick={() => { logout(); setMobileSidebarOpen(false); }} className="p-1.5 hover:bg-white rounded-lg text-muted-foreground hover:text-destructive transition-colors">
+              <button onClick={handleLogout} className="p-1.5 hover:bg-white rounded-lg text-muted-foreground hover:text-destructive transition-colors">
                 <LogOut className="size-4" />
               </button>
             </div>

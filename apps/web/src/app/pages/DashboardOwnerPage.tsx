@@ -1,51 +1,27 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { KPICard } from '@/app/components/cards/KPICard';
 import { DollarSign, ShoppingBag, TrendingUp } from 'lucide-react';
-import { useApp } from '@/app/context/AppContext';
+import { useAuthStore } from '@/app/store/auth-store';
+import { useOrderStore } from '@/app/store/order-store';
 import { Order } from '@/app/types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { formatDateTime } from '@/app/utils/format';
-import { ordersService } from '@/app/services/orders.service';
 import { Skeleton } from '@/app/components/ui/skeleton';
 
 /**
  * Owner-facing dashboard — shows KPIs, sales chart, and recent orders.
  */
 export function DashboardOwnerPage() {
-  const { selectedStore } = useApp();
-  const [stats, setStats] = useState<any>(null);
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { selectedStore } = useAuthStore();
+  const { stats, recentOrders, isDashboardLoading, refreshDashboardData } = useOrderStore();
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!selectedStore) return;
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem('auth_token') || '';
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-        const today = now.toISOString().split('T')[0];
-
-        const [statsData, recentData] = await Promise.all([
-          ordersService.getStats(token, selectedStore.id, startOfMonth, today),
-          ordersService.getRecentOrders(token, selectedStore.id, 5)
-        ]);
-        setStats(statsData);
-        setRecentOrders(recentData);
-      } catch (error) {
-        console.error("Failed to fetch dashboard data", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDashboardData();
+    refreshDashboardData();
   }, [selectedStore?.id]);
 
-  if (isLoading || !stats) {
+  if (isDashboardLoading || !stats) {
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
         {/* Banner Skeleton */}
@@ -76,7 +52,7 @@ export function DashboardOwnerPage() {
     );
   }
 
-  const { total_revenue, today_revenue, today_orders, revenue_trend, orders_trend, chart_data } = stats;
+  const { total_revenue, today_revenue, today_orders, revenue_trend, chart_data } = stats;
 
   return (
     <AnimatedPage className="space-y-8">

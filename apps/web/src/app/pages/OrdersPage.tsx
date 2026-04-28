@@ -2,11 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Filter, Calendar, ShoppingBag, ChevronDown, 
-  ChevronRight, RefreshCw, Download, Printer, Clock, 
+  ChevronRight, RefreshCw, Printer, Clock, 
   CheckCircle, XCircle, Package, ArrowUpRight, X,
   Instagram, Loader2, Sparkles
 } from 'lucide-react';
-import { useApp } from '@/app/context/AppContext';
+import { useOrderStore } from '@/app/store/order-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { Order, OrderStatus } from '@/app/types';
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { OrderReceipt } from '@/app/components/orders/OrderReceipt';
@@ -25,7 +26,8 @@ const parsePrice = (val: any): number => {
 };
 
 export function OrdersPage() {
-  const { orders, refreshOrders, updateOrderStatus, isLoading, selectedStore } = useApp();
+  const { orders, refreshOrders, updateOrderStatus, isOrdersLoading } = useOrderStore();
+  const { selectedStore } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<'today' | 'yesterday' | 'week' | 'all'>('today');
@@ -204,12 +206,8 @@ export function OrdersPage() {
               onClick={handleRefresh}
               className="flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold shadow-sm transition-all hover:bg-muted active:scale-95"
             >
-              <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`size-4 ${isOrdersLoading ? 'animate-spin' : ''}`} />
               Refresh
-            </button>
-            <button className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 active:scale-95">
-              <Download className="size-4" />
-              Export Report
             </button>
           </>
         }

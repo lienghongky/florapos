@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useApp } from '@/app/context/AppContext';
+import { useMasterStore } from '@/app/store/master-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { 
   Users, 
   Store, 
@@ -46,7 +47,9 @@ export function DashboardMasterPage() {
     refreshSaaSPayments,
     recordSaaSPayment,
     refreshMasterData
-  } = useApp();
+  } = useMasterStore();
+
+  const { user } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<'owners' | 'stores' | 'staff' | 'payments'>('owners');
   const [searchTerm, setSearchTerm] = useState('');

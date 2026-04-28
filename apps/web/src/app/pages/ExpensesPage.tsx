@@ -1,9 +1,12 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
-import { useApp, Expense, ExpenseCategory, Income } from '@/app/context/AppContext';
+import { useAuthStore } from '@/app/store/auth-store';
+import { useOrderStore } from '@/app/store/order-store';
+import { useExpenseStore } from '@/app/store/expense-store';
+import { Expense, ExpenseCategory, Income } from '@/app/types';
 import { Order } from '@/app/types';
 import { SmartCategorySelect } from '@/app/components/expenses/SmartCategorySelect';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     PieChart,
     List,
@@ -39,7 +42,21 @@ import { toast } from 'sonner';
 import { PageHeader } from '@/app/components/ui/page-header';
 
 export function ExpensesPage() {
-    const { user, expenses, orders, expenseCategories, addExpense, deleteExpense, addCategory, deleteCategory, incomes, addIncome, deleteIncome, startingBalance, setStartingBalance } = useApp();
+    const { user } = useAuthStore();
+    const { orders } = useOrderStore();
+    const { 
+        expenses, 
+        expenseCategories, 
+        addExpense, 
+        deleteExpense, 
+        addCategory, 
+        deleteCategory, 
+        incomes, 
+        addIncome, 
+        deleteIncome, 
+        startingBalance, 
+        setStartingBalance 
+    } = useExpenseStore();
     const [activeTab, setActiveTab] = useState('overview'); // overview, list, categories, reports
     const [listTab, setListTab] = useState<'expenses' | 'income'>('expenses');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -48,6 +65,14 @@ export function ExpensesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newCategoryType, setNewCategoryType] = useState<'expense' | 'income'>('expense');
+
+    const { refreshTransactions, refreshExpenseCategories } = useExpenseStore();
+
+    // Initial load
+    useEffect(() => {
+        refreshTransactions();
+        refreshExpenseCategories();
+    }, [useAuthStore.getState().selectedStore?.id]);
 
     // Date Filters
     const [dateRange, setDateRange] = useState({
@@ -280,12 +305,12 @@ export function ExpensesPage() {
     });
 
     const pieData = Object.entries(expensesByCategory).map(([name, value]) => ({ name, value }));
-    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+    const COLORS = ['#EF4444', '#F59E0B', '#F97316', '#F43F5E', '#EAB308', '#C2410C']; // Red, Amber, Orange, Rose, Yellow, Deep Orange
 
     // Sort logic for top expenses
     const topExpenses = (Object.entries(expensesByCategory) as [string, number][])
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 5);
+        .slice(0, 10); // Show more in breakdown if available
 
     // Income Breakdown Logic
     const incomesByCategory = filteredIncomes.reduce((acc: Record<string, number>, inc: Income) => {
@@ -299,11 +324,29 @@ export function ExpensesPage() {
     }
 
     const incomePieData = Object.entries(incomesByCategory).map(([name, value]) => ({ name, value }));
-    const IN_COLORS = ['#10B981', '#34D399', '#6EE7B7', '#059669', '#047857', '#065F46'];
+    const getDynamicIncomeColor = (index: number) => {
+        const baseColors = ['#10B981', '#3B82F6', '#38BDF8', '#14B8A6', '#6366F1', '#06B6D4'];
+        if (index < baseColors.length) return baseColors[index];
+        // Dynamic HSL variation within Green-Blue range (140 to 240)
+        const hue = (140 + (index * 37)) % 100 + 140; 
+        const saturation = 65 + (index % 3) * 10;
+        const lightness = 45 + (index % 2) * 10;
+        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    };
+
+    const getDynamicExpenseColor = (index: number) => {
+        const baseColors = ['#EF4444', '#F59E0B', '#F97316', '#F43F5E', '#EAB308', '#C2410C'];
+        if (index < baseColors.length) return baseColors[index];
+        // Dynamic HSL variation within Red-Orange-Yellow range (0 to 50)
+        const hue = (index * 23) % 55;
+        const saturation = 80 + (index % 2) * 10;
+        const lightness = 45 + (index % 3) * 5;
+        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    };
 
     const topIncomes = (Object.entries(incomesByCategory) as [string, number][])
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 5);
+        .slice(0, 10); // Show more in breakdown if available
 
     // Combine for List View
     const allTransactions = [
@@ -697,7 +740,7 @@ export function ExpensesPage() {
                                                 dataKey="value"
                                             >
                                                 {incomePieData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={IN_COLORS[index % IN_COLORS.length]} />
+                                                    <Cell key={`cell-${index}`} fill={getDynamicIncomeColor(index)} />
                                                 ))}
                                             </Pie>
                                             <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
@@ -705,11 +748,11 @@ export function ExpensesPage() {
                                         </RechartsPieChart>
                                     </ResponsiveContainer>
                                 </div>
-                                <div className="mt-4 space-y-2">
+                                <div className="mt-4 space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                     {topIncomes.map(([name, amount]: [string, number], i: number) => (
                                         <div key={i} className="flex justify-between text-sm">
                                             <span className="font-medium flex items-center gap-2">
-                                                <div className="size-2 rounded-full" style={{ backgroundColor: IN_COLORS[i % IN_COLORS.length] }} />
+                                                <div className="size-2 rounded-full" style={{ backgroundColor: getDynamicIncomeColor(i) }} />
                                                 {name}
                                             </span>
                                             <span className="text-muted-foreground">${amount.toFixed(2)}</span>
@@ -737,7 +780,7 @@ export function ExpensesPage() {
                                                 dataKey="value"
                                             >
                                                 {pieData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    <Cell key={`cell-${index}`} fill={getDynamicExpenseColor(index)} />
                                                 ))}
                                             </Pie>
                                             <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
@@ -745,11 +788,11 @@ export function ExpensesPage() {
                                         </RechartsPieChart>
                                     </ResponsiveContainer>
                                 </div>
-                                <div className="mt-4 space-y-2">
+                                <div className="mt-4 space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                     {topExpenses.map(([name, amount]: [string, number], i: number) => (
                                         <div key={i} className="flex justify-between text-sm">
                                             <span className="font-medium flex items-center gap-2">
-                                                <div className="size-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                                                <div className="size-2 rounded-full" style={{ backgroundColor: getDynamicExpenseColor(i) }} />
                                                 {name}
                                             </span>
                                             <span className="text-muted-foreground">${amount.toFixed(2)}</span>

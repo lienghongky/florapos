@@ -11,26 +11,6 @@ interface ProductCustomizationModalProps {
     onAddToCart: (product: Product, selectedVariant?: ProductVariant, selectedAddons?: Addon[], quantity?: number) => void;
 }
 
-const getFlowerImage = (name: string, categoryId?: string): string => {
-    const imageMap: Record<string, string> = {
-        'Red Roses': 'photo-1518709594023-6eab9bab7b23?w=800&h=800&fit=crop',
-        'White Lilies': 'photo-1602492275880-1b23c1a8e6f1?w=800&h=800&fit=crop',
-        'Tulips Bouquet': 'photo-1520763185298-1b434c919102?w=800&h=800&fit=crop',
-        'Orchid Plant': 'photo-1525310072745-f49212b5ac6d?w=800&h=800&fit=crop',
-        'Sunflowers': 'photo-1470509037663-253afd7f0f51?w=800&h=800&fit=crop',
-        'Mixed Bouquet': 'photo-1490750967868-88aa4486c946?w=800&h=800&fit=crop',
-        'Pink Peonies': 'photo-1522348693650-dc5c2347e082?w=800&h=800&fit=crop',
-        'Carnations': 'photo-1585821569331-f071db2abd8d?w=800&h=800&fit=crop',
-        'Daisies': 'photo-1463320898484-cdae8bccd79e?w=800&h=800&fit=crop',
-        'Hydrangeas': 'photo-1558603668-6570496b66f8?w=800&h=800&fit=crop',
-        'Lavender Bouquet': 'photo-1499002238440-d264edd596ec?w=800&h=800&fit=crop',
-        'Exotic Tropicals': 'photo-1601002354177-a2e88c27a23f?w=800&h=800&fit=crop',
-    };
-    const imageMapKeys = Object.keys(imageMap);
-    const matchedKey = imageMapKeys.find(k => name.includes(k));
-    const imageId = imageMap[matchedKey || ''] || 'photo-1490750967868-88aa4486c946?w=800&h=800&fit=crop';
-    return `https://images.unsplash.com/${imageId}&q=80`;
-};
 
 export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCart }: ProductCustomizationModalProps) {
     const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(undefined);
@@ -91,23 +71,23 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                         onClick={onClose}
                         className="fixed inset-0 z-50 bg-slate-900/60"
                     />
-                    
+
                     {/* Modal Container */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: 'spring', damping: 30, stiffness: 500 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pointer-events-none"
+                        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pointer-events-none overflow-y-auto"
                     >
-                        <div className="bg-white pointer-events-auto w-full max-w-5xl max-h-[90vh] sm:max-h-[85vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row">
-                            
+                        <div className="bg-white pointer-events-auto w-full max-w-5xl my-0 sm:my-auto max-h-fit lg:max-h-[85vh] rounded-t-3xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row">
+
                             {/* Left Side: Product Shot */}
                             <div className="relative w-full lg:w-[45%] h-64 lg:h-auto bg-slate-50 shrink-0">
                                 <div className="absolute inset-0 p-3 sm:p-5 lg:p-8">
                                     <div className="relative size-full overflow-hidden rounded-[2rem] shadow-inner border border-slate-100 bg-white">
                                         <ImageWithFallback
-                                            src={product.image_url || getFlowerImage(product.name, product.category_id)}
+                                            src={product.image_url || ""}
                                             alt={product.name}
                                             className="w-full h-full object-cover transition-transform duration-1000 hover:scale-110"
                                         />
@@ -119,7 +99,7 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <button
                                     onClick={onClose}
                                     className="absolute top-6 right-6 lg:left-10 lg:top-10 z-10 flex size-10 items-center justify-center rounded-full bg-white/90 shadow-xl backdrop-blur transition-all hover:scale-110 hover:bg-white active:scale-95"
@@ -130,7 +110,7 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
 
                             {/* Right Side: Options */}
                             <div className="flex-1 flex flex-col min-w-0 bg-white opacity-100">
-                                <div className="flex-1 overflow-y-auto p-6 sm:p-8 lg:p-10 space-y-8 scrollbar-hide">
+                                <div className="flex-1 overflow-y-auto p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8 scrollbar-hide">
                                     {(hasVariants || hasAddons) ? (
                                         <div className="space-y-10">
                                             {/* Variants Section */}
@@ -231,7 +211,7 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                                 </div>
 
                                 {/* Footer Area */}
-                                <div className="p-6 sm:p-8 lg:p-10 border-t border-slate-100 bg-slate-50/50 space-y-6">
+                                <div className="p-5 sm:p-8 lg:p-10 border-t border-slate-100 bg-slate-50/50 space-y-4 sm:space-y-6">
                                     <div className="flex items-end justify-between">
                                         <div className="space-y-1">
                                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Investment</span>
@@ -243,17 +223,17 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                                                 <span className="text-3xl font-black text-slate-900 tracking-tighter tabular-nums">${totalPrice.toFixed(2)}</span>
                                             </div>
                                         </div>
-                                        
+
                                         {/* Functional Quantity Counter */}
                                         <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
-                                            <button 
+                                            <button
                                                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                                                 className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
                                             >
                                                 <Minus className="size-4" />
                                             </button>
                                             <span className="font-bold text-sm text-slate-900 px-2 min-w-[20px] text-center">{quantity}</span>
-                                            <button 
+                                            <button
                                                 onClick={() => setQuantity(quantity + 1)}
                                                 className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-900 transition-colors"
                                             >
@@ -266,7 +246,7 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={handleAdd}
-                                        className="w-full h-16 bg-slate-900 text-white font-black rounded-[1.25rem] shadow-2xl shadow-slate-900/20 hover:bg-brand-primary hover:shadow-brand-primary/30 transition-all flex items-center justify-center gap-3 active:scale-95"
+                                        className="w-full h-14 sm:h-16 bg-slate-900 text-white font-black rounded-xl sm:rounded-[1.25rem] shadow-2xl shadow-slate-900/20 hover:bg-brand-primary hover:shadow-brand-primary/30 transition-all flex items-center justify-center gap-3 active:scale-95"
                                     >
                                         <ShoppingCart className="size-5" />
                                         <span className="text-lg">Add {quantity > 1 ? `${quantity} Items` : 'Item'} to Cart</span>

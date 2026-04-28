@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useApp, ExpenseCategory } from '@/app/context/AppContext';
+import { useExpenseStore } from '@/app/store/expense-store';
+import { ExpenseCategory } from '@/app/types';
 import { Plus, Check, X, Search, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -12,7 +13,7 @@ interface SmartCategorySelectProps {
 }
 
 export function SmartCategorySelect({ value, onChange, type, placeholder = "Select Category" }: SmartCategorySelectProps) {
-    const { expenseCategories, addCategory } = useApp();
+    const { expenseCategories, addCategory } = useExpenseStore();
     const [isOpen, setIsOpen] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -29,7 +30,7 @@ export function SmartCategorySelect({ value, onChange, type, placeholder = "Sele
 
     const selectedCategory = expenseCategories.find(c => c.id === value);
 
-    const handleCreateCategory = () => {
+    const handleCreateCategory = async () => {
         if (!newCategoryName.trim()) return;
 
         // Check for duplicates
@@ -42,23 +43,15 @@ export function SmartCategorySelect({ value, onChange, type, placeholder = "Sele
             return;
         }
 
-        addCategory({
+        await addCategory({
             name: newCategoryName.trim(),
             type: type,
             isActive: true,
             isDefault: false
         });
 
-        // Find the newly added category (since addCategory is sync in mock, we can try to find it, 
-        // but better is if addCategory returned it. Since it doesn't, we'll rely on name matching or just close)
-        // Actually, we can't easily get the ID back immediately in this mock setup without changing AppContext.
-        // So we will optimisticly wait or just reset. 
-        // Ideally update AppContext to return the new ID.
-        // For now, I'll close the creation mode and let the user select it (it will appear in list).
-        // Or better: auto-select it if possible. 
-
-        // Workaround: We'll set the search query to the new name so it's easy to find.
-        setSearchQuery(newCategoryName.trim());
+        // Clear everything after successful creation
+        setSearchQuery('');
         setIsCreating(false);
         setNewCategoryName('');
         toast.success(`${type === 'expense' ? 'Expense' : 'Income'} category created`);
@@ -171,7 +164,10 @@ export function SmartCategorySelect({ value, onChange, type, placeholder = "Sele
                             <div className="p-1 border-t border-border bg-muted/10">
                                 <button
                                     type="button"
-                                    onClick={() => setIsCreating(true)}
+                                    onClick={() => {
+                                        setNewCategoryName(searchQuery);
+                                        setIsCreating(true);
+                                    }}
                                     className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-primary font-medium hover:bg-primary/5 rounded-md transition-colors"
                                 >
                                     <Plus className="size-4" />

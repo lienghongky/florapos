@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Trash2, Search, Package, Info, AlertTriangle, ArrowRight, Settings2, Calculator } from "lucide-react";
-import { useApp, InventoryItem, ProductRecipeItem } from "@/app/context/AppContext";
+import { useInventoryStore } from "@/app/store/inventory-store";
+import { InventoryItem, ProductRecipeItem } from "@/app/types";
 
 interface ProductInventorySectionProps {
     trackInventory: boolean;
@@ -33,7 +34,7 @@ export function ProductInventorySection({
     lowStockThreshold,
     onLowStockChange
 }: ProductInventorySectionProps) {
-    const { inventoryItems } = useApp();
+    const { inventoryItems } = useInventoryStore();
     const [limitingItem, setLimitingItem] = useState<{ name: string, stock: number } | null>(null);
 
     // Derived State
@@ -154,8 +155,6 @@ export function ProductInventorySection({
                                             )}
 
                                             <div className="flex flex-col items-end">
-                                                <span className="text-xs font-bold text-slate-400 uppercase tracking-tight">Units</span>
-                                                <span className="text-sm font-medium text-slate-600">{unit}s</span>
                                             </div>
                                         </div>
 
@@ -179,7 +178,7 @@ export function ProductInventorySection({
 
                                 {/* 2. Recipe / Composition Builder */}
                                 <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                         <div>
                                             <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
                                                 <Package className="size-4 text-primary" />
@@ -298,9 +297,8 @@ export function ProductInventorySection({
                                             type="number"
                                             value={lowStockThreshold}
                                             onChange={(e) => onLowStockChange(parseInt(e.target.value) || 0)}
-                                            className="w-full pl-3 pr-8 py-2 rounded-lg border border-border bg-green-50/20 text-sm focus:ring-2 focus:ring-primary/20 outline-none shadow-sm"
+                                            className="w-full px-3 py-2 rounded-lg border border-border bg-green-50/20 text-sm focus:ring-2 focus:ring-primary/20 outline-none shadow-sm"
                                         />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">units</span>
                                     </div>
                                     <span className="text-xs text-muted-foreground">Alert when stock falls below this level.</span>
                                 </div>

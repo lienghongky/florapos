@@ -1,14 +1,21 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
-import { Flower2 } from 'lucide-react';
-import { useApp } from '@/app/context/AppContext';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuthStore } from '@/app/store/auth-store';
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
-
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Flower2 } from 'lucide-react';
 export function LoginPage() {
-  const { login, setCurrentPage } = useApp();
+  const { login, user } = useAuthStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,6 +25,13 @@ export function LoginPage() {
     setError(null);
     try {
       await login(email, password);
+      // login success, navigation happens here or via initAuth in App.tsx but let's be explicit
+      const user = useAuthStore.getState().user;
+      if (user) {
+        if (user.role === 'master') navigate('/dashboard-master');
+        else if (user.role === 'owner') navigate('/dashboard-owner');
+        else navigate('/dashboard-sales');
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
@@ -79,8 +93,6 @@ export function LoginPage() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                onFocus={() => setFocusedField('email')}
-                onBlur={() => setFocusedField(null)}
                 placeholder="you@example.com"
                 className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-brand-primary/40"
               />
@@ -94,8 +106,6 @@ export function LoginPage() {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                onFocus={() => setFocusedField('password')}
-                onBlur={() => setFocusedField(null)}
                 placeholder="••••••••"
                 className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-brand-primary/40"
               />
@@ -122,12 +132,12 @@ export function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-xs text-muted-foreground">
               Don&apos;t have an account?{' '}
-              <button
-                onClick={() => setCurrentPage('register')}
+              <Link
+                to="/register"
                 className="font-semibold text-brand-primary hover:underline"
               >
                 Create Account
-              </button>
+              </Link>
             </p>
           </div>
         </motion.div>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useApp } from '@/app/context/AppContext';
+import { useAuthStore } from '@/app/store/auth-store';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { OrderReceipt } from '@/app/components/orders/OrderReceipt';
 
 export function StoreProfileSection() {
-  const { user, selectedStore, updateStoreInfo, uploadStoreBanner, uploadStoreLogo } = useApp();
+  const { user, selectedStore, updateStoreInfo, uploadStoreBanner, uploadStoreLogo } = useAuthStore();
   
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
