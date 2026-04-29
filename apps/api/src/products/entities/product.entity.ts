@@ -4,6 +4,7 @@ import { Category } from '../../categories/entities/category.entity';
 import { ProductVariant } from './product-variant.entity';
 import { ProductRecipe } from './product-recipe.entity';
 import { ProductAddon } from './product-addon.entity';
+import { ModifierGroup } from './modifier-group.entity';
 
 export enum ProductType {
     SIMPLE = 'simple',
@@ -88,6 +89,9 @@ export class Product {
 
     @OneToMany(() => ProductAddon, (addon) => addon.product)
     product_addons: ProductAddon[];
+
+    @OneToMany(() => ModifierGroup, (group) => group.product)
+    modifier_groups: ModifierGroup[];
 
     @OneToMany(() => ProductRecipe, (recipe) => recipe.product)
     recipe: ProductRecipe[];

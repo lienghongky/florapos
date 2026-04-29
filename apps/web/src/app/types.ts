@@ -68,6 +68,23 @@ export interface ProductAddon {
     addon?: Addon;
 }
 
+export interface ModifierOption {
+    id?: string;
+    name: string;
+    price_adjustment: number;
+    inventory_item_id?: string;
+    quantity_needed?: number;
+}
+
+export interface ModifierGroup {
+    id?: string;
+    name: string;
+    selection_type: 'single' | 'multiple';
+    min_selection: number;
+    max_selection: number;
+    options: ModifierOption[];
+}
+
 export interface Product {
     id: string;
     store_id?: string;
@@ -89,6 +106,7 @@ export interface Product {
 
     variants?: ProductVariant[];
     product_addons?: ProductAddon[];
+    modifier_groups?: ModifierGroup[];
     recipe?: ProductRecipeItem[];
     
     // UI specific
@@ -155,6 +173,7 @@ export interface CartItem {
     quantity: number;
     selectedVariant?: ProductVariant; // maps to variant_id
     selectedAddons?: Addon[]; // maps to order item addons
+    selectedModifiers?: { [groupId: string]: ModifierOption[] };
 }
 
 export interface Store {

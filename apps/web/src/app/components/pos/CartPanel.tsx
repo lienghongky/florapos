@@ -60,7 +60,9 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
     const sub = cart.reduce((sum, item) => {
       const variantPrice = item.selectedVariant ? Number(item.selectedVariant.price_modifier) : 0;
       const addonsPrice = item.selectedAddons?.reduce((acc, opt) => acc + Number(opt.price), 0) || 0;
-      return sum + (Number(item.product.base_price) + variantPrice + addonsPrice) * item.quantity;
+      const modifiersPrice = Object.values(item.selectedModifiers || {}).flat().reduce((acc, curr) => acc + Number(curr.price_adjustment), 0);
+      
+      return sum + (Number(item.product.base_price) + variantPrice + addonsPrice + modifiersPrice) * item.quantity;
     }, 0);
 
     const taxRate = selectedStore?.tax_rate || 0;
@@ -85,11 +87,21 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
           product_id: item.product.id,
           variant_id: item.selectedVariant?.id,
           quantity: item.quantity,
-          addons: item.selectedAddons?.map(a => ({
-            name_snapshot: a.name,
-            price: Number(a.price),
-            addon_id: a.id,
-          })) || [],
+          addons: [
+            ...(item.selectedAddons?.map(a => ({
+                name_snapshot: a.name,
+                price: Number(a.price),
+                addon_id: a.id,
+            })) || []),
+            ...Object.entries(item.selectedModifiers || {}).flatMap(([groupId, options]) => 
+                options.map(opt => ({
+                    name_snapshot: opt.name,
+                    price: Number(opt.price_adjustment),
+                    modifier_option_id: opt.id,
+                    modifier_group_id: groupId
+                }))
+            )
+          ],
         })),
         discount_amount: 0,
         notes: note || undefined,
@@ -153,7 +165,8 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
             {cart.map(item => {
               const variantPrice = item.selectedVariant ? Number(item.selectedVariant.price_modifier) : 0;
               const addonsPrice = item.selectedAddons?.reduce((acc, opt) => acc + Number(opt.price), 0) || 0;
-              const unitPrice = Number(item.product.base_price) + variantPrice + addonsPrice;
+              const modifiersPrice = Object.values(item.selectedModifiers || {}).flat().reduce((acc, curr) => acc + Number(curr.price_adjustment), 0);
+              const unitPrice = Number(item.product.base_price) + variantPrice + addonsPrice + modifiersPrice;
 
               return (
                 <motion.div
@@ -176,12 +189,19 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                     <div className="flex justify-between items-start">
                       <div className="min-w-0 flex-1">
                         <h3 className="font-semibold text-slate-900 truncate leading-tight">{item.product.name}</h3>
-                        {item.selectedVariant && (
+                        {(item.selectedVariant || (item.selectedAddons && item.selectedAddons.length > 0) || (item.selectedModifiers && Object.keys(item.selectedModifiers).length > 0)) && (
                           <div className="mt-0.5 flex flex-wrap gap-1">
-                            <span className="text-[10px] font-medium bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
-                              {item.selectedVariant.name}
-                            </span>
+                            {item.selectedVariant && (
+                              <span className="text-[10px] font-medium bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
+                                {item.selectedVariant.name}
+                              </span>
+                            )}
                             {item.selectedAddons?.map(opt => (
+                              <span key={opt.id} className="text-[10px] font-medium bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
+                                {opt.name}
+                              </span>
+                            ))}
+                            {Object.values(item.selectedModifiers || {}).flat().map(opt => (
                               <span key={opt.id} className="text-[10px] font-medium bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
                                 {opt.name}
                               </span>

@@ -64,6 +64,8 @@ export class OrdersService {
                              name_snapshot: addon.name_snapshot,
                              price: addonPrice,
                              addon_id: addon.addon_id,
+                             modifier_group_id: addon.modifier_group_id,
+                             modifier_option_id: addon.modifier_option_id,
                              quantity: 1
                          });
                     }

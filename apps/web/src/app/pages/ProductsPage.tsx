@@ -8,6 +8,7 @@ import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { toast } from 'sonner';
 import { ProductInventorySection } from '@/app/components/products/ProductInventorySection';
 import { PageHeader } from '@/app/components/ui/page-header';
+import { ModifierGroup, ModifierOption } from '@/app/types';
 
 export interface ProductOption {
   id: string;
@@ -51,6 +52,7 @@ export function ProductsPage() {
     tags: [] as string[],
     sku: '',
     barcode: '',
+    modifierGroups: [] as ModifierGroup[],
   });
 
   // Tag chip input state
@@ -169,6 +171,7 @@ export function ProductsPage() {
         tags: product.tags || [],
         sku: product.sku || '',
         barcode: product.barcode || '',
+        modifierGroups: product.modifier_groups || [],
       });
       setTagInput('');
     } else {
@@ -192,6 +195,7 @@ export function ProductsPage() {
         tags: [],
         sku: `PRD-${Date.now().toString().slice(-6)}`,
         barcode: `7${Math.floor(Math.random() * 100000000000).toString().padStart(11, '0')}`,
+        modifierGroups: [],
       });
       setTagInput('');
 
@@ -296,6 +300,17 @@ export function ProductsPage() {
       name: o.name, price_modifier: parseFloat(o.price?.toString() || '0'), cost_modifier: 0, is_default: false
     }));
     formDataToSend.append('variants', JSON.stringify(variants));
+
+    const modifierGroups = formData.modifierGroups.map(group => ({
+      ...group,
+      id: (group.id && group.id.length > 30) ? group.id : undefined,
+      options: group.options.map(o => ({
+        ...o,
+        id: (o.id && o.id.length > 30) ? o.id : undefined,
+        price_adjustment: parseFloat(o.price_adjustment?.toString() || '0')
+      }))
+    }));
+    formDataToSend.append('modifier_groups', JSON.stringify(modifierGroups));
 
     // Append tags — clean up whitespace and remove duplicates
     const cleanTags = [...new Set(formData.tags.map(t => t.trim()).filter(Boolean))];
@@ -899,110 +914,177 @@ export function ProductsPage() {
                 </div>
               </div>
 
-              {/* Options Management */}
-              <div className="space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* Modifier Groups Management */}
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
                   <div>
-                    <label className="block text-sm font-medium">Customization Options</label>
-                    <p className="text-xs text-muted-foreground">Add-ons like vases, ribbons, etc.</p>
+                    <label className="block text-sm font-bold text-slate-900 uppercase tracking-tight">Option Groups</label>
+                    <p className="text-xs text-muted-foreground">Dynamic groups like "Size", "Temperature", or "Toppings".</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => {
-                      const newOption = {
-                        id: Date.now().toString(),
+                      const newGroup: ModifierGroup = {
                         name: '',
-                        type: 'checkbox' as const,
-                        price: 0
+                        selection_type: 'single',
+                        min_selection: 1,
+                        max_selection: 1,
+                        options: []
                       };
-                      setFormData({ ...formData, options: [...formData.options, newOption] });
+                      setFormData({ ...formData, modifierGroups: [...formData.modifierGroups, newGroup] });
                     }}
-                    className="text-xs font-medium px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    className="text-xs font-bold px-4 py-2 rounded-xl bg-brand-primary text-white hover:bg-brand-primary/90 transition-all shadow-md shadow-brand-primary/10"
                   >
-                    + Add Option
+                    + Add Group
                   </button>
                 </div>
 
-                <div className="space-y-3">
-                  {formData.options.length === 0 && (
-                    <div className="text-sm text-muted-foreground/60 text-center py-6 border border-dashed border-border rounded-lg bg-muted/5">
-                      No options added yet
+                <div className="space-y-6">
+                  {formData.modifierGroups.length === 0 && (
+                    <div className="text-sm text-muted-foreground/60 text-center py-10 border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/30">
+                      No dynamic groups added yet
                     </div>
                   )}
-                  {formData.options.map((option, index) => (
+                  {formData.modifierGroups.map((group, groupIndex) => (
                     <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex gap-3 items-start p-3 rounded-lg bg-muted/20 border border-border/50 group"
+                      key={groupIndex}
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-6 rounded-[2rem] bg-green-50/50 border border-green-100 shadow-sm space-y-5"
                     >
-                      <div className="flex-1 space-y-2">
-                        <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Group Name</label>
                           <input
                             type="text"
-                            placeholder="Option Name"
-                            value={option.name}
+                            placeholder="e.g. Temperature"
+                            value={group.name}
                             onChange={(e) => {
-                              const newOptions = [...formData.options];
-                              newOptions[index].name = e.target.value;
-                              setFormData({ ...formData, options: newOptions });
+                              const newGroups = formData.modifierGroups.map((g, i) => 
+                                i === groupIndex ? { ...g, name: e.target.value } : g
+                              );
+                              setFormData({ ...formData, modifierGroups: newGroups });
                             }}
-                            className="flex-1 rounded-md border border-border bg-white px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary/20"
+                            className="w-full text-lg font-bold border border-green-100 bg-white px-3 py-1.5 rounded-xl outline-none placeholder:text-slate-200 focus:ring-2 focus:ring-primary/10 transition-all"
                           />
-                          <div className="relative w-24">
-                            <span className="absolute left-2 top-1.5 text-xs text-muted-foreground">$</span>
-                            <input
-                              type="number"
-                              placeholder="0.00"
-                              value={option.price}
-                              onChange={(e) => {
-                                const newOptions = [...formData.options];
-                                newOptions[index].price = parseFloat(e.target.value) || 0;
-                                setFormData({ ...formData, options: newOptions });
-                              }}
-                              className="w-full rounded-md border border-border bg-white pl-5 pr-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary/20"
-                            />
-                          </div>
                         </div>
-                        <div className="flex gap-2 text-xs">
-                          <label className="flex items-center gap-1.5 cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`type-${index}`}
-                              checked={option.type === 'checkbox'}
-                              onChange={() => {
-                                const newOptions = [...formData.options];
-                                newOptions[index].type = 'checkbox';
-                                setFormData({ ...formData, options: newOptions });
+                        <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-green-100 shadow-sm">
+                           <button
+                            type="button"
+                            onClick={() => {
+                              const newGroups = formData.modifierGroups.map((g, i) => 
+                                i === groupIndex ? { ...g, selection_type: 'single', max_selection: 1 } : g
+                              );
+                              setFormData({ ...formData, modifierGroups: newGroups });
+                            }}
+                            className={`px-3 py-1.5 text-[10px] font-bold uppercase rounded-xl transition-all ${group.selection_type === 'single' ? 'bg-white text-slate-900 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                           >
+                            Single
+                           </button>
+                           <button
+                            type="button"
+                            onClick={() => {
+                              const newGroups = formData.modifierGroups.map((g, i) => 
+                                i === groupIndex ? { ...g, selection_type: 'multiple', max_selection: 10 } : g
+                              );
+                              setFormData({ ...formData, modifierGroups: newGroups });
+                            }}
+                            className={`px-3 py-1.5 text-[10px] font-bold uppercase rounded-xl transition-all ${group.selection_type === 'multiple' ? 'bg-white text-slate-900 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                           >
+                            Multiple
+                           </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newGroups = formData.modifierGroups.filter((_, i) => i !== groupIndex);
+                            setFormData({ ...formData, modifierGroups: newGroups });
+                          }}
+                          className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        >
+                          <Trash2 className="size-5" />
+                        </button>
+                      </div>
+
+                      {/* Options within this group */}
+                      <div className="space-y-3 pl-4 border-l-2 border-slate-50">
+                        <div className="flex items-center justify-between mb-2">
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Options</span>
+                           <button
+                              type="button"
+                              onClick={() => {
+                                const newGroups = [...formData.modifierGroups];
+                                newGroups[groupIndex].options.push({
+                                  name: '',
+                                  price_adjustment: 0
+                                });
+                                setFormData({ ...formData, modifierGroups: newGroups });
                               }}
-                            />
-                            Add-on (Checkbox)
-                          </label>
-                          <label className="flex items-center gap-1.5 cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`type-${index}`}
-                              checked={option.type === 'radio'}
-                              onChange={() => {
-                                const newOptions = [...formData.options];
-                                newOptions[index].type = 'radio';
-                                setFormData({ ...formData, options: newOptions });
-                              }}
-                            />
-                            Variant (Radio)
-                          </label>
+                              className="text-[10px] font-bold text-brand-primary uppercase bg-brand-primary/5 px-2.5 py-1 rounded-lg hover:bg-brand-primary/10 transition-all"
+                           >
+                            + Add Choice
+                           </button>
+                        </div>
+                        
+                        {group.options.length === 0 && (
+                          <p className="text-[10px] text-slate-300 italic">No choices added yet.</p>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {group.options.map((option, optIndex) => (
+                            <div key={optIndex} className="flex gap-2 items-center bg-white p-2 rounded-2xl border border-green-100 shadow-sm group/opt">
+                              <input
+                                type="text"
+                                placeholder="Choice name"
+                                value={option.name}
+                                onChange={(e) => {
+                                  const newGroups = formData.modifierGroups.map((g, gi) => 
+                                    gi === groupIndex ? { 
+                                      ...g, 
+                                      options: g.options.map((o, oi) => 
+                                        oi === optIndex ? { ...o, name: e.target.value } : o
+                                      ) 
+                                    } : g
+                                  );
+                                  setFormData({ ...formData, modifierGroups: newGroups });
+                                }}
+                                className="flex-1 bg-transparent border-none p-0 px-2 text-sm font-semibold outline-none focus:ring-0 placeholder:text-slate-200"
+                              />
+                              <div className="flex items-center gap-1 bg-white border border-slate-100 rounded-xl px-2 py-1">
+                                <span className="text-[10px] font-bold text-slate-300">$</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={option.price_adjustment}
+                                  onChange={(e) => {
+                                    const newGroups = formData.modifierGroups.map((g, gi) => 
+                                      gi === groupIndex ? { 
+                                        ...g, 
+                                        options: g.options.map((o, oi) => 
+                                          oi === optIndex ? { ...o, price_adjustment: parseFloat(e.target.value) || 0 } : o
+                                        ) 
+                                      } : g
+                                    );
+                                    setFormData({ ...formData, modifierGroups: newGroups });
+                                  }}
+                                  className="w-12 bg-transparent border-none p-0 text-xs font-black outline-none focus:ring-0 text-right"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newGroups = [...formData.modifierGroups];
+                                  newGroups[groupIndex].options = newGroups[groupIndex].options.filter((_, i) => i !== optIndex);
+                                  setFormData({ ...formData, modifierGroups: newGroups });
+                                }}
+                                className="p-1 text-slate-200 hover:text-red-500 opacity-0 group-hover/opt:opacity-100 transition-all"
+                              >
+                                <X className="size-3.5" />
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newOptions = formData.options.filter((_, i) => i !== index);
-                          setFormData({ ...formData, options: newOptions });
-                        }}
-                        className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-md transition-colors self-start"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
                     </motion.div>
                   ))}
                 </div>

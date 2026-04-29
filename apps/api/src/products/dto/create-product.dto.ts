@@ -61,6 +61,63 @@ class VariantDto {
     barcode?: string;
 }
 
+class ModifierOptionDto {
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsUUID()
+    id?: string;
+
+    @ApiProperty()
+    @IsString()
+    name: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    price_adjustment?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsUUID()
+    inventory_item_id?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    quantity_needed?: number;
+}
+
+class ModifierGroupDto {
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsUUID()
+    id?: string;
+
+    @ApiProperty()
+    @IsString()
+    name: string;
+
+    @ApiProperty({ enum: ['single', 'multiple'] })
+    @IsEnum(['single', 'multiple'])
+    selection_type: 'single' | 'multiple';
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    min_selection?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    max_selection?: number;
+
+    @ApiProperty({ type: [ModifierOptionDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => ModifierOptionDto)
+    options: ModifierOptionDto[];
+}
+
 export class CreateProductDto {
     @ApiProperty()
     @IsString()
@@ -133,6 +190,14 @@ export class CreateProductDto {
     @Transform(({ value }) => typeof value === 'string' ? JSON.parse(value) : value)
     @Type(() => VariantDto)
     variants?: VariantDto[];
+
+    @ApiProperty({ type: [ModifierGroupDto], required: false })
+    @IsOptional()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Transform(({ value }) => typeof value === 'string' ? JSON.parse(value) : value)
+    @Type(() => ModifierGroupDto)
+    modifier_groups?: ModifierGroupDto[];
 
     @ApiProperty({ required: false })
     @IsOptional()

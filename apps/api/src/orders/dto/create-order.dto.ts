@@ -16,6 +16,16 @@ class OrderItemAddonDto {
     @IsOptional()
     @IsUUID()
     addon_id?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsUUID()
+    modifier_group_id?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsUUID()
+    modifier_option_id?: string;
 }
 
 export class CreateOrderItemDto {

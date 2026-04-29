@@ -1,11 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import { Product, ProductType } from './entities/product.entity';
 import { ProductRecipe } from './entities/product-recipe.entity';
 import { ProductVariant } from './entities/product-variant.entity';
 import { Addon } from './entities/addon.entity';
 import { ProductAddon } from './entities/product-addon.entity';
+import { ModifierGroup } from './entities/modifier-group.entity';
+import { ModifierOption } from './entities/modifier-option.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ImportProductDto } from './dto/import-product.dto';
@@ -45,6 +47,7 @@ export class ProductsService {
                 product_addons: undefined,
                 variants: undefined,
                 recipe: undefined,
+                modifier_groups: undefined,
             });
 
             // For simplistic inventory tie
@@ -114,6 +117,32 @@ export class ProductsService {
                 await manager.save(variants);
             }
 
+            // Logic: Create Modifier Groups
+            if (createProductDto.modifier_groups && createProductDto.modifier_groups.length > 0) {
+                for (const groupDto of createProductDto.modifier_groups) {
+                    const group = manager.create(ModifierGroup, {
+                        store_id: createProductDto.store_id,
+                        product_id: savedProduct.id,
+                        name: groupDto.name,
+                        selection_type: groupDto.selection_type as any,
+                        min_selection: groupDto.min_selection || 0,
+                        max_selection: groupDto.max_selection || 1,
+                    });
+                    const savedGroup = await manager.save(group);
+
+                    if (groupDto.options && groupDto.options.length > 0) {
+                        const options = groupDto.options.map(o => manager.create(ModifierOption, {
+                            group_id: savedGroup.id,
+                            name: o.name,
+                            price_adjustment: o.price_adjustment || 0,
+                            inventory_item_id: o.inventory_item_id,
+                            quantity_needed: o.quantity_needed || 0,
+                        }));
+                        await manager.save(options);
+                    }
+                }
+            }
+
             return savedProduct;
         });
     }
@@ -126,7 +155,7 @@ export class ProductsService {
         await this.storesService.findOne(userId, storeId);
         let products = await this.productRepository.find({
             where: { store_id: storeId },
-            relations: ['recipe', 'recipe.inventory_item', 'category', 'product_addons', 'product_addons.addon', 'variants']
+            relations: ['recipe', 'recipe.inventory_item', 'category', 'product_addons', 'product_addons.addon', 'variants', 'modifier_groups', 'modifier_groups.options']
         });
 
         // Filter by tags (case-insensitive, ANY match)
@@ -170,10 +199,11 @@ export class ProductsService {
         }));
     }
 
-    async findOne(userId: string, productId: string): Promise<Product> {
-        const product = await this.productRepository.findOne({
+    async findOne(userId: string, productId: string, manager?: EntityManager): Promise<Product> {
+        const repo = manager ? manager.getRepository(Product) : this.productRepository;
+        const product = await repo.findOne({
             where: { id: productId },
-            relations: ['recipe', 'recipe.inventory_item', 'store', 'product_addons', 'product_addons.addon', 'variants'],
+            relations: ['recipe', 'recipe.inventory_item', 'store', 'product_addons', 'product_addons.addon', 'variants', 'modifier_groups', 'modifier_groups.options'],
         });
 
         if (!product) throw new NotFoundException('Product not found');
@@ -223,24 +253,28 @@ export class ProductsService {
 
     async update(userId: string, id: string, updateProductDto: any, image?: Express.Multer.File): Promise<Product> {
         this.parseJsonFields(updateProductDto);
-        const product = await this.productRepository.findOne({ 
-            where: { id },
-            relations: ['store'] 
-        });
-        if (!product) throw new NotFoundException('Product not found');
-        
-        // Ensure user has access to the store
-        await this.storesService.findOne(userId, product.store_id);
-
         return this.dataSource.transaction(async (manager) => {
-            // Build update payload — only include image_url if we have something to set.
+            const product = await manager.findOne(Product, { 
+                where: { id },
+                relations: ['store'] 
+            });
+            if (!product) throw new NotFoundException('Product not found');
+            
+            // Clear the relation array to prevent TypeORM from trying to update children 
+            // with null product_id during the subsequent manager.save() call.
+            product.modifier_groups = [];
+            
+            // Ensure user has access to the store
+            await this.storesService.findOne(userId, product.store_id);
+
+            // Build update payload
             // If no new file was uploaded and no image_url was sent, skip the field
             // entirely so the existing image is not accidentally cleared.
             const imageUrl = image
                 ? `/uploads/products/${image.filename}`
                 : updateProductDto.image_url || undefined;
 
-            const updatePayload: Partial<Product> = {
+            const updatePayload: any = {
                 name: updateProductDto.name,
                 description: updateProductDto.description,
                 sku: updateProductDto.sku,
@@ -257,15 +291,8 @@ export class ProductsService {
                 is_active: updateProductDto.is_active,
             };
 
-            // Only set image_url when explicitly provided
-            if (imageUrl !== undefined) {
-                updatePayload.image_url = imageUrl;
-            }
-
-            // Only update tags when explicitly provided
-            if (updateProductDto.tags !== undefined) {
-                updatePayload.tags = updateProductDto.tags;
-            }
+            if (imageUrl !== undefined) updatePayload.image_url = imageUrl;
+            if (updateProductDto.tags !== undefined) updatePayload.tags = updateProductDto.tags;
 
             await manager.update(Product, id, updatePayload);
 
@@ -280,7 +307,6 @@ export class ProductsService {
                     });
                 }
             }
-
 
             // Sync Recipes (Components)
             if (updateProductDto.recipe) {
@@ -387,7 +413,53 @@ export class ProductsService {
                 }
             }
 
-            return this.findOne(userId, id);
+            // Sync Modifier Groups
+            if (updateProductDto.modifier_groups !== undefined) {
+                // Since orphanRemoval seems to have type issues, we'll use our robust manual delete
+                await manager.createQueryBuilder()
+                    .delete()
+                    .from(ModifierGroup)
+                    .where("product_id = :id", { id })
+                    .execute();
+                
+                const modifierGroupsDto = Array.isArray(updateProductDto.modifier_groups) ? updateProductDto.modifier_groups : [];
+                
+                if (modifierGroupsDto.length > 0) {
+                    for (const groupDto of modifierGroupsDto) {
+                        if (!groupDto.name) continue;
+
+                        const group = manager.create(ModifierGroup, {
+                            store_id: product.store_id || updateProductDto.store_id,
+                            product_id: id,
+                            name: groupDto.name,
+                            selection_type: groupDto.selection_type as any,
+                            min_selection: Number(groupDto.min_selection || 0),
+                            max_selection: Number(groupDto.max_selection || 1),
+                            is_active: true
+                        });
+                        const savedGroup = await manager.save(group);
+                        
+                        if (groupDto.options && Array.isArray(groupDto.options)) {
+                            const options = groupDto.options
+                                .filter((o: any) => o.name)
+                                .map((o: any) => manager.create(ModifierOption, {
+                                    group_id: savedGroup.id,
+                                    name: o.name,
+                                    price_adjustment: Number(o.price_adjustment || 0),
+                                    inventory_item_id: o.inventory_item_id || null,
+                                    quantity_needed: Number(o.quantity_needed || 0),
+                                    is_active: true
+                                }));
+                            
+                            if (options.length > 0) {
+                                await manager.save(options);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return this.findOne(userId, id, manager);
         });
     }
 
@@ -410,6 +482,7 @@ export class ProductsService {
             if (typeof dto.recipe === 'string') dto.recipe = JSON.parse(dto.recipe);
             if (typeof dto.addons === 'string') dto.addons = JSON.parse(dto.addons);
             if (typeof dto.variants === 'string') dto.variants = JSON.parse(dto.variants);
+            if (typeof dto.modifier_groups === 'string') dto.modifier_groups = JSON.parse(dto.modifier_groups);
             if (typeof dto.tags === 'string') dto.tags = JSON.parse(dto.tags);
         } catch (e) {
             // Ignore parse errors, fallback to DTO default

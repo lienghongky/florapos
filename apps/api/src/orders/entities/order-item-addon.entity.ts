@@ -22,6 +22,12 @@ export class OrderItemAddon {
     @Column({ type: 'integer', default: 1 })
     quantity: number;
 
+    @Column({ type: 'uuid', nullable: true })
+    modifier_group_id: string;
+
+    @Column({ type: 'uuid', nullable: true })
+    modifier_option_id: string;
+
     @ManyToOne(() => OrderItem, item => item.addons, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'order_item_id' })
     orderItem: OrderItem;

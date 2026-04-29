@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 
 import { ProductCustomizationModal } from '@/app/components/pos/ProductCustomizationModal';
-import { Product, ProductVariant, Addon } from '@/app/types';
+import { Product, ProductVariant, Addon, ModifierOption } from '@/app/types';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() =>
@@ -72,7 +72,11 @@ export function POSPage() {
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleProductClick = (product: Product) => {
-    if ((product.variants && product.variants.length > 0) || (product.product_addons && product.product_addons.length > 0)) {
+    if (
+      (product.variants && product.variants.length > 0) || 
+      (product.product_addons && product.product_addons.length > 0) ||
+      (product.modifier_groups && product.modifier_groups.length > 0)
+    ) {
       setCustomizingProduct(product);
     } else {
       addToCart(product, undefined, []);
@@ -80,8 +84,14 @@ export function POSPage() {
     }
   };
 
-  const handleAddToCartFromModal = (product: Product, selectedVariant?: ProductVariant, selectedAddons?: Addon[], quantity: number = 1) => {
-    addToCart(product, selectedVariant, selectedAddons, quantity);
+  const handleAddToCartFromModal = (
+    product: Product, 
+    selectedVariant?: ProductVariant, 
+    selectedAddons?: Addon[], 
+    quantity: number = 1,
+    selectedModifiers?: { [groupId: string]: ModifierOption[] }
+  ) => {
+    addToCart(product, selectedVariant, selectedAddons, quantity, selectedModifiers);
     toast.success(`${product.name} added to cart`);
   };
 
