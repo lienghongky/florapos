@@ -72,6 +72,13 @@ export function POSPage() {
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleProductClick = (product: Product) => {
+    const isOutOfStock = product.track_inventory && !product.allow_negative_stock && (Number(product.calculated_stock) <= 0);
+    
+    if (isOutOfStock) {
+      toast.error(`${product.name} is out of stock`);
+      return;
+    }
+
     if (
       (product.variants && product.variants.length > 0) || 
       (product.product_addons && product.product_addons.length > 0) ||

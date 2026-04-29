@@ -45,6 +45,7 @@ export function ProductsPage() {
     category: '',
     lowStockThreshold: '10',
     isActive: true,
+    allowNegativeStock: false,
     options: [] as ProductOption[],
     image: '',
     imagePreview: '',
@@ -80,20 +81,6 @@ export function ProductsPage() {
   const displayProducts = products.map(product => {
     const categoryName = categories.find(c => c.id === product.category_id)?.name || 'Uncategorized';
 
-    const variantOptions = (product.variants || []).map(v => ({
-      id: v.id,
-      name: v.name,
-      type: 'radio' as const,
-      price: v.price_modifier
-    }));
-
-    const addonOptions = (product.product_addons || []).map(pa => ({
-      id: pa.addon_id,
-      name: pa.addon?.name || '',
-      type: 'checkbox' as const,
-      price: pa.addon?.price || 0
-    }));
-
     return {
       ...product,
       category: categoryName,
@@ -101,12 +88,13 @@ export function ProductsPage() {
       stock: product.track_inventory ? (product.calculated_stock ?? 0) : 0,
       unit: 'piece',
       trackInventory: product.track_inventory,
+      allowNegativeStock: product.allow_negative_stock,
       type: product.product_type,
       inventoryItemId: product.recipe?.[0]?.inventory_item_id || '',
       recipe: product.recipe || [],
-      lowStockThreshold: 10,
+      lowStockThreshold: product.low_stock_threshold || 10,
       isActive: product.is_active,
-      options: [...variantOptions, ...addonOptions],
+      options: [],
       image: product.image_url || '',
       tags: product.tags || [],
     };
@@ -162,12 +150,13 @@ export function ProductsPage() {
         inventoryItemId: product.inventoryItemId || '',
         recipe: product.recipe || [],
         category: product.category,
-        lowStockThreshold: product.lowStockThreshold?.toString(),
+        lowStockThreshold: product.lowStockThreshold?.toString() || '10',
         isActive: product.isActive ?? true,
+        allowNegativeStock: product.allowNegativeStock ?? false,
         options: product.options || [],
         image: product.image,
-        imagePreview: '', // Reset preview; existing image shown via product.image
-        imageFile: null,  // No new file selected yet
+        imagePreview: '',
+        imageFile: null,
         tags: product.tags || [],
         sku: product.sku || '',
         barcode: product.barcode || '',
@@ -188,6 +177,7 @@ export function ProductsPage() {
         category: '',
         lowStockThreshold: '10',
         isActive: true,
+        allowNegativeStock: false,
         options: [],
         image: 'placeholder',
         imagePreview: '',
@@ -262,7 +252,8 @@ export function ProductsPage() {
     formDataToSend.append('taxable', 'true');
     formDataToSend.append('tax_rate', '0');
     formDataToSend.append('track_inventory', formData.trackInventory.toString());
-    formDataToSend.append('allow_negative_stock', 'false');
+    formDataToSend.append('allow_negative_stock', formData.allowNegativeStock.toString());
+    formDataToSend.append('low_stock_threshold', formData.lowStockThreshold);
     formDataToSend.append('is_active', formData.isActive.toString());
     formDataToSend.append('sku', formData.sku);
     formDataToSend.append('barcode', formData.barcode);
@@ -289,17 +280,9 @@ export function ProductsPage() {
       }));
     formDataToSend.append('recipe', JSON.stringify(recipe));
 
-    const addons = formData.options.filter((o: any) => o.type === 'checkbox').map((o: any) => ({
-      id: (o.id && o.id.length > 30) ? o.id : undefined,
-      name: o.name, price: parseFloat(o.price?.toString() || '0'), max_quantity: 1, required: false
-    }));
-    formDataToSend.append('addons', JSON.stringify(addons));
-
-    const variants = formData.options.filter((o: any) => o.type === 'radio').map((o: any) => ({
-      id: (o.id && o.id.length > 30) ? o.id : undefined,
-      name: o.name, price_modifier: parseFloat(o.price?.toString() || '0'), cost_modifier: 0, is_default: false
-    }));
-    formDataToSend.append('variants', JSON.stringify(variants));
+    // Legacy addons/variants are no longer sent as they are replaced by modifier_groups
+    formDataToSend.append('addons', JSON.stringify([]));
+    formDataToSend.append('variants', JSON.stringify([]));
 
     const modifierGroups = formData.modifierGroups.map(group => ({
       ...group,
@@ -425,7 +408,91 @@ export function ProductsPage() {
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-white shadow-sm">
+      {/* Mobile Card List — shown only on small screens */}
+      <div className="sm:hidden space-y-3">
+        {paginatedProducts.map((product, index) => (
+          <motion.div
+            key={product.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.03 }}
+            className={`rounded-xl border border-border bg-white shadow-sm p-3 flex items-center gap-3 ${!product.isActive ? 'opacity-60' : ''}`}
+          >
+            {/* Image */}
+            <div className="size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+              <img
+                src={product.image || `https://images.unsplash.com/photo-1520763185298-1b434c919102?w=80&h=80&fit=crop`}
+                alt={product.name}
+                className="size-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/80x80?text=None'; }}
+              />
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-sm truncate">{product.name}</p>
+                <span className="text-sm font-bold text-foreground shrink-0">${product.price.toFixed(2)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                {/* Stock badge */}
+                {product.trackInventory ? (
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    product.stock === 0 ? 'bg-gray-100 text-gray-700' :
+                    product.stock <= product.lowStockThreshold ? 'bg-red-100 text-red-700' :
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    <span className={`size-1.5 rounded-full ${ product.stock === 0 ? 'bg-gray-400' : 'bg-current'}`} />
+                    {product.stock === 0 ? 'Out of Stock' : `${product.stock} in stock`}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground italic">Unlimited</span>
+                )}
+                {/* Status badge */}
+                <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${
+                  product.isActive ? 'text-green-600' : 'text-muted-foreground'
+                }`}>
+                  {product.isActive ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
+                  {product.isActive ? 'Active' : 'Hidden'}
+                </span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            {user?.role === 'owner' && (
+              <div className="flex flex-col gap-1 shrink-0">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleOpenModal(product)}
+                  className="rounded-lg p-2 text-primary transition-colors hover:bg-primary/10"
+                >
+                  <Edit2 className="size-4" />
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={async () => {
+                    if (confirm('Are you sure you want to delete this product?')) {
+                      try {
+                        await deleteProduct(product.id);
+                        toast.success('Product deleted successfully!');
+                      } catch (error: any) {
+                        toast.error(error.message || 'Failed to delete product');
+                      }
+                    }
+                  }}
+                  className="rounded-lg p-2 text-destructive transition-colors hover:bg-destructive/10"
+                >
+                  <Trash2 className="size-4" />
+                </motion.button>
+              </div>
+            )}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Desktop Table — hidden on small screens */}
+      <div className="hidden sm:block rounded-xl border border-border bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-border bg-muted/30">
@@ -449,14 +516,12 @@ export function ProductsPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: index * 0.03 }}
-                  className={`group border-b border-border last:border-0 transition-colors hover:bg-muted/50 ${!product.isActive ? 'opacity-60 bg-muted/20' : ''
-                    }`}
+                  className={`group border-b border-border last:border-0 transition-colors hover:bg-muted/50 ${!product.isActive ? 'opacity-60 bg-muted/20' : ''}`}
                 >
                   <td className="px-6 py-4">
                     <div className="size-10 overflow-hidden rounded-lg bg-muted relative">
                       <img
                         src={product.image || `https://images.unsplash.com/photo-1520763185298-1b434c919102?w=80&h=80&fit=crop`}
-
                         alt={product.name}
                         className="size-full object-cover"
                         onError={(e) => {
@@ -506,7 +571,6 @@ export function ProductsPage() {
                     ) : (
                       <span className="text-muted-foreground text-xs italic">Unlimited</span>
                     )}
-
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${product.isActive ? 'text-green-600' : 'text-muted-foreground'
@@ -603,7 +667,7 @@ export function ProductsPage() {
 
       {/* Product Creation/Edit Modal */}
       <AnimatedModal isOpen={showModal} onClose={() => setShowModal(false)}>
-        <div className="rounded-t-3xl sm:rounded-xl bg-white p-0 shadow-xl w-full max-w-5xl my-0 sm:my-auto max-h-fit lg:max-h-[90vh] flex flex-col">
+        <div className="rounded-t-3xl sm:rounded-xl bg-white p-0 shadow-xl w-full max-w-5xl my-0 sm:my-auto flex flex-col" style={{ maxHeight: '92dvh' }}>
           <div className="p-6 border-b border-border">
             <h2 className="text-xl font-semibold">
               {editingProduct ? 'Edit Product' : 'Add New Product'}
@@ -613,27 +677,24 @@ export function ProductsPage() {
           <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-6 sm:space-y-8">
             <form id="product-form" onSubmit={handleSubmit} className="space-y-8">
               {/* Image Upload Section */}
-              <div className="grid grid-cols-[120px_1fr] gap-6">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-4 sm:gap-6">
+                <div className="flex sm:flex-col items-center gap-4 sm:gap-0">
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="group relative size-28 rounded-xl border-2 border-dashed border-border bg-muted/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/40 transition-all overflow-hidden"
+                    className="group relative size-20 sm:size-28 shrink-0 rounded-xl border-2 border-dashed border-border bg-muted/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/40 transition-all overflow-hidden"
                   >
                     {formData.imagePreview || (editingProduct && formData.image && formData.image !== 'placeholder') ? (
                       <img
                         src={formData.imagePreview || formData.image}
-
                         alt="Preview"
                         className="size-full object-cover"
                       />
-
                     ) : (
                       <div className="flex flex-col items-center gap-2 text-muted-foreground p-2 text-center">
                         <ImageIcon className="size-6" />
                         <span className="text-[10px] uppercase font-semibold">Upload</span>
                       </div>
                     )}
-
                     {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-medium text-xs backdrop-blur-[1px]">
                       Change
@@ -646,21 +707,20 @@ export function ProductsPage() {
                     accept="image/png, image/jpeg"
                     onChange={handleImageUpload}
                   />
-                  <p className="mt-2 text-[10px] text-muted-foreground text-center">
-                    JPG/PNG, max 5MB
-                  </p>
-
-                  {/* Minimalist Price Preview */}
-                  <div className="mt-4 flex flex-col items-center">
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1 tracking-widest">Price Preview</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-bold text-muted-foreground">$</span>
-                      <span className="text-4xl font-black tracking-tighter text-slate-900">
-                        {(() => {
-                          const val = parseFloat(formData.price || '0');
-                          return val % 1 === 0 ? val.toString() : val.toFixed(2);
-                        })()}
-                      </span>
+                  {/* Price preview — inline on mobile, stacked on desktop */}
+                  <div className="flex sm:flex-col items-center sm:items-center gap-3 sm:gap-0 sm:mt-4">
+                    <p className="text-[10px] text-muted-foreground sm:text-center">JPG/PNG, max 5MB</p>
+                    <div className="hidden sm:flex flex-col items-center mt-2">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1 tracking-widest">Price Preview</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-sm font-bold text-muted-foreground">$</span>
+                        <span className="text-4xl font-black tracking-tighter text-slate-900">
+                          {(() => {
+                            const val = parseFloat(formData.price || '0');
+                            return val % 1 === 0 ? val.toString() : val.toFixed(2);
+                          })()}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -862,6 +922,8 @@ export function ProductsPage() {
                 }}
                 lowStockThreshold={parseInt(formData.lowStockThreshold) || 10}
                 onLowStockChange={(val) => setFormData({ ...formData, lowStockThreshold: val.toString() })}
+                allowNegativeStock={formData.allowNegativeStock}
+                onAllowNegativeChange={(val) => setFormData({ ...formData, allowNegativeStock: val })}
               />
 
               {/* Status Section */}
@@ -960,7 +1022,7 @@ export function ProductsPage() {
                             placeholder="e.g. Temperature"
                             value={group.name}
                             onChange={(e) => {
-                              const newGroups = formData.modifierGroups.map((g, i) => 
+                              const newGroups = formData.modifierGroups.map((g, i) =>
                                 i === groupIndex ? { ...g, name: e.target.value } : g
                               );
                               setFormData({ ...formData, modifierGroups: newGroups });
@@ -969,30 +1031,30 @@ export function ProductsPage() {
                           />
                         </div>
                         <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-green-100 shadow-sm">
-                           <button
+                          <button
                             type="button"
                             onClick={() => {
-                              const newGroups = formData.modifierGroups.map((g, i) => 
+                              const newGroups = formData.modifierGroups.map((g, i) =>
                                 i === groupIndex ? { ...g, selection_type: 'single', max_selection: 1 } : g
                               );
                               setFormData({ ...formData, modifierGroups: newGroups });
                             }}
                             className={`px-3 py-1.5 text-[10px] font-bold uppercase rounded-xl transition-all ${group.selection_type === 'single' ? 'bg-white text-slate-900 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
-                           >
+                          >
                             Single
-                           </button>
-                           <button
+                          </button>
+                          <button
                             type="button"
                             onClick={() => {
-                              const newGroups = formData.modifierGroups.map((g, i) => 
+                              const newGroups = formData.modifierGroups.map((g, i) =>
                                 i === groupIndex ? { ...g, selection_type: 'multiple', max_selection: 10 } : g
                               );
                               setFormData({ ...formData, modifierGroups: newGroups });
                             }}
                             className={`px-3 py-1.5 text-[10px] font-bold uppercase rounded-xl transition-all ${group.selection_type === 'multiple' ? 'bg-white text-slate-900 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
-                           >
+                          >
                             Multiple
-                           </button>
+                          </button>
                         </div>
                         <button
                           type="button"
@@ -1009,23 +1071,23 @@ export function ProductsPage() {
                       {/* Options within this group */}
                       <div className="space-y-3 pl-4 border-l-2 border-slate-50">
                         <div className="flex items-center justify-between mb-2">
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Options</span>
-                           <button
-                              type="button"
-                              onClick={() => {
-                                const newGroups = [...formData.modifierGroups];
-                                newGroups[groupIndex].options.push({
-                                  name: '',
-                                  price_adjustment: 0
-                                });
-                                setFormData({ ...formData, modifierGroups: newGroups });
-                              }}
-                              className="text-[10px] font-bold text-brand-primary uppercase bg-brand-primary/5 px-2.5 py-1 rounded-lg hover:bg-brand-primary/10 transition-all"
-                           >
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Options</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newGroups = [...formData.modifierGroups];
+                              newGroups[groupIndex].options.push({
+                                name: '',
+                                price_adjustment: 0
+                              });
+                              setFormData({ ...formData, modifierGroups: newGroups });
+                            }}
+                            className="text-[10px] font-bold text-brand-primary uppercase bg-brand-primary/5 px-2.5 py-1 rounded-lg hover:bg-brand-primary/10 transition-all"
+                          >
                             + Add Choice
-                           </button>
+                          </button>
                         </div>
-                        
+
                         {group.options.length === 0 && (
                           <p className="text-[10px] text-slate-300 italic">No choices added yet.</p>
                         )}
@@ -1038,12 +1100,12 @@ export function ProductsPage() {
                                 placeholder="Choice name"
                                 value={option.name}
                                 onChange={(e) => {
-                                  const newGroups = formData.modifierGroups.map((g, gi) => 
-                                    gi === groupIndex ? { 
-                                      ...g, 
-                                      options: g.options.map((o, oi) => 
+                                  const newGroups = formData.modifierGroups.map((g, gi) =>
+                                    gi === groupIndex ? {
+                                      ...g,
+                                      options: g.options.map((o, oi) =>
                                         oi === optIndex ? { ...o, name: e.target.value } : o
-                                      ) 
+                                      )
                                     } : g
                                   );
                                   setFormData({ ...formData, modifierGroups: newGroups });
@@ -1057,12 +1119,12 @@ export function ProductsPage() {
                                   step="0.01"
                                   value={option.price_adjustment}
                                   onChange={(e) => {
-                                    const newGroups = formData.modifierGroups.map((g, gi) => 
-                                      gi === groupIndex ? { 
-                                        ...g, 
-                                        options: g.options.map((o, oi) => 
+                                    const newGroups = formData.modifierGroups.map((g, gi) =>
+                                      gi === groupIndex ? {
+                                        ...g,
+                                        options: g.options.map((o, oi) =>
                                           oi === optIndex ? { ...o, price_adjustment: parseFloat(e.target.value) || 0 } : o
-                                        ) 
+                                        )
                                       } : g
                                     );
                                     setFormData({ ...formData, modifierGroups: newGroups });

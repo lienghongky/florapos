@@ -19,7 +19,7 @@ export class OrderItem {
     variant_id: string;
 
     @Column()
-    product_name_snapshot: string; 
+    product_name_snapshot: string;
 
     @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
     unit_price: number;

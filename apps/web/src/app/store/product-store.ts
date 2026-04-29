@@ -39,6 +39,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
         cost_price: Number(p.cost_price || 0),
         tax_rate: Number(p.tax_rate || 0),
         calculated_stock: Number(p.calculated_stock || 0),
+        track_inventory: p.track_inventory === true || p.track_inventory === 'true' || p.track_inventory === 1 || p.track_inventory === '1',
+        allow_negative_stock: p.allow_negative_stock === true || p.allow_negative_stock === 'true' || p.allow_negative_stock === 1 || p.allow_negative_stock === '1',
         image_url: p.image_url ? (p.image_url.startsWith('http') || p.image_url.startsWith('data:image/') ? p.image_url : `${API_URL}${p.image_url}`) : null,
         tags: Array.isArray(p.tags) ? p.tags.filter(Boolean) : (p.tags ? [p.tags] : []),
       }));

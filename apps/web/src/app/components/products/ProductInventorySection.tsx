@@ -20,6 +20,10 @@ interface ProductInventorySectionProps {
     // Low Stock
     lowStockThreshold: number;
     onLowStockChange: (num: number) => void;
+
+    // Negative Stock
+    allowNegativeStock: boolean;
+    onAllowNegativeChange: (val: boolean) => void;
 }
 
 export function ProductInventorySection({
@@ -32,7 +36,9 @@ export function ProductInventorySection({
     recipe,
     onRecipeChange,
     lowStockThreshold,
-    onLowStockChange
+    onLowStockChange,
+    allowNegativeStock,
+    onAllowNegativeChange
 }: ProductInventorySectionProps) {
     const { inventoryItems } = useInventoryStore();
     const [limitingItem, setLimitingItem] = useState<{ name: string, stock: number } | null>(null);
@@ -289,18 +295,38 @@ export function ProductInventorySection({
                             </div>
 
                             {/* 3. Low Stock Alert (Separate Section) */}
-                            <div className="pt-2 border-t border-border/50">
-                                <label className="block text-sm font-medium mb-1.5 text-gray-700">Low Stock Alert</label>
-                                <div className="flex items-center gap-3">
-                                    <div className="relative w-32">
-                                        <input
-                                            type="number"
-                                            value={lowStockThreshold}
-                                            onChange={(e) => onLowStockChange(parseInt(e.target.value) || 0)}
-                                            className="w-full px-3 py-2 rounded-lg border border-border bg-green-50/20 text-sm focus:ring-2 focus:ring-primary/20 outline-none shadow-sm"
-                                        />
+                            <div className="pt-2 border-t border-border/50 space-y-6">
+                                {/* Negative Stock Setting */}
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <label className="block text-sm font-medium text-gray-700">Allow Negative Stock</label>
+                                        <p className="text-[10px] text-muted-foreground italic">If enabled, the product can still be sold when stock is 0 or less.</p>
                                     </div>
-                                    <span className="text-xs text-muted-foreground">Alert when stock falls below this level.</span>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={allowNegativeStock}
+                                            onChange={(e) => onAllowNegativeChange(e.target.checked)}
+                                        />
+                                        <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                                    </label>
+                                </div>
+
+                                {/* Low Stock Alert */}
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-medium text-gray-700">Low Stock Alert</label>
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative w-32">
+                                            <input
+                                                type="number"
+                                                value={lowStockThreshold}
+                                                onChange={(e) => onLowStockChange(parseInt(e.target.value) || 0)}
+                                                className="w-full px-3 py-2 rounded-lg border border-border bg-green-50/20 text-sm focus:ring-2 focus:ring-primary/20 outline-none shadow-sm"
+                                            />
+                                        </div>
+                                        <span className="text-xs text-muted-foreground">Alert when stock falls below this level.</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

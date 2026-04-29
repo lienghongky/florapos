@@ -162,6 +162,16 @@ export class CreateProductDto {
 
     @ApiProperty({ required: false })
     @IsOptional()
+    @IsString()
+    sku?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    barcode?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
     @IsUUID()
     category_id?: string;
 
@@ -213,19 +223,19 @@ export class CreateProductDto {
 
     @ApiProperty({ required: false })
     @IsOptional()
-    @Transform(({ value }) => value === 'true' || value === true)
+    @Transform(({ value }) => value === 'true' || value === true || value === 1 || value === '1')
     @IsBoolean()
     track_inventory?: boolean;
 
     @ApiProperty({ required: false })
     @IsOptional()
-    @Transform(({ value }) => value === 'true' || value === true)
+    @Transform(({ value }) => value === 'true' || value === true || value === 1 || value === '1')
     @IsBoolean()
     allow_negative_stock?: boolean;
 
     @ApiProperty({ required: false })
     @IsOptional()
-    @Transform(({ value }) => value === 'true' || value === true)
+    @Transform(({ value }) => value === 'true' || value === true || value === 1 || value === '1')
     @IsBoolean()
     is_active?: boolean;
 

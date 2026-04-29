@@ -43,7 +43,22 @@ export class ProductsService {
 
         return this.dataSource.transaction(async (manager) => {
             const product = manager.create(Product, {
-                ...createProductDto,
+                name: createProductDto.name,
+                description: createProductDto.description,
+                product_type: createProductDto.product_type,
+                pricing_type: createProductDto.pricing_type || 'fixed',
+                base_price: createProductDto.base_price,
+                cost_price: createProductDto.cost_price,
+                taxable: createProductDto.taxable ?? true,
+                tax_rate: createProductDto.tax_rate ?? 0,
+                track_inventory: this.toBoolean(createProductDto.track_inventory ?? true),
+                allow_negative_stock: false, //this.toBoolean(createProductDto.allow_negative_stock ?? false),
+                is_active: this.toBoolean(createProductDto.is_active ?? true),
+                store_id: createProductDto.store_id,
+                sku: createProductDto.sku,
+                barcode: createProductDto.barcode,
+                image_url: createProductDto.image_url,
+                tags: createProductDto.tags,
                 product_addons: undefined,
                 variants: undefined,
                 recipe: undefined,
@@ -67,12 +82,12 @@ export class ProductsService {
             const savedProduct = await manager.save(product);
 
             if (createProductDto.product_type === ProductType.SIMPLE && createdInventoryItem) {
-                 const recipe = manager.create(ProductRecipe, {
-                     product_id: savedProduct.id,
-                     inventory_item_id: createdInventoryItem.id,
-                     quantity_required: 1,
-                 });
-                 await manager.save(recipe);
+                const recipe = manager.create(ProductRecipe, {
+                    product_id: savedProduct.id,
+                    inventory_item_id: createdInventoryItem.id,
+                    quantity_required: 1,
+                });
+                await manager.save(recipe);
             } else if (createProductDto.product_type === ProductType.COMPOSITE && createProductDto.recipe) {
                 const recipes = createProductDto.recipe.map(item => manager.create(ProductRecipe, {
                     product_id: savedProduct.id,
@@ -143,7 +158,13 @@ export class ProductsService {
                 }
             }
 
-            return savedProduct;
+            return {
+                ...savedProduct,
+                track_inventory: this.toBoolean(savedProduct.track_inventory),
+                allow_negative_stock: this.toBoolean(savedProduct.allow_negative_stock),
+                is_active: this.toBoolean(savedProduct.is_active),
+                taxable: this.toBoolean(savedProduct.taxable),
+            } as Product;
         });
     }
 
@@ -181,7 +202,7 @@ export class ProductsService {
 
         return Promise.all(products.map(async (product) => {
             let calculated_stock = 999999; // Default for non-tracked items
-            
+
             if (product.track_inventory) {
                 if (product.recipe && product.recipe.length > 0) {
                     const availability = await this.calculateCompositeAvailability(product.recipe);
@@ -191,9 +212,13 @@ export class ProductsService {
                     calculated_stock = 0;
                 }
             }
-            
+
             return {
                 ...product,
+                track_inventory: this.toBoolean(product.track_inventory),
+                allow_negative_stock: this.toBoolean(product.allow_negative_stock),
+                is_active: this.toBoolean(product.is_active),
+                taxable: this.toBoolean(product.taxable),
                 calculated_stock,
             };
         }));
@@ -217,7 +242,24 @@ export class ProductsService {
             product.product_addons = product.product_addons.filter(pa => pa.addon && pa.addon.is_active);
         }
 
-        return product;
+        let calculated_stock = 999999;
+        if (product.track_inventory) {
+            if (product.recipe && product.recipe.length > 0) {
+                const availability = await this.calculateCompositeAvailability(product.recipe);
+                calculated_stock = availability.available_quantity;
+            } else {
+                calculated_stock = 0;
+            }
+        }
+
+        return {
+            ...product,
+            track_inventory: this.toBoolean(product.track_inventory),
+            allow_negative_stock: this.toBoolean(product.allow_negative_stock),
+            is_active: this.toBoolean(product.is_active),
+            taxable: this.toBoolean(product.taxable),
+            calculated_stock,
+        } as any;
     }
 
     private async calculateCompositeAvailability(recipe: ProductRecipe[]): Promise<{
@@ -254,16 +296,16 @@ export class ProductsService {
     async update(userId: string, id: string, updateProductDto: any, image?: Express.Multer.File): Promise<Product> {
         this.parseJsonFields(updateProductDto);
         return this.dataSource.transaction(async (manager) => {
-            const product = await manager.findOne(Product, { 
+            const product = await manager.findOne(Product, {
                 where: { id },
-                relations: ['store'] 
+                relations: ['store']
             });
             if (!product) throw new NotFoundException('Product not found');
-            
+
             // Clear the relation array to prevent TypeORM from trying to update children 
             // with null product_id during the subsequent manager.save() call.
             product.modifier_groups = [];
-            
+
             // Ensure user has access to the store
             await this.storesService.findOne(userId, product.store_id);
 
@@ -312,7 +354,7 @@ export class ProductsService {
             if (updateProductDto.recipe) {
                 // Delete old recipes
                 await manager.delete(ProductRecipe, { product_id: id });
-                
+
                 // Add new ones
                 if (updateProductDto.recipe.length > 0) {
                     const recipes = updateProductDto.recipe.map((item: any) => manager.create(ProductRecipe, {
@@ -336,7 +378,7 @@ export class ProductsService {
                 // 2. Create or Update/Re-activate
                 for (const vDto of updateProductDto.variants) {
                     const isUuid = vDto.id && vDto.id.length > 30; // UUID length check
-                    
+
                     if (isUuid) {
                         await manager.update(ProductVariant, vDto.id, {
                             name: vDto.name,
@@ -363,11 +405,11 @@ export class ProductsService {
 
             // Sync Addons
             if (updateProductDto.addons) {
-                const existingProductAddons = await manager.find(ProductAddon, { 
+                const existingProductAddons = await manager.find(ProductAddon, {
                     where: { product_id: id },
                     relations: ['addon']
                 });
-                
+
                 // 1. Deactivate old ones
                 const existingAddonIds = existingProductAddons.map(pa => pa.addon_id);
                 if (existingAddonIds.length > 0) {
@@ -376,14 +418,14 @@ export class ProductsService {
 
                 // 2. Remove mapping
                 await manager.delete(ProductAddon, { product_id: id });
-                
+
                 // 3. Re-link/Update/Create
                 let displayOrder = 0;
                 for (const addonDto of updateProductDto.addons) {
                     const isUuid = addonDto.id && addonDto.id.length > 30;
                     let addonId = isUuid ? addonDto.id : null;
 
-                    if (!addonId) { 
+                    if (!addonId) {
                         const addon = manager.create(Addon, {
                             store_id: product.store_id,
                             name: addonDto.name,
@@ -421,9 +463,9 @@ export class ProductsService {
                     .from(ModifierGroup)
                     .where("product_id = :id", { id })
                     .execute();
-                
+
                 const modifierGroupsDto = Array.isArray(updateProductDto.modifier_groups) ? updateProductDto.modifier_groups : [];
-                
+
                 if (modifierGroupsDto.length > 0) {
                     for (const groupDto of modifierGroupsDto) {
                         if (!groupDto.name) continue;
@@ -438,7 +480,7 @@ export class ProductsService {
                             is_active: true
                         });
                         const savedGroup = await manager.save(group);
-                        
+
                         if (groupDto.options && Array.isArray(groupDto.options)) {
                             const options = groupDto.options
                                 .filter((o: any) => o.name)
@@ -450,7 +492,7 @@ export class ProductsService {
                                     quantity_needed: Number(o.quantity_needed || 0),
                                     is_active: true
                                 }));
-                            
+
                             if (options.length > 0) {
                                 await manager.save(options);
                             }
@@ -466,7 +508,7 @@ export class ProductsService {
     async remove(userId: string, id: string): Promise<void> {
         const product = await this.productRepository.findOne({ where: { id } });
         if (!product) throw new NotFoundException('Product not found');
-        
+
         try {
             await this.productRepository.remove(product);
         } catch (error: any) {
@@ -475,6 +517,10 @@ export class ProductsService {
             }
             throw error;
         }
+    }
+
+    private toBoolean(value: any): boolean {
+        return value === true || value === 'true' || value === 1 || value === '1';
     }
 
     private parseJsonFields(dto: any) {
@@ -487,16 +533,24 @@ export class ProductsService {
         } catch (e) {
             // Ignore parse errors, fallback to DTO default
         }
-        
+
         // Convert numeric fields if they are strings
         if (typeof dto.base_price === 'string') dto.base_price = parseFloat(dto.base_price);
         if (typeof dto.cost_price === 'string') dto.cost_price = parseFloat(dto.cost_price);
         if (typeof dto.tax_rate === 'string') dto.tax_rate = parseFloat(dto.tax_rate);
-        
+
         // Convert boolean fields
-        if (typeof dto.track_inventory === 'string') dto.track_inventory = dto.track_inventory === 'true';
-        if (typeof dto.allow_negative_stock === 'string') dto.allow_negative_stock = dto.allow_negative_stock === 'true';
-        if (typeof dto.is_active === 'string') dto.is_active = dto.is_active === 'true';
-        if (typeof dto.taxable === 'string') dto.taxable = dto.taxable === 'true';
+        if (dto.track_inventory !== undefined) {
+            dto.track_inventory = this.toBoolean(dto.track_inventory);
+        }
+        if (dto.allow_negative_stock !== undefined) {
+            dto.allow_negative_stock = this.toBoolean(dto.allow_negative_stock);
+        }
+        if (dto.is_active !== undefined) {
+            dto.is_active = this.toBoolean(dto.is_active);
+        }
+        if (dto.taxable !== undefined) {
+            dto.taxable = this.toBoolean(dto.taxable);
+        }
     }
 }
