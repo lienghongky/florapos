@@ -140,6 +140,16 @@ export class ProductsService {
             }
         }
 
+        // Filter inactive variants and addons
+        products.forEach(p => {
+            if (p.variants) {
+                p.variants = p.variants.filter(v => v.is_active);
+            }
+            if (p.product_addons) {
+                p.product_addons = p.product_addons.filter(pa => pa.addon && pa.addon.is_active);
+            }
+        });
+
         return Promise.all(products.map(async (product) => {
             let calculated_stock = 999999; // Default for non-tracked items
             
@@ -168,6 +178,15 @@ export class ProductsService {
 
         if (!product) throw new NotFoundException('Product not found');
         await this.storesService.findOne(userId, product.store_id);
+
+        // Filter inactive variants and addons
+        if (product.variants) {
+            product.variants = product.variants.filter(v => v.is_active);
+        }
+        if (product.product_addons) {
+            product.product_addons = product.product_addons.filter(pa => pa.addon && pa.addon.is_active);
+        }
+
         return product;
     }
 
@@ -283,112 +302,88 @@ export class ProductsService {
                 // For now, if recipe is missing in payload, we don't change existing ones unless dictated otherwise
             }
 
-            // Sync Variants (SOFT SYNC - ONLY IF CHANGED)
+            // Sync Variants
             if (updateProductDto.variants) {
-                const currentVariants = await manager.find(ProductVariant, { where: { product_id: id }, order: { name: 'ASC' } });
-                const incomingVariants = [...updateProductDto.variants].sort((a, b) => a.name.localeCompare(b.name));
-                
-                // Simple change detection
-                const isDifferent = currentVariants.length !== incomingVariants.length || 
-                    currentVariants.some((cv, idx) => {
-                        const iv = incomingVariants[idx];
-                        return cv.name !== iv.name || 
-                               Number(cv.price_modifier) !== Number(iv.price_modifier) ||
-                               cv.sku !== iv.sku ||
-                               cv.barcode !== iv.barcode;
-                    });
+                // 1. Mark all existing variants as inactive first
+                await manager.update(ProductVariant, { product_id: id }, { is_active: false });
 
-                if (isDifferent) {
-                    // 1. Mark all existing variants as inactive first
-                    await manager.update(ProductVariant, { product_id: id }, { is_active: false });
-
-                    // 2. Create or Update/Re-activate
-                    for (const vDto of updateProductDto.variants) {
-                        if (vDto.id && vDto.id.length > 10) {
-                            await manager.update(ProductVariant, vDto.id, {
-                                name: vDto.name,
-                                price_modifier: Number(vDto.price_modifier || 0),
-                                cost_modifier: Number(vDto.cost_modifier || 0),
-                                sku: vDto.sku,
-                                barcode: vDto.barcode,
-                                is_active: true
-                            });
-                        } else {
-                            const variant = manager.create(ProductVariant, {
-                                product_id: id,
-                                name: vDto.name,
-                                price_modifier: Number(vDto.price_modifier || 0),
-                                cost_modifier: Number(vDto.cost_modifier || 0),
-                                sku: vDto.sku,
-                                barcode: vDto.barcode,
-                                is_active: true
-                            });
-                            await manager.save(variant);
-                        }
+                // 2. Create or Update/Re-activate
+                for (const vDto of updateProductDto.variants) {
+                    const isUuid = vDto.id && vDto.id.length > 30; // UUID length check
+                    
+                    if (isUuid) {
+                        await manager.update(ProductVariant, vDto.id, {
+                            name: vDto.name,
+                            price_modifier: Number(vDto.price_modifier || 0),
+                            cost_modifier: Number(vDto.cost_modifier || 0),
+                            sku: vDto.sku,
+                            barcode: vDto.barcode,
+                            is_active: true
+                        });
+                    } else {
+                        const variant = manager.create(ProductVariant, {
+                            product_id: id,
+                            name: vDto.name,
+                            price_modifier: Number(vDto.price_modifier || 0),
+                            cost_modifier: Number(vDto.cost_modifier || 0),
+                            sku: vDto.sku,
+                            barcode: vDto.barcode,
+                            is_active: true
+                        });
+                        await manager.save(variant);
                     }
                 }
             }
 
-            // Sync Addons (SOFT SYNC - ONLY IF CHANGED)
+            // Sync Addons
             if (updateProductDto.addons) {
                 const existingProductAddons = await manager.find(ProductAddon, { 
                     where: { product_id: id },
-                    relations: ['addon'],
-                    order: { display_order: 'ASC' }
+                    relations: ['addon']
                 });
-                const currentAddons = existingProductAddons.map(pa => pa.addon);
-                const incomingAddons = updateProductDto.addons;
+                
+                // 1. Deactivate old ones
+                const existingAddonIds = existingProductAddons.map(pa => pa.addon_id);
+                if (existingAddonIds.length > 0) {
+                    await manager.update(Addon, existingAddonIds, { is_active: false });
+                }
 
-                // Simple change detection
-                const isDifferent = currentAddons.length !== incomingAddons.length || 
-                    currentAddons.some((ca, idx) => {
-                        const ia = incomingAddons[idx];
-                        return ca.name !== ia.name || Number(ca.price) !== Number(ia.price);
-                    });
+                // 2. Remove mapping
+                await manager.delete(ProductAddon, { product_id: id });
+                
+                // 3. Re-link/Update/Create
+                let displayOrder = 0;
+                for (const addonDto of updateProductDto.addons) {
+                    const isUuid = addonDto.id && addonDto.id.length > 30;
+                    let addonId = isUuid ? addonDto.id : null;
 
-                if (isDifferent) {
-                    // 1. Deactivate old ones
-                    const existingAddonIds = currentAddons.map(a => a.id);
-                    if (existingAddonIds.length > 0) {
-                        await manager.update(Addon, existingAddonIds, { is_active: false });
-                    }
-
-                    // 2. Remove mapping
-                    await manager.delete(ProductAddon, { product_id: id });
-                    
-                    // 3. Re-link/Update/Create
-                    let displayOrder = 0;
-                    for (const addonDto of updateProductDto.addons) {
-                        let addonId = addonDto.id;
-
-                        if (!addonId || addonId.length < 10) { 
-                            const addon = manager.create(Addon, {
-                                store_id: product.store_id,
-                                name: addonDto.name,
-                                price: addonDto.price || 0,
-                                max_quantity: addonDto.max_quantity || 1,
-                                required: addonDto.required || false,
-                                is_active: true
-                            });
-                            const savedAddon = await manager.save(addon);
-                            addonId = savedAddon.id;
-                        } else {
-                            await manager.update(Addon, addonId, {
-                                name: addonDto.name,
-                                price: addonDto.price || 0,
-                                max_quantity: addonDto.max_quantity || 1,
-                                required: addonDto.required || false,
-                                is_active: true
-                            });
-                        }
-
-                        const productAddon = manager.create(ProductAddon, {
-                            product_id: id,
-                            addon_id: addonId,
-                            display_order: displayOrder++,
+                    if (!addonId) { 
+                        const addon = manager.create(Addon, {
+                            store_id: product.store_id,
+                            name: addonDto.name,
+                            price: addonDto.price || 0,
+                            max_quantity: addonDto.max_quantity || 1,
+                            required: addonDto.required || false,
+                            is_active: true
                         });
-                        await manager.save(productAddon);
+                        const savedAddon = await manager.save(addon);
+                        addonId = savedAddon.id;
+                    } else {
+                        await manager.update(Addon, addonId, {
+                            name: addonDto.name,
+                            price: addonDto.price || 0,
+                            max_quantity: addonDto.max_quantity || 1,
+                            required: addonDto.required || false,
+                            is_active: true
+                        });
                     }
+
+                    const productAddon = manager.create(ProductAddon, {
+                        product_id: id,
+                        addon_id: addonId,
+                        display_order: displayOrder++,
+                    });
+                    await manager.save(productAddon);
                 }
             }
 

@@ -286,11 +286,13 @@ export function ProductsPage() {
     formDataToSend.append('recipe', JSON.stringify(recipe));
 
     const addons = formData.options.filter((o: any) => o.type === 'checkbox').map((o: any) => ({
+      id: (o.id && o.id.length > 30) ? o.id : undefined,
       name: o.name, price: parseFloat(o.price?.toString() || '0'), max_quantity: 1, required: false
     }));
     formDataToSend.append('addons', JSON.stringify(addons));
 
     const variants = formData.options.filter((o: any) => o.type === 'radio').map((o: any) => ({
+      id: (o.id && o.id.length > 30) ? o.id : undefined,
       name: o.name, price_modifier: parseFloat(o.price?.toString() || '0'), cost_modifier: 0, is_default: false
     }));
     formDataToSend.append('variants', JSON.stringify(variants));
