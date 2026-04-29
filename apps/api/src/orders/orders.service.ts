@@ -334,6 +334,62 @@ export class OrdersService {
             return { date: label, sales };
         });
 
+        // Top Products
+        const topProducts = await this.orderItemRepository
+            .createQueryBuilder('item')
+            .leftJoin('item.order', 'order')
+            .leftJoin('item.product', 'product')
+            .select('product.name', 'name')
+            .addSelect('SUM(item.quantity)', 'quantity')
+            .addSelect('SUM(item.line_total)', 'revenue')
+            .where('order.store_id = :storeId', { storeId })
+            .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
+            .andWhere('order.created_at BETWEEN :start AND :end', { start, end })
+            .groupBy('product.id')
+            .addGroupBy('product.name')
+            .orderBy('quantity', 'DESC')
+            .limit(5)
+            .getRawMany();
+
+        // Category Breakdown
+        const categoryStats = await this.orderItemRepository
+            .createQueryBuilder('item')
+            .leftJoin('item.order', 'order')
+            .leftJoin('item.product', 'product')
+            .leftJoin('product.category', 'category')
+            .select('COALESCE(category.name, \'Uncategorized\')', 'name')
+            .addSelect('SUM(item.line_total)', 'value')
+            .where('order.store_id = :storeId', { storeId })
+            .andWhere('order.status = :status', { status: OrderStatus.COMPLETED })
+            .andWhere('order.created_at BETWEEN :start AND :end', { start, end })
+            .groupBy('category.id')
+            .addGroupBy('category.name')
+            .getRawMany();
+
+        // Weekday Breakdown (Current Week)
+        const weekStart = new Date();
+        const day = weekStart.getDay();
+        const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+        const monday = new Date(weekStart.setDate(diff));
+        monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+
+        const weekOrders = await this.orderRepository.find({
+            where: { store_id: storeId, status: OrderStatus.COMPLETED, created_at: Between(monday, sunday) }
+        });
+
+        const weekdayMap: Record<string, number> = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
+        const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        weekOrders.forEach(o => {
+            const dName = weekdayNames[new Date(o.created_at).getDay()];
+            if (weekdayMap[dName] !== undefined) weekdayMap[dName] += Number(o.grand_total);
+        });
+
+        const weekdayStats = Object.entries(weekdayMap).map(([name, value]) => ({ name, value }));
+
         return {
             total_revenue: totalRevenue,
             total_orders: totalOrders,
@@ -342,7 +398,17 @@ export class OrdersService {
             orders_trend: ordersTrend,
             today_revenue: todayRevenue,
             today_orders: todayOrders,
-            chart_data: chartData
+            chart_data: chartData,
+            top_products: topProducts.map(p => ({
+                name: p.name,
+                quantity: Number(p.quantity),
+                revenue: Number(p.revenue)
+            })),
+            category_stats: categoryStats.map(c => ({
+                name: c.name,
+                value: Number(c.value)
+            })),
+            weekday_stats: weekdayStats
         };
     }
 
