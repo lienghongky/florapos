@@ -115,4 +115,14 @@ export class CreateOrderDto {
     @IsOptional()
     @IsString()
     customer_phone?: string;
+
+    @ApiProperty({ required: false, default: 1.0 })
+    @IsNumber()
+    @IsOptional()
+    exchange_rate?: number;
+
+    @ApiProperty({ required: false, default: 0 })
+    @IsNumber()
+    @IsOptional()
+    tax_rate?: number;
 }

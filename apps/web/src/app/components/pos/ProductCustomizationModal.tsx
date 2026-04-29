@@ -78,12 +78,12 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: 'spring', damping: 30, stiffness: 500 }}
-                        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pointer-events-none overflow-y-auto"
+                        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pointer-events-none"
                     >
-                        <div className="bg-white pointer-events-auto w-full max-w-5xl my-0 sm:my-auto max-h-fit lg:max-h-[85vh] rounded-t-3xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row">
+                        <div className="bg-white pointer-events-auto w-full max-w-5xl my-0 sm:my-auto max-h-[95vh] lg:max-h-[85vh] rounded-t-3xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row relative">
 
                             {/* Left Side: Product Shot */}
-                            <div className="relative w-full lg:w-[45%] h-64 lg:h-auto bg-slate-50 shrink-0">
+                            <div className="relative w-full lg:w-[45%] h-48 sm:h-64 lg:h-auto bg-slate-50 shrink-0">
                                 <div className="absolute inset-0 p-3 sm:p-5 lg:p-8">
                                     <div className="relative size-full overflow-hidden rounded-[2rem] shadow-inner border border-slate-100 bg-white">
                                         <ImageWithFallback
@@ -109,8 +109,8 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                             </div>
 
                             {/* Right Side: Options */}
-                            <div className="flex-1 flex flex-col min-w-0 bg-white opacity-100">
-                                <div className="flex-1 overflow-y-auto p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8 scrollbar-hide">
+                            <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-white opacity-100">
+                                <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8">
                                     {(hasVariants || hasAddons) ? (
                                         <div className="space-y-10">
                                             {/* Variants Section */}

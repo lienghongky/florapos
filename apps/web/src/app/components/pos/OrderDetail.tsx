@@ -146,12 +146,10 @@ export function OrderDetail({ order, onPreviewReceipt }: OrderDetailProps) {
                         <span>Subtotal</span>
                         <span className="font-bold text-slate-900">${parsePrice(order.subtotal).toFixed(2)}</span>
                     </div>
-                    {Number(order.tax_total) > 0 && (
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Tax (5%)</span>
-                            <span className="font-bold text-slate-900">${parsePrice(order.tax_total).toFixed(2)}</span>
-                        </div>
-                    )}
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Tax ({order.tax_rate || 0}%)</span>
+                        <span className="font-bold text-slate-900">${parsePrice(order.tax_total).toFixed(2)}</span>
+                    </div>
                     {order.order_type === 'delivery' && (
                         <div className="flex justify-between text-xs text-muted-foreground">
                             <span>Delivery Fee</span>

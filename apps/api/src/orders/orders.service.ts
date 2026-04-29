@@ -15,7 +15,6 @@ import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class OrdersService {
-    private readonly TAX_RATE = 0.05; 
 
     constructor(
         @InjectRepository(Order)
@@ -85,7 +84,8 @@ export class OrdersService {
                 });
             }
 
-            const taxAmount = subtotal * this.TAX_RATE;
+            const taxRate = createDto.tax_rate || 0;
+            const taxAmount = subtotal * (taxRate / 100);
             const deliveryFee = createDto.delivery_fee || 0;
             const discountAmount = createDto.discount_amount || 0;
             const grandTotal = subtotal + taxAmount + deliveryFee - discountAmount;

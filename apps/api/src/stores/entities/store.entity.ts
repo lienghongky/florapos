@@ -45,6 +45,12 @@ export class Store {
     } })
     tax_rate: number;
 
+    @Column('decimal', { precision: 12, scale: 4, default: 1.0, transformer: {
+        to: (value: number) => value,
+        from: (value: string) => parseFloat(value)
+    } })
+    exchange_rate: number;
+
     @OneToMany(() => StoreUser, (storeUser) => storeUser.store)
     users: StoreUser[];
 

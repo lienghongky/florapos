@@ -61,4 +61,9 @@ export class CreateStoreDto {
     @IsNumber()
     @IsOptional()
     tax_rate?: number;
+
+    @ApiProperty({ example: 1.0, description: 'Default exchange rate for the store', required: false, default: 1.0 })
+    @IsNumber()
+    @IsOptional()
+    exchange_rate?: number;
 }

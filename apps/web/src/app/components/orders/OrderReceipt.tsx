@@ -32,17 +32,17 @@ export function OrderReceipt({ order, onPrint, storeOverride, customInvoiceCode,
     const website = activeStore?.website;
     const footerText = activeStore?.receipt_footer_text || "Thank you for your business!";
     const invoicePrefix = activeStore?.invoice_prefix || "";
+    const exchangeRate = order.exchange_rate || activeStore?.exchange_rate || 4100;
 
     return (
         <div className="printable-receipt relative mx-auto w-full max-w-[320px] overflow-hidden bg-white text-black font-mono text-xs sm:text-sm" style={{ backgroundColor: '#ffffff', fontFamily: '"Courier New", Courier, monospace' }}>
             <div className="p-4 sm:p-6 pb-8">
                 {/* Header / Branding */}
                 <div className="text-center mb-4">
-                    {storeLogo ? (
+                    {storeLogo && (
                         <img src={storeLogo} alt="Store Logo" className="mx-auto mb-2 max-h-16 object-contain grayscale" />
-                    ) : (
-                        <h2 className="text-xl font-bold uppercase tracking-widest">{storeName}</h2>
                     )}
+                    <h2 className="text-sm font-bold uppercase tracking-widest">{storeName}</h2>
                     
                     {!storeLogo && website && (
                         <p className="text-[10px] mt-1">{website}</p>
@@ -51,6 +51,8 @@ export function OrderReceipt({ order, onPrint, storeOverride, customInvoiceCode,
                     <div className="mt-4 font-bold text-lg border-b border-black pb-1 mb-2">RECEIPT</div>
                     
                     <div className="flex flex-col gap-1 text-[11px] sm:text-xs">
+                        {storeAddress && <div className="mb-1 font-bold">{storeAddress}</div>}
+                        {storePhone && <div>TEL: {storePhone}</div>}
                         {taxId && <div>VAT TIN : {taxId}</div>}
                         <div>Invoice : {customInvoiceCode || (invoicePrefix + (order.order_number?.toUpperCase() || order.id.slice(-6).toUpperCase()))}</div>
                         <div>ORDER : {order.id.replace(/-/g, '').toUpperCase()}</div>
@@ -59,6 +61,7 @@ export function OrderReceipt({ order, onPrint, storeOverride, customInvoiceCode,
                         <div>PAYMENT : {formatPaymentMethod(order.payment_method || 'Cash')}</div>
                         {order.customer_name && <div>CUSTOMER: {order.customer_name}</div>}
                         {order.customer_phone && <div>PHONE: {order.customer_phone}</div>}
+                        <div>EXCHANGE RATE: 1$ = {exchangeRate.toLocaleString()} ៛</div>
                     </div>
                 </div>
 
@@ -103,12 +106,10 @@ export function OrderReceipt({ order, onPrint, storeOverride, customInvoiceCode,
                         <span>Subtotal:</span>
                         <span>${parsePrice(order.subtotal).toFixed(2)}</span>
                     </div>
-                    {parsePrice(order.tax_total) > 0 && (
-                        <div className="flex justify-between">
-                            <span>Tax:</span>
-                            <span>${parsePrice(order.tax_total).toFixed(2)}</span>
-                        </div>
-                    )}
+                    <div className="flex justify-between">
+                        <span>Tax ({order.tax_rate || activeStore?.tax_rate || 0}%):</span>
+                        <span>${parsePrice(order.tax_total).toFixed(2)}</span>
+                    </div>
                     {parsePrice(order.discount_total) > 0 && (
                         <div className="flex justify-between">
                             <span>Discount:</span>
@@ -128,9 +129,15 @@ export function OrderReceipt({ order, onPrint, storeOverride, customInvoiceCode,
                         </div>
                     )}
                     
-                    <div className="flex justify-between font-bold text-sm sm:text-base pt-2 border-t border-black mt-2">
-                        <span>GRAND TOTAL:</span>
-                        <span>${parsePrice(order.grand_total).toFixed(2)}</span>
+                    <div className="pt-2 border-t border-black mt-2">
+                        <div className="flex justify-between font-bold text-sm sm:text-base">
+                            <span>GRAND TOTAL:</span>
+                            <span>${parsePrice(order.grand_total).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs font-bold mt-0.5">
+                            <span>TOTAL (KHR):</span>
+                            <span>{(parsePrice(order.grand_total) * exchangeRate).toLocaleString()}៛</span>
+                        </div>
                     </div>
                 </div>
 

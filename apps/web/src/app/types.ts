@@ -145,6 +145,8 @@ export interface Order {
     payment_method?: string;
     customer_name?: string;
     customer_phone?: string;
+    exchange_rate?: number;
+    tax_rate?: number;
 }
 
 export interface CartItem {
@@ -168,6 +170,7 @@ export interface Store {
     invoice_prefix?: string;
     banner_image?: string;
     logo_url?: string;
+    exchange_rate?: number;
 }
 
 export interface Category {

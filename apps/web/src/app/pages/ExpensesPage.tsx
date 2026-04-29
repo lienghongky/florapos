@@ -403,7 +403,7 @@ export function ExpensesPage() {
 
 
             {/* Tabs */}
-            <div className="flex overflow-x-auto rounded-xl border border-border bg-white p-1">
+            <div className="grid grid-cols-2 md:flex md:overflow-x-auto rounded-xl border border-border bg-white p-1 gap-1">
                 {[
                     { id: 'overview', label: 'Overview', icon: PieChart },
                     { id: 'list', label: 'Expense/Income', icon: List },
@@ -415,13 +415,13 @@ export function ExpensesPage() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex min-w-[140px] items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${activeTab === tab.id
+                            className={`flex items-center justify-start gap-3 rounded-lg px-4 py-2.5 text-xs sm:text-sm font-medium transition-all ${activeTab === tab.id
                                 ? 'bg-primary text-primary-foreground shadow-sm'
                                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                 }`}
                         >
-                            <Icon className="size-4" />
-                            {tab.label}
+                            <Icon className="size-4 shrink-0" />
+                            <span className="truncate">{tab.label}</span>
                         </button>
                     );
                 })}
@@ -454,15 +454,17 @@ export function ExpensesPage() {
                         </div>
 
                         {/* Filters */}
-                        <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-white p-4 shadow-sm">
-                            <Search className="size-4 text-muted-foreground ml-2" />
-                            <input
-                                type="text"
-                                placeholder="Search expenses..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
-                            />
+                        <div className="flex flex-wrap items-center gap-3 md:gap-4 rounded-xl border border-border bg-white p-4 shadow-sm">
+                            <div className="flex items-center flex-1 min-w-[200px]">
+                                <Search className="size-4 text-muted-foreground mr-2" />
+                                <input
+                                    type="text"
+                                    placeholder="Search expenses..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+                                />
+                            </div>
                             <div className="h-4 w-px bg-border mx-2" />
 
                             {/* Date Filter in List */}
@@ -499,8 +501,8 @@ export function ExpensesPage() {
                         </div>
 
                         {/* Table */}
-                        <div className="rounded-xl border border-border bg-white shadow-sm overflow-hidden">
-                            <table className="w-full">
+                        <div className="rounded-xl border border-border bg-white shadow-sm overflow-x-auto scrollbar-hide">
+                            <table className="w-full min-w-[600px]">
                                 <thead className="bg-muted/30 border-b border-border">
                                     <tr>
                                         <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">Date</th>
@@ -587,8 +589,8 @@ export function ExpensesPage() {
 
                 {activeTab === 'categories' && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                        <div className="rounded-xl border border-border bg-white shadow-sm overflow-hidden">
-                            <table className="w-full">
+                        <div className="rounded-xl border border-border bg-white shadow-sm overflow-x-auto scrollbar-hide">
+                            <table className="w-full min-w-[500px]">
                                 <thead className="bg-muted/30 border-b border-border">
                                     <tr>
                                         <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">Category Name</th>
@@ -642,9 +644,9 @@ export function ExpensesPage() {
                 {activeTab === 'overview' && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                         {/* Date Filter in Overview */}
-                        <div className="flex justify-between items-center bg-white border border-border rounded-xl p-4 shadow-sm">
-                            <div className="flex items-center gap-4">
-                                <div className="space-y-1">
+                        <div className="flex flex-col lg:flex-row justify-between lg:items-center bg-white border border-border rounded-xl p-4 md:p-6 shadow-sm gap-6">
+                            <div className="grid grid-cols-2 lg:flex lg:items-center gap-6 md:gap-8 w-full lg:w-auto">
+                                <div className="space-y-1 col-span-2 lg:col-span-1">
                                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Opening Balance</label>
                                     <div className="flex items-center gap-2">
                                         <span className="text-xl font-bold text-foreground">$</span>
@@ -652,47 +654,49 @@ export function ExpensesPage() {
                                             type="number"
                                             value={startingBalance}
                                             onChange={(e) => setStartingBalance(Number(e.target.value))}
-                                            className="text-xl font-bold bg-transparent border-none outline-none w-32 focus:ring-1 focus:ring-primary/20 rounded"
+                                            className="text-xl font-bold bg-transparent border-none outline-none w-24 sm:w-32 focus:ring-1 focus:ring-primary/20 rounded"
                                         />
                                     </div>
                                 </div>
-                                <div className="h-10 w-px bg-border hidden sm:block" />
-                                <div className="space-y-1 hidden sm:block">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Net Movement</p>
+                                <div className="h-10 w-px bg-border hidden lg:block" />
+                                <div className="space-y-1">
+                                    <p className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">Net Movement</p>
                                     <p className={`text-xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                         {netProfit >= 0 ? '+' : ''}${netProfit.toFixed(2)}
                                     </p>
                                 </div>
-                                <div className="h-10 w-px bg-border hidden sm:block" />
+                                <div className="h-10 w-px bg-border hidden lg:block" />
                                 <div className="space-y-1">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Closing Balance</p>
                                     <p className="text-xl font-bold text-primary">${(startingBalance + netProfit).toFixed(2)}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-1 mr-4">
-                                    <Calendar className="size-4 text-muted-foreground ml-2" />
+                            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                                <div className="flex flex-1 items-center gap-2 bg-muted/30 rounded-lg p-1 lg:mr-4 min-w-[260px] sm:min-w-[300px]">
+                                    <Calendar className="size-4 text-muted-foreground ml-2 shrink-0" />
                                     <input
                                         type="date"
                                         value={dateRange.start}
                                         onChange={(e) => setDateRange((prev: any) => ({ ...prev, start: e.target.value }))}
-                                        className="text-sm border-none outline-none bg-transparent w-32"
+                                        className="text-xs sm:text-sm border-none outline-none bg-transparent w-full"
                                     />
-                                    <span className="text-muted-foreground text-sm">-</span>
+                                    <span className="text-muted-foreground text-xs sm:text-sm">-</span>
                                     <input
                                         type="date"
                                         value={dateRange.end}
                                         onChange={(e) => setDateRange((prev: any) => ({ ...prev, end: e.target.value }))}
-                                        className="text-sm border-none outline-none bg-transparent w-32"
+                                        className="text-xs sm:text-sm border-none outline-none bg-transparent w-full"
                                     />
                                 </div>
-                                <button onClick={handleExportCSV} className="p-2 border border-border rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Export CSV">
-                                    <Download className="size-5" />
-                                </button>
-                                <button onClick={handlePrint} className="p-2 border border-border rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Print Report">
-                                    <Printer className="size-5" />
-                                </button>
+                                <div className="flex gap-2 ml-auto lg:ml-0">
+                                    <button onClick={handleExportCSV} className="p-2 border border-border rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Export CSV">
+                                        <Download className="size-5" />
+                                    </button>
+                                    <button onClick={handlePrint} className="p-2 border border-border rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Print Report">
+                                        <Printer className="size-5" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -861,32 +865,34 @@ export function ExpensesPage() {
 
                 {activeTab === 'reports' && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                        <div className="rounded-xl border border-border bg-white shadow-sm overflow-hidden">
-                            <div className="bg-muted/30 border-b border-border px-6 py-4 flex justify-between items-center">
-                                <h3 className="font-semibold text-lg">Profit & Loss Statement</h3>
+                        <div className="rounded-xl border border-border bg-white shadow-sm overflow-x-auto scrollbar-hide">
+                            <div className="bg-muted/30 border-b border-border px-4 py-4 md:px-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                                <h3 className="font-semibold text-lg text-foreground">Profit & Loss Statement</h3>
                                 {/* Date Filter in Reports */}
-                                <div className="flex items-center gap-2 bg-white border border-border rounded-lg p-1 shadow-sm">
-                                    <input
-                                        type="date"
-                                        value={dateRange.start}
-                                        onChange={(e) => setDateRange((prev: any) => ({ ...prev, start: e.target.value }))}
-                                        className="text-xs border-none outline-none bg-transparent w-28 px-1"
-                                    />
-                                    <span className="text-muted-foreground text-xs">-</span>
-                                    <input
-                                        type="date"
-                                        value={dateRange.end}
-                                        onChange={(e) => setDateRange((prev: any) => ({ ...prev, end: e.target.value }))}
-                                        className="text-xs border-none outline-none bg-transparent w-28 px-1"
-                                    />
-                                </div>
-                                <div className="flex gap-2 ml-4">
-                                    <button onClick={handlePrint} className="p-1.5 border border-border rounded hover:bg-muted text-muted-foreground transition-colors" title="Print Report">
-                                        <Printer className="size-4" />
-                                    </button>
-                                    <button onClick={handleExportCSV} className="p-1.5 border border-border rounded hover:bg-muted text-muted-foreground transition-colors" title="Export CSV">
-                                        <Download className="size-4" />
-                                    </button>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex items-center gap-2 bg-white border border-border rounded-lg p-1 shadow-sm overflow-hidden">
+                                        <input
+                                            type="date"
+                                            value={dateRange.start}
+                                            onChange={(e) => setDateRange((prev: any) => ({ ...prev, start: e.target.value }))}
+                                            className="text-[10px] sm:text-xs border-none outline-none bg-transparent w-24 sm:w-28 px-1"
+                                        />
+                                        <span className="text-muted-foreground text-xs">-</span>
+                                        <input
+                                            type="date"
+                                            value={dateRange.end}
+                                            onChange={(e) => setDateRange((prev: any) => ({ ...prev, end: e.target.value }))}
+                                            className="text-[10px] sm:text-xs border-none outline-none bg-transparent w-24 sm:w-28 px-1"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2 ml-auto sm:ml-0">
+                                        <button onClick={handlePrint} className="p-2 border border-border bg-white rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Print Report">
+                                            <Printer className="size-4 md:size-5" />
+                                        </button>
+                                        <button onClick={handleExportCSV} className="p-2 border border-border bg-white rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Export CSV">
+                                            <Download className="size-4 md:size-5" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div className="p-6 space-y-6">

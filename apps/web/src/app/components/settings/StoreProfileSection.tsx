@@ -22,6 +22,7 @@ export function StoreProfileSection() {
   const [website, setWebsite] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('');
   const [invoicePrefix, setInvoicePrefix] = useState('');
+  const [exchangeRate, setExchangeRate] = useState(1);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   
   const [isSaving, setIsSaving] = useState(false);
@@ -41,6 +42,7 @@ export function StoreProfileSection() {
       setWebsite(selectedStore.website || '');
       setReceiptFooter(selectedStore.receipt_footer_text || '');
       setInvoicePrefix(selectedStore.invoice_prefix || '');
+      setExchangeRate(selectedStore.exchange_rate || 1);
       
       if (selectedStore.banner_image) {
         setBannerPreview(`/api${selectedStore.banner_image}`);
@@ -69,7 +71,8 @@ export function StoreProfileSection() {
         tax_rate: Number(taxRate),
         website,
         receipt_footer_text: receiptFooter,
-        invoice_prefix: invoicePrefix
+        invoice_prefix: invoicePrefix,
+        exchange_rate: Number(exchangeRate)
       });
       toast.success('Store information updated successfully');
     } catch (error: any) {
@@ -262,6 +265,21 @@ export function StoreProfileSection() {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label>Exchange Rate (1 USD = ? KHR)</Label>
+            <div className="relative">
+               <Input 
+                type="number"
+                step="1"
+                value={exchangeRate} 
+                onChange={(e) => setExchangeRate(Number(e.target.value))} 
+                placeholder="4100"
+                className="pr-4"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">Commonly 4000 or 4100. This rate will be used for KHR conversions.</p>
+          </div>
+
           <div className="space-y-2 md:col-span-2">
             <Label>Invoice Prefix</Label>
             <Input 
@@ -299,7 +317,7 @@ export function StoreProfileSection() {
              <div className="w-full scale-90 origin-top transform-gpu">
                 <OrderReceipt 
                   storeOverride={{
-                    name, address, phone_number: phone, tax_id: taxId, website, receipt_footer_text: receiptFooter, invoice_prefix: invoicePrefix, logo_url: logoPreview
+                    name, address, phone_number: phone, tax_id: taxId, website, receipt_footer_text: receiptFooter, invoice_prefix: invoicePrefix, logo_url: logoPreview, exchange_rate: exchangeRate
                   }} 
                   order={{
                     id: 'mock-123456',

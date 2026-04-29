@@ -99,6 +99,8 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
         delivery_fee: serviceType === 'delivery' ? deliveryFee : undefined,
         customer_name: customerName || undefined,
         customer_phone: customerPhone || undefined,
+        exchange_rate: selectedStore.exchange_rate || 4100,
+        tax_rate: selectedStore.tax_rate || 0,
       };
 
       await checkoutOrder(payload);
@@ -360,7 +362,10 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
             )}
             <div className="flex items-center justify-between border-t border-border pt-3">
               <span className="text-lg font-bold">Total Amount</span>
-              <span className="text-xl font-bold text-foreground">${total.toFixed(2)}</span>
+              <div className="text-right">
+                <div className="text-xl font-bold text-foreground">${total.toFixed(2)}</div>
+                <div className="text-[10px] font-bold text-muted-foreground">{(total * (selectedStore?.exchange_rate || 4100)).toLocaleString()}៛</div>
+              </div>
             </div>
           </div>
 
@@ -377,136 +382,153 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
       </div>
 
       {/* Checkout Modal */}
-      <AnimatedModal isOpen={showCheckoutModal} onClose={() => {
+      <AnimatedModal isOpen={showCheckoutModal} position="center" onClose={() => {
         setShowCheckoutModal(false);
         setPaymentStep('select');
         setReceivedAmount('');
       }}>
-        <div className="rounded-t-3xl md:rounded-3xl bg-white p-5 md:p-6 shadow-xl w-full md:w-[400px] mx-auto">
+        <div className="rounded-[2.5rem] bg-white p-6 sm:p-8 shadow-2xl w-[90vw] sm:w-full sm:max-w-[500px] mx-auto my-auto relative">
           {paymentStep === 'select' ? (
             <>
-              <div className="text-center mb-6">
+              <div className="text-center mb-8">
                 <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-green-100 text-green-600">
                   <Wallet className="size-6" />
                 </div>
-                <h3 className="text-xl font-bold">Select Payment</h3>
-                <p className="text-muted-foreground">Total: <span className="text-foreground font-bold">${total.toFixed(2)}</span></p>
+                <h2 className="text-xl font-bold text-slate-900">Select Payment</h2>
+                <div className="text-slate-500 text-sm font-medium">
+                  Total Amount: <span className="text-slate-900 font-bold">${total.toFixed(2)}</span>
+                  <span className="ml-2 text-xs opacity-70">/ {(total * (selectedStore?.exchange_rate || 4100)).toLocaleString()}៛</span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="grid grid-cols-2 gap-4 mb-8">
                 {([
                   { id: 'cash', label: 'Cash', icon: Banknote },
                   { id: 'credit', label: 'Credit Card', icon: CreditCard },
                   { id: 'pay_later', label: 'Pay Later', icon: Clock },
                   { id: 'qr', label: 'QR Code', icon: ScanLine },
                 ] as const).map((method) => (
-                  <button
-                    key={method.id}
-                    onClick={() => {
-                      setPaymentMethod(method.id);
-                      if (method.id === 'cash') {
-                        setPaymentStep('cash');
-                      } else {
-                        setPaymentStep('select');
-                      }
-                    }}
-                    className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${
-                      paymentMethod === method.id
-                        ? 'border-brand-primary bg-brand-primary/5 text-brand-primary ring-2 ring-brand-primary/20'
-                        : 'border-border hover:bg-muted/50'
-                    }`}
-                  >
-                    <method.icon className="size-6" />
-                    <span className="font-medium text-sm">{method.label}</span>
-                  </button>
+                    <button
+                      key={method.id}
+                      onClick={() => {
+                        setPaymentMethod(method.id);
+                        if (method.id === 'cash') {
+                          setPaymentStep('cash');
+                        } else {
+                          setPaymentStep('select');
+                        }
+                      }}
+                      className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-6 transition-all ${
+                        paymentMethod === method.id
+                          ? 'border-brand-primary bg-brand-primary/5 text-brand-primary ring-4 ring-brand-primary/10'
+                          : 'border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200'
+                      }`}
+                    >
+                      <method.icon className="size-6" />
+                      <span className="font-bold text-sm">{method.label}</span>
+                    </button>
                 ))}
               </div>
 
               <button
                 onClick={handleCheckout}
                 disabled={isProcessing || !paymentMethod}
-                className="w-full rounded-xl bg-brand-primary py-3.5 font-bold text-white shadow-lg shadow-brand-primary/25 disabled:opacity-50"
+                className="w-full rounded-xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/25 disabled:opacity-50 hover:bg-brand-primary/90 transition-all active:scale-95"
               >
                 {isProcessing 
                   ? 'Processing...' 
                   : !paymentMethod 
                     ? 'Select Payment Method' 
-                    : (paymentMethod === 'pay_later' ? 'Confirm & Pay Later' : 'Confirm Payment')}
+                    : (paymentMethod === 'pay_later' ? 'Confirm & Pay Later' : 'Complete Transaction')}
               </button>
             </>
           ) : (
             /* Cash Calculator UI */
             <>
               <div className="mb-4 flex items-center justify-between">
-                <button onClick={() => setPaymentStep('select')} className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                <button 
+                  onClick={() => {
+                    setPaymentStep('select');
+                    setPaymentMethod(null);
+                  }} 
+                  className="text-sm font-bold text-slate-400 hover:text-slate-900 flex items-center gap-1"
+                >
                   &larr; Back
                 </button>
-                <h3 className="font-bold">Cash Payment</h3>
+                <h3 className="font-black uppercase tracking-widest text-xs text-slate-900">Cash Payment</h3>
                 <div className="w-8" />
               </div>
 
-              <div className="mb-4 rounded-2xl bg-muted p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Due</span>
-                  <span className="font-bold">${total.toFixed(2)}</span>
+              <div className="mb-6 rounded-[2rem] bg-slate-50 p-6 space-y-3 border border-slate-100">
+                <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-slate-400">
+                  <span>Total Due</span>
+                  <div className="text-right">
+                    <div className="text-slate-900 font-bold">${total.toFixed(2)}</div>
+                    <div className="text-[10px] text-muted-foreground">{(total * (selectedStore?.exchange_rate || 4100)).toLocaleString()}៛</div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-end border-b border-border/50 pb-2">
-                  <span className="text-sm text-muted-foreground">Received</span>
-                  <span className="text-2xl font-bold text-brand-primary">${receivedAmount || '0'}</span>
+                <div className="flex justify-between items-end border-b border-slate-200 pb-3">
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Received</span>
+                  <span className="text-3xl font-black text-brand-primary">${receivedAmount || '0'}</span>
                 </div>
-                <div className="flex justify-between text-sm pt-1">
-                  <span className="text-muted-foreground">Change</span>
-                  <span className="font-bold text-green-600">
-                    ${Math.max(0, (parseFloat(receivedAmount || '0') - total)).toFixed(2)}
-                  </span>
+                <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest pt-1">
+                  <span className="text-slate-400">Change</span>
+                  <div className="text-right">
+                    <div className="text-green-600 font-black text-2xl">
+                      ${Math.max(0, (parseFloat(receivedAmount || '0') - total)).toFixed(2)}
+                    </div>
+                    <div className="text-[10px] font-bold text-green-600/70">
+                      {(Math.max(0, (parseFloat(receivedAmount || '0') - total)) * (selectedStore?.exchange_rate || 4100)).toLocaleString()}៛
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Keypad */}
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-3 gap-3 mb-6">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map((key) => (
                   <button
                     key={key}
                     onClick={() => setReceivedAmount(prev => prev + key.toString())}
-                    className="flex h-12 items-center justify-center rounded-xl bg-muted/50 text-lg font-bold hover:bg-muted transition-colors"
+                    className="flex h-14 items-center justify-center rounded-2xl bg-slate-50 text-lg font-black hover:bg-slate-100 transition-all border border-slate-100"
                   >
                     {key}
                   </button>
                 ))}
                 <button
                   onClick={() => setReceivedAmount(prev => prev.slice(0, -1))}
-                  className="flex h-12 items-center justify-center rounded-xl bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                  className="flex h-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 hover:bg-red-100 transition-all border border-red-100"
                 >
                   <Delete className="size-5" />
                 </button>
               </div>
 
               {/* Quick amounts */}
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-2 mb-6">
                 {[10, 20, 50, 100].map(amt => (
                   <button
                     key={amt}
                     onClick={() => setReceivedAmount(amt.toString())}
-                    className="flex-1 rounded-lg border border-border py-2 text-xs font-semibold hover:bg-muted"
+                    className="flex-1 rounded-xl border border-slate-200 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
                   >
                     ${amt}
                   </button>
                 ))}
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={() => setReceivedAmount('')}
-                  className="flex-1 rounded-xl border border-border py-3.5 font-bold text-muted-foreground hover:bg-muted"
+                  className="flex-1 rounded-2xl border border-slate-200 py-4 font-bold text-slate-400 hover:bg-slate-50 transition-all uppercase tracking-widest text-xs"
                 >
                   Clear
                 </button>
                 <button
                   onClick={handleCheckout}
                   disabled={isProcessing || parseFloat(receivedAmount || '0') < total}
-                  className="flex-[2] rounded-xl bg-brand-primary py-3.5 font-bold text-white shadow-lg shadow-brand-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-[2] rounded-2xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isProcessing ? 'Processing' : 'Confirm Pay'}
+                  {isProcessing ? 'Processing...' : 'Confirm Transaction'}
                 </button>
               </div>
             </>
