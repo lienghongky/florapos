@@ -152,4 +152,50 @@ export class MasterController {
     deleteUser(@Param('id') id: string) {
         return this.masterService.deleteUser(id);
     }
+
+    // ── Telegram Management ──────────────────────────────────────────────
+
+    /**
+     * Lists all linked Telegram accounts globally.
+     */
+    @Get('telegram/accounts')
+    @ApiOperation({ summary: 'List all linked Telegram accounts' })
+    getTelegramAccounts() {
+        return this.masterService.getAllTelegramAccounts();
+    }
+
+    /**
+     * Disconnects a Telegram account.
+     */
+    @Delete('telegram/accounts/:id')
+    @ApiOperation({ summary: 'Disconnect a Telegram account' })
+    disconnectTelegram(@Param('id') id: string) {
+        return this.masterService.disconnectTelegramAccount(id);
+    }
+
+    @Patch('telegram/accounts/:id/toggle')
+    @ApiOperation({ summary: 'Toggle Telegram account status' })
+    toggleTelegram(@Param('id') id: string) {
+        return this.masterService.toggleTelegramAccount(id);
+    }
+
+    // ── System Settings ──────────────────────────────────────────────────
+
+    /**
+     * Retrieves a system setting by key.
+     */
+    @Get('settings/:key')
+    @ApiOperation({ summary: 'Get a system setting' })
+    getSetting(@Param('key') key: string) {
+        return this.masterService.getSetting(key);
+    }
+
+    /**
+     * Updates or creates a system setting.
+     */
+    @Post('settings')
+    @ApiOperation({ summary: 'Set a system setting' })
+    setSetting(@Body() data: { key: string, value: string }) {
+        return this.masterService.setSetting(data.key, data.value);
+    }
 }

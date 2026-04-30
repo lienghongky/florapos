@@ -12,6 +12,7 @@ export interface TelegramStatus {
     notify_low_stock: boolean;
   };
   linked_at?: string;
+  bot_username?: string;
 }
 
 export interface TelegramLinkResponse {
@@ -39,5 +40,9 @@ export const telegramService = {
       method: 'DELETE',
       token,
     });
+  },
+  
+  getGlobalStatus: async (token: string): Promise<{ enabled: boolean }> => {
+    return request<{ enabled: boolean }>('/telegram/global-status', { token });
   },
 };

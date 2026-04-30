@@ -8,6 +8,8 @@ import { TelegramLinkToken } from './entities/telegram-link-token.entity';
 import { StoreUser } from '../stores/entities/store-user.entity';
 import * as crypto from 'crypto';
 
+import { SystemSetting } from '../master/entities/system-setting.entity';
+
 @Injectable()
 export class TelegramService {
     private readonly logger = new Logger(TelegramService.name);
@@ -27,6 +29,8 @@ export class TelegramService {
         private linkTokenRepo: Repository<TelegramLinkToken>,
         @InjectRepository(StoreUser)
         private storeUserRepo: Repository<StoreUser>,
+        @InjectRepository(SystemSetting)
+        private systemSettingRepo: Repository<SystemSetting>,
     ) {}
 
     // ── Account Management ───────────────────────────────────────────────
@@ -100,6 +104,12 @@ export class TelegramService {
     // ── Link Token Management ────────────────────────────────────────────
 
     async generateLinkToken(userId: string): Promise<string> {
+        // Check if global linking is enabled
+        const linkingEnabled = await this.systemSettingRepo.findOne({ where: { key: 'telegram_linking_enabled' } });
+        if (linkingEnabled && linkingEnabled.value === 'false') {
+            throw new Error('Telegram linking is temporarily disabled by administrator.');
+        }
+
         // Invalidate any existing unused tokens for this user
         await this.linkTokenRepo.update(
             { user_id: userId, used: false },
@@ -121,6 +131,12 @@ export class TelegramService {
     }
 
     async validateAndConsumeToken(token: string): Promise<{ userId: string } | null> {
+        // Check if global linking is enabled
+        const linkingEnabled = await this.systemSettingRepo.findOne({ where: { key: 'telegram_linking_enabled' } });
+        if (linkingEnabled && linkingEnabled.value === 'false') {
+            return null;
+        }
+
         const linkToken = await this.linkTokenRepo.findOne({
             where: { token, used: false },
         });
@@ -163,6 +179,63 @@ export class TelegramService {
         }
     }
 
+    async sendPhoto(chatId: number, photoPath: string, caption: string, options?: any): Promise<boolean> {
+        // Rate limiting
+        const now = Date.now();
+        const lastSent = this.rateLimitMap.get(chatId) || 0;
+        if (now - lastSent < this.RATE_LIMIT_MS) {
+            const waitMs = this.RATE_LIMIT_MS - (now - lastSent);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+        }
+
+        try {
+            const isUrl = photoPath.startsWith('http');
+            const source = isUrl ? photoPath : { source: photoPath };
+
+            await this.bot.telegram.sendPhoto(chatId, source, {
+                caption,
+                parse_mode: 'HTML',
+                ...options,
+            });
+            this.rateLimitMap.set(chatId, Date.now());
+            return true;
+        } catch (error) {
+            this.logger.error(`Failed to send photo to chat ${chatId}: ${error.message}`);
+            // If user blocked the bot, deactivate their account
+            if (error.response?.error_code === 403) {
+                await this.telegramAccountRepo.update({ chat_id: chatId }, { is_active: false });
+            }
+            return false;
+        }
+    }
+
+    async sendMediaGroup(chatId: number, media: { type: 'photo', media: string, caption?: string }[]): Promise<boolean> {
+        // Rate limiting
+        const now = Date.now();
+        const lastSent = this.rateLimitMap.get(chatId) || 0;
+        if (now - lastSent < this.RATE_LIMIT_MS) {
+            const waitMs = this.RATE_LIMIT_MS - (now - lastSent);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+        }
+
+        try {
+            const formattedMedia = media.map(item => ({
+                ...item,
+                media: item.media.startsWith('http') ? item.media : { source: item.media }
+            }));
+
+            await this.bot.telegram.sendMediaGroup(chatId, formattedMedia as any);
+            this.rateLimitMap.set(chatId, Date.now());
+            return true;
+        } catch (error) {
+            this.logger.error(`Failed to send media group to chat ${chatId}: ${error.message}`);
+            if (error.response?.error_code === 403) {
+                await this.telegramAccountRepo.update({ chat_id: chatId }, { is_active: false });
+            }
+            return false;
+        }
+    }
+
     // ── Store Resolution ─────────────────────────────────────────────────
 
     async getUserStores(userId: string): Promise<StoreUser[]> {
@@ -181,5 +254,10 @@ export class TelegramService {
         } catch {
             return 'your_bot';
         }
+    }
+
+    async isLinkingEnabled(): Promise<boolean> {
+        const setting = await this.systemSettingRepo.findOne({ where: { key: 'telegram_linking_enabled' } });
+        return setting ? setting.value !== 'false' : true;
     }
 }

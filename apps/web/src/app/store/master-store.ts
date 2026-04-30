@@ -5,16 +5,18 @@ import { storesService } from '../services/stores.service';
 import { toast } from 'sonner';
 
 interface MasterState {
-  masterStats: { totalOwners: number, totalStores: number, totalStaff: number } | null;
+  masterStats: { totalOwners: number, totalStores: number, totalStaff: number, totalTelegramLinks: number } | null;
   owners: any[];
   globalStores: any[];
   globalStaff: any[];
   saasPayments: any[];
+  telegramAccounts: any[];
   
   refreshMasterData: () => Promise<void>;
   refreshGlobalStores: () => Promise<void>;
   refreshGlobalStaff: () => Promise<void>;
   refreshSaaSPayments: () => Promise<void>;
+  refreshTelegramAccounts: () => Promise<void>;
   
   toggleUserActive: (id: string) => Promise<void>;
   deleteGlobalUser: (id: string) => Promise<void>;
@@ -28,6 +30,10 @@ interface MasterState {
   fetchOwnerPayments: (ownerId: string) => Promise<any[]>;
   uploadStoreBanner: (storeId: string, file: File) => Promise<void>;
   uploadStoreLogo: (storeId: string, file: File) => Promise<void>;
+  disconnectTelegramAccount: (id: string) => Promise<void>;
+  toggleTelegramAccount: (id: string) => Promise<void>;
+  getSystemSetting: (key: string) => Promise<string>;
+  setSystemSetting: (key: string, value: string) => Promise<void>;
 }
 
 export const useMasterStore = create<MasterState>((set, get) => ({
@@ -79,6 +85,17 @@ export const useMasterStore = create<MasterState>((set, get) => ({
       set({ saasPayments: paymentsList });
     } catch (e) {
       console.error("Failed to fetch saas payments", e);
+    }
+  },
+
+  refreshTelegramAccounts: async () => {
+    const { token, user } = useAuthStore.getState();
+    if (!token || user?.role !== 'master') return;
+    try {
+      const accounts = await request<any[]>('/master/telegram/accounts', { token });
+      set({ telegramAccounts: accounts });
+    } catch (e) {
+      console.error("Failed to fetch telegram accounts", e);
     }
   },
 
@@ -165,5 +182,54 @@ export const useMasterStore = create<MasterState>((set, get) => ({
     const { token } = useAuthStore.getState();
     if (!token) return;
     await storesService.uploadLogo(token, storeId, file);
+  },
+
+  disconnectTelegramAccount: async (id) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    try {
+      await request(`/master/telegram/accounts/${id}`, { method: 'DELETE', token });
+      toast.success('Telegram account disconnected');
+      await get().refreshTelegramAccounts();
+      await get().refreshMasterData();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to disconnect telegram account');
+    }
+  },
+
+  toggleTelegramAccount: async (id) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    try {
+      await request(`/master/telegram/accounts/${id}/toggle`, { method: 'PATCH', token });
+      toast.success('Telegram account status updated');
+      await get().refreshTelegramAccounts();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to toggle telegram account');
+    }
+  },
+
+  getSystemSetting: async (key) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return '';
+    try {
+      return await request<string>(`/master/settings/${key}`, { token });
+    } catch {
+      return '';
+    }
+  },
+
+  setSystemSetting: async (key, value) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    try {
+      await request('/master/settings', { 
+        method: 'POST', 
+        body: JSON.stringify({ key, value }), 
+        token 
+      });
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update system setting');
+    }
   },
 }));

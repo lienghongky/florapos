@@ -8,6 +8,8 @@ import { SaaSPayment } from './entities/saas-payment.entity';
 import { UserRole } from '../users/dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { ConflictException } from '@nestjs/common';
+import { TelegramAccount } from '../telegram/entities/telegram-account.entity';
+import { SystemSetting } from './entities/system-setting.entity';
 
 @Injectable()
 export class MasterService {
@@ -20,17 +22,23 @@ export class MasterService {
         private storeUsersRepository: Repository<StoreUser>,
         @InjectRepository(SaaSPayment)
         private saasPaymentsRepository: Repository<SaaSPayment>,
+        @InjectRepository(TelegramAccount)
+        private telegramAccountRepo: Repository<TelegramAccount>,
+        @InjectRepository(SystemSetting)
+        private systemSettingRepo: Repository<SystemSetting>,
     ) { }
 
     async getSaaSStats() {
         const totalOwners = await this.usersRepository.count({ where: { role: UserRole.OWNER } });
         const totalStores = await this.storesRepository.count();
         const totalStaff = await this.usersRepository.count({ where: { role: UserRole.STAFF } });
+        const totalTelegramLinks = await this.telegramAccountRepo.count();
         
         return {
             totalOwners,
             totalStores,
             totalStaff,
+            totalTelegramLinks,
         };
     }
 
@@ -220,5 +228,44 @@ export class MasterService {
         const user = await this.usersRepository.findOne({ where: { id } });
         if (!user) throw new NotFoundException('User not found');
         return this.usersRepository.remove(user);
+    }
+
+    // ── Telegram Management ──────────────────────────────────────────────
+
+    async getAllTelegramAccounts() {
+        return this.telegramAccountRepo.find({
+            relations: ['user'],
+            order: { created_at: 'DESC' }
+        });
+    }
+
+    async disconnectTelegramAccount(id: string) {
+        const account = await this.telegramAccountRepo.findOne({ where: { id } });
+        if (!account) throw new NotFoundException('Telegram link not found');
+        return this.telegramAccountRepo.remove(account);
+    }
+
+    async toggleTelegramAccount(id: string) {
+        const account = await this.telegramAccountRepo.findOne({ where: { id } });
+        if (!account) throw new NotFoundException('Telegram link not found');
+        account.is_active = !account.is_active;
+        return this.telegramAccountRepo.save(account);
+    }
+
+    // ── System Settings ──────────────────────────────────────────────────
+
+    async getSetting(key: string, defaultValue: string = ''): Promise<string> {
+        const setting = await this.systemSettingRepo.findOne({ where: { key } });
+        return setting ? setting.value : defaultValue;
+    }
+
+    async setSetting(key: string, value: string): Promise<SystemSetting> {
+        let setting = await this.systemSettingRepo.findOne({ where: { key } });
+        if (!setting) {
+            setting = this.systemSettingRepo.create({ key, value });
+        } else {
+            setting.value = value;
+        }
+        return this.systemSettingRepo.save(setting);
     }
 }

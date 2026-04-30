@@ -19,6 +19,13 @@ export class TelegramController {
         private readonly configService: ConfigService,
     ) {}
 
+    @Get('global-status')
+    @ApiOperation({ summary: 'Check if Telegram linking is enabled globally' })
+    async getGlobalStatus() {
+        const enabled = await this.telegramService.isLinkingEnabled();
+        return { enabled };
+    }
+
     @Post('generate-link')
     @ApiOperation({ summary: 'Generate a Telegram invite link for account linking' })
     @ApiResponse({ status: 201, description: 'Returns the Telegram deep link URL' })
@@ -42,15 +49,18 @@ export class TelegramController {
     @ApiResponse({ status: 200, description: 'Returns linking status and preferences' })
     async getStatus(@Request() req: any) {
         const account = await this.telegramService.findAccountByUserId(req.user.userId);
-
+        const botUsername = await this.telegramService.getBotUsername();
+        
         if (!account) {
             return {
                 linked: false,
+                bot_username: botUsername,
             };
         }
 
         return {
             linked: true,
+            bot_username: botUsername,
             is_active: account.is_active,
             chat_id: account.chat_id,
             username: account.username,

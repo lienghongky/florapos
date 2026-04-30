@@ -13,12 +13,17 @@ export function TelegramLinkingSection() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [linkData, setLinkData] = useState<TelegramLinkResponse | null>(null);
   const [showQR, setShowQR] = useState(false);
+  const [isLinkingEnabled, setIsLinkingEnabled] = useState(true);
 
   const fetchStatus = async () => {
     if (!token) return;
     try {
-      const data = await telegramService.getStatus(token);
+      const [data, globalStatus] = await Promise.all([
+        telegramService.getStatus(token),
+        telegramService.getGlobalStatus(token)
+      ]);
       setStatus(data);
+      setIsLinkingEnabled(globalStatus.enabled);
     } catch (error) {
       console.error('Failed to fetch Telegram status', error);
     } finally {
@@ -78,9 +83,21 @@ export function TelegramLinkingSection() {
         </div>
 
         {status?.linked ? (
-          <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-green-600 border border-green-100">
-            <Check className="size-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">Linked as @{status.username || 'User'}</span>
+          status.is_active ? (
+            <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-green-600 border border-green-100">
+              <Check className="size-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">Linked as @{status.username || 'User'}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-orange-600 border border-orange-100">
+              <X className="size-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">Account Suspended</span>
+            </div>
+          )
+        ) : !isLinkingEnabled ? (
+          <div className="flex items-center gap-2 rounded-full bg-red-50 px-4 py-2 text-red-600 border border-red-100">
+            <X className="size-4" />
+            <span className="text-xs font-bold uppercase tracking-wider">Feature Disabled</span>
           </div>
         ) : (
           <div className="flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-slate-500 border border-slate-100">
@@ -125,11 +142,11 @@ export function TelegramLinkingSection() {
 
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
               <button
-                onClick={() => window.open(`https://t.me/${status.username || 'bot'}`, '_blank')}
+                onClick={() => window.open(`https://t.me/${status.bot_username || 'bot'}`, '_blank')}
                 className="w-full sm:w-auto rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white flex items-center justify-center gap-2 hover:bg-brand-primary transition-all"
               >
                 <ExternalLink className="size-4" />
-                Open Telegram
+                Open Telegram Bot
               </button>
               <button
                 onClick={handleUnlink}
@@ -138,6 +155,12 @@ export function TelegramLinkingSection() {
                 Disconnect Account
               </button>
             </div>
+            {!status.is_active && (
+              <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 text-orange-700 text-xs font-medium flex items-center gap-3">
+                <X className="size-4 shrink-0" />
+                <span>Your Telegram account has been temporarily disabled by the administrator. You will not receive any notifications until it is re-enabled.</span>
+              </div>
+            )}
             <p className="text-[10px] text-slate-400 text-center sm:text-left italic">
               Manage specific notification toggles directly within the Telegram bot using /settings.
             </p>
@@ -149,20 +172,30 @@ export function TelegramLinkingSection() {
                 <Bot className="size-10" />
               </div>
               <div className="max-w-md">
-                <h4 className="font-bold text-slate-900">Connect your account</h4>
-                <p className="text-sm text-slate-500">Generate a unique invite link to link your Telegram account and start receiving notifications.</p>
+                <h4 className="font-bold text-slate-900">
+                  {isLinkingEnabled ? 'Connect your account' : 'Linking temporarily disabled'}
+                </h4>
+                <p className="text-sm text-slate-500">
+                  {isLinkingEnabled 
+                    ? 'Generate a unique invite link to link your Telegram account and start receiving notifications.'
+                    : 'The administrator has temporarily disabled new Telegram account links. Existing links will continue to function.'}
+                </p>
               </div>
               
               {!linkData ? (
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={isLinkingEnabled ? { scale: 1.02 } : {}}
+                  whileTap={isLinkingEnabled ? { scale: 0.98 } : {}}
                   onClick={handleGenerateLink}
-                  disabled={isGenerating}
-                  className="rounded-2xl bg-brand-primary px-8 py-3.5 font-bold text-white shadow-xl shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 flex items-center gap-2"
+                  disabled={isGenerating || !isLinkingEnabled}
+                  className={`rounded-2xl px-8 py-3.5 font-bold text-white shadow-xl transition-all flex items-center gap-2 ${
+                    isLinkingEnabled 
+                      ? 'bg-brand-primary shadow-brand-primary/20 hover:bg-brand-primary/90' 
+                      : 'bg-slate-300 shadow-none cursor-not-allowed'
+                  }`}
                 >
                   {isGenerating ? <RefreshCw className="size-5 animate-spin" /> : <LinkIcon className="size-5" />}
-                  Generate Invite Link
+                  {isLinkingEnabled ? 'Generate Invite Link' : 'Linking Disabled'}
                 </motion.button>
               ) : (
                 <div className="w-full space-y-4">

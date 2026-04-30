@@ -232,6 +232,10 @@ export class OrdersService {
             staff_name: salespersonName,
             item_count: createDto.items.length,
             payment_method: createDto.payment_method || 'N/A',
+            items: result.items.map((item: any) => ({
+                name: item.product?.name || 'Unknown Item',
+                image_url: item.product?.image_url,
+            })),
         }));
 
         return result;

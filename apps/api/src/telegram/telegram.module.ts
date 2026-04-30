@@ -12,10 +12,11 @@ import { NotificationQueueService } from './notification-queue.service';
 import { DailySummaryService } from './daily-summary.service';
 import { StoreUser } from '../stores/entities/store-user.entity';
 import { OrdersModule } from '../orders/orders.module';
+import { SystemSetting } from '../master/entities/system-setting.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([TelegramAccount, TelegramLinkToken, StoreUser]),
+        TypeOrmModule.forFeature([TelegramAccount, TelegramLinkToken, StoreUser, SystemSetting]),
         TelegrafModule.forRootAsync({
             imports: [ConfigModule],
             useFactory: (configService: ConfigService) => {

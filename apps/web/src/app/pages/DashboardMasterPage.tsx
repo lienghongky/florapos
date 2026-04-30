@@ -18,13 +18,17 @@ import {
   CreditCard,
   AlertCircle,
   Key,
-  Trash2
+  Trash2,
+  Send,
+  Power,
+  PowerOff
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { Badge } from '@/app/components/ui/badge';
+import { Switch } from '@/app/components/ui/switch';
 import { toast } from 'sonner';
 
 export function DashboardMasterPage() {
@@ -46,12 +50,19 @@ export function DashboardMasterPage() {
     saasPayments,
     refreshSaaSPayments,
     recordSaaSPayment,
-    refreshMasterData
+    refreshMasterData,
+    telegramAccounts,
+    refreshTelegramAccounts,
+    disconnectTelegramAccount,
+    toggleTelegramAccount,
+    getSystemSetting,
+    setSystemSetting
   } = useMasterStore();
 
   const { user } = useAuthStore();
 
-  const [activeTab, setActiveTab] = useState<'owners' | 'stores' | 'staff' | 'payments'>('owners');
+  const [activeTab, setActiveTab] = useState<'owners' | 'stores' | 'staff' | 'payments' | 'telegram'>('owners');
+  const [telegramSearchTerm, setTelegramSearchTerm] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
   const [staffSearchTerm, setStaffSearchTerm] = useState('');
@@ -98,6 +109,7 @@ export function DashboardMasterPage() {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [isTelegramLinkingEnabled, setIsTelegramLinkingEnabled] = useState(true);
 
   const filteredOwners = owners.filter(o => 
     o.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -275,6 +287,12 @@ export function DashboardMasterPage() {
     refreshGlobalStores();
     refreshSaaSPayments();
     refreshGlobalStaff();
+    refreshTelegramAccounts();
+    
+    // Fetch Telegram Linking Status
+    getSystemSetting('telegram_linking_enabled').then(val => {
+      setIsTelegramLinkingEnabled(val !== 'false');
+    });
   }, []);
 
   return (
@@ -380,6 +398,13 @@ export function DashboardMasterPage() {
         >
           Payments
           {activeTab === 'payments' && <motion.div layoutId="master-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />}
+        </button>
+        <button
+          onClick={() => setActiveTab('telegram')}
+          className={`pb-3 font-medium transition-colors relative ${activeTab === 'telegram' ? 'text-brand-primary' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Telegram Links
+          {activeTab === 'telegram' && <motion.div layoutId="master-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />}
         </button>
       </div>
 
@@ -695,6 +720,132 @@ export function DashboardMasterPage() {
                         </motion.tr>
                       );
                     })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </>
+        )}
+        {activeTab === 'telegram' && (
+          <>
+            <CardHeader className="border-b bg-slate-50/50 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Telegram Account Links</CardTitle>
+                  <CardDescription>Monitor and manage all active Telegram bot connections.</CardDescription>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-lg border border-slate-200">
+                    <div className="text-sm font-medium">New Linking:</div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold uppercase ${isTelegramLinkingEnabled ? 'text-green-600' : 'text-slate-400'}`}>
+                        {isTelegramLinkingEnabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                      <Switch 
+                        checked={isTelegramLinkingEnabled}
+                        onCheckedChange={async (val) => {
+                          setIsTelegramLinkingEnabled(val);
+                          await setSystemSetting('telegram_linking_enabled', val ? 'true' : 'false');
+                          toast.success(`Telegram linking ${val ? 'enabled' : 'disabled'} globally`);
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search accounts..." 
+                      className="pl-9 h-9 bg-white"
+                      value={telegramSearchTerm}
+                      onChange={(e) => setTelegramSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <tr>
+                      <th className="px-6 py-4">User</th>
+                      <th className="px-6 py-4">Chat ID</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Linked At</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {telegramAccounts
+                      .filter(acc => 
+                        acc.user?.full_name?.toLowerCase().includes(telegramSearchTerm.toLowerCase()) ||
+                        acc.user?.email?.toLowerCase().includes(telegramSearchTerm.toLowerCase()) ||
+                        acc.chat_id?.toString().includes(telegramSearchTerm)
+                      )
+                      .map((account) => (
+                        <motion.tr 
+                          key={account.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="hover:bg-slate-50/50 transition-colors group"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="size-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
+                                <Send className="size-3.5" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{account.user?.full_name || 'N/A'}</p>
+                                <p className="text-xs text-muted-foreground">{account.user?.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 font-mono text-xs">
+                            {account.chat_id}
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge variant={account.is_active ? 'success' : 'secondary'} className="text-[10px] uppercase tracking-wider">
+                              {account.is_active ? 'Active' : 'Offline'}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-xs text-muted-foreground">
+                            {new Date(account.created_at).toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={`h-8 w-8 p-0 ${account.is_active ? 'text-green-600' : 'text-slate-400'}`}
+                                onClick={() => toggleTelegramAccount(account.id)}
+                                title={account.is_active ? 'Disable notifications' : 'Enable notifications'}
+                              >
+                                {account.is_active ? <Power className="size-4" /> : <PowerOff className="size-4" />}
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                onClick={() => {
+                                  if (window.confirm('Are you sure you want to disconnect this Telegram account?')) {
+                                    disconnectTelegramAccount(account.id);
+                                  }
+                                }}
+                                title="Disconnect"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    {telegramAccounts.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground italic">
+                          No Telegram accounts linked yet.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

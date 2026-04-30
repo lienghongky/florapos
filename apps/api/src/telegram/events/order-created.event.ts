@@ -10,6 +10,10 @@ export class OrderCreatedEvent {
     staff_name: string;
     item_count: number;
     payment_method: string;
+    items: {
+        name: string;
+        image_url?: string;
+    }[];
 
     constructor(partial: Partial<OrderCreatedEvent>) {
         Object.assign(this, partial);
