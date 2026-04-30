@@ -7,7 +7,7 @@ import { diskStorage } from 'multer';
  */
 export const editFileName = (req: any, file: Express.Multer.File, callback: (error: Error | null, filename: string) => void) => {
   const name = parse(file.originalname).name.replace(/\s/g, '');
-  const fileExtName = extname(file.originalname);
+  const fileExtName = extname(file.originalname).toLowerCase();
 
   const randomName = Array(4)
     .fill(null)
@@ -20,7 +20,7 @@ export const editFileName = (req: any, file: Express.Multer.File, callback: (err
  * Filters out non-image files.
  */
 export const imageFileFilter = (req: any, file: Express.Multer.File, callback: (error: Error | null, acceptFile: boolean) => void) => {
-  if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+  if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp|avif)$/i)) {
     return callback(new Error('Only image files are allowed!'), false);
   }
   callback(null, true);

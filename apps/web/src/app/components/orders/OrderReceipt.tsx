@@ -106,10 +106,12 @@ export function OrderReceipt({ order, onPrint, storeOverride, customInvoiceCode,
                         <span>Subtotal:</span>
                         <span>${parsePrice(order.subtotal).toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between">
-                        <span>Tax ({order.tax_rate || activeStore?.tax_rate || 0}%):</span>
-                        <span>${parsePrice(order.tax_total).toFixed(2)}</span>
-                    </div>
+                    {(activeStore?.enable_tax !== false) && (
+                        <div className="flex justify-between">
+                            <span>Tax ({order.tax_rate || activeStore?.tax_rate || 0}%):</span>
+                            <span>${parsePrice(order.tax_total).toFixed(2)}</span>
+                        </div>
+                    )}
                     {parsePrice(order.discount_total) > 0 && (
                         <div className="flex justify-between">
                             <span>Discount:</span>

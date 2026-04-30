@@ -6,6 +6,7 @@ import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Upload, Store as StoreIcon, Save, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'motion/react';
 import { OrderReceipt } from '@/app/components/orders/OrderReceipt';
 
 export function StoreProfileSection() {
@@ -22,7 +23,9 @@ export function StoreProfileSection() {
   const [website, setWebsite] = useState('');
   const [receiptFooter, setReceiptFooter] = useState('');
   const [invoicePrefix, setInvoicePrefix] = useState('');
+  const [invoiceNextNumber, setInvoiceNextNumber] = useState(1);
   const [exchangeRate, setExchangeRate] = useState(1);
+  const [enableTax, setEnableTax] = useState(true);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   
   const [isSaving, setIsSaving] = useState(false);
@@ -42,7 +45,9 @@ export function StoreProfileSection() {
       setWebsite(selectedStore.website || '');
       setReceiptFooter(selectedStore.receipt_footer_text || '');
       setInvoicePrefix(selectedStore.invoice_prefix || '');
+      setInvoiceNextNumber(selectedStore.invoice_next_number || 1);
       setExchangeRate(selectedStore.exchange_rate || 1);
+      setEnableTax(selectedStore.enable_tax ?? true);
       
       if (selectedStore.banner_image) {
         setBannerPreview(`/api${selectedStore.banner_image}`);
@@ -72,7 +77,9 @@ export function StoreProfileSection() {
         website,
         receipt_footer_text: receiptFooter,
         invoice_prefix: invoicePrefix,
-        exchange_rate: Number(exchangeRate)
+        invoice_next_number: Number(invoiceNextNumber),
+        exchange_rate: Number(exchangeRate),
+        enable_tax: enableTax
       });
       toast.success('Store information updated successfully');
     } catch (error: any) {
@@ -250,18 +257,42 @@ export function StoreProfileSection() {
             />
           </div>
           
-          <div className="space-y-2">
-            <Label>Global Tax Rate (%)</Label>
-            <div className="relative">
-               <Input 
-                type="number"
-                step="0.01"
-                value={taxRate} 
-                onChange={(e) => setTaxRate(Number(e.target.value))} 
-                placeholder="0.00"
-                className="pr-8"
-              />
-              <span className="absolute right-3 top-2.5 text-sm font-bold text-muted-foreground">%</span>
+          <div className="md:col-span-2">
+            <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white transition-all">
+              <div className="space-y-0.5">
+                <Label className="text-base">Global Tax Setting</Label>
+                <p className="text-xs text-muted-foreground">Manage tax calculation and display on receipts</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <AnimatePresence>
+                  {enableTax && (
+                    <motion.div 
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="relative w-24 sm:w-32"
+                    >
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        value={taxRate} 
+                        onChange={(e) => setTaxRate(Number(e.target.value))} 
+                        placeholder="0.00"
+                        className="h-10 pr-7 text-right font-bold border-brand-primary/20 focus:border-brand-primary"
+                      />
+                      <span className="absolute right-2.5 top-2.5 text-xs font-bold text-brand-primary">%</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <button
+                  onClick={() => setEnableTax(!enableTax)}
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition-colors focus:ring-2 focus:ring-brand-primary/20 outline-none ${enableTax ? 'bg-brand-primary' : 'bg-slate-300'}`}
+                >
+                  <div
+                    className={`absolute top-1 size-5 rounded-full bg-white shadow-sm transition-transform ${enableTax ? 'translate-x-6' : 'translate-x-1'}`}
+                  />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -280,14 +311,27 @@ export function StoreProfileSection() {
             <p className="text-[10px] text-muted-foreground mt-1">Commonly 4000 or 4100. This rate will be used for KHR conversions.</p>
           </div>
 
-          <div className="space-y-2 md:col-span-2">
-            <Label>Invoice Prefix</Label>
-            <Input 
-              value={invoicePrefix} 
-              onChange={(e) => setInvoicePrefix(e.target.value)} 
-              placeholder="INV-"
-            />
-            <p className="text-xs text-muted-foreground mt-1">This prefix will be added to all automatically generated invoice numbers.</p>
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Invoice Prefix</Label>
+              <Input 
+                value={invoicePrefix} 
+                onChange={(e) => setInvoicePrefix(e.target.value)} 
+                placeholder="INV-"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Added to all generated invoice numbers.</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Next Invoice Number</Label>
+              <Input 
+                type="number"
+                value={invoiceNextNumber} 
+                onChange={(e) => setInvoiceNextNumber(Number(e.target.value))} 
+                placeholder="1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">The very next invoice will use this number.</p>
+            </div>
           </div>
 
           <div className="space-y-2 md:col-span-2">
@@ -317,7 +361,7 @@ export function StoreProfileSection() {
              <div className="w-full scale-90 origin-top transform-gpu">
                 <OrderReceipt 
                   storeOverride={{
-                    name, address, phone_number: phone, tax_id: taxId, website, receipt_footer_text: receiptFooter, invoice_prefix: invoicePrefix, logo_url: logoPreview, exchange_rate: exchangeRate
+                    name, address, phone_number: phone, tax_id: taxId, website, receipt_footer_text: receiptFooter, invoice_prefix: invoicePrefix, logo_url: logoPreview, exchange_rate: exchangeRate, enable_tax: enableTax
                   }} 
                   order={{
                     id: 'mock-123456',

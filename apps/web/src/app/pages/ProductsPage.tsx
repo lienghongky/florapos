@@ -42,7 +42,7 @@ export function ProductsPage() {
     type: 'simple' as 'simple' | 'composite',
     inventoryItemId: '',
     recipe: [] as any[],
-    category: '',
+    category_id: '',
     lowStockThreshold: '10',
     isActive: true,
     allowNegativeStock: false,
@@ -149,7 +149,7 @@ export function ProductsPage() {
         type: product.type || 'simple',
         inventoryItemId: product.inventoryItemId || '',
         recipe: product.recipe || [],
-        category: product.category,
+        category_id: product.category_id || '',
         lowStockThreshold: product.lowStockThreshold?.toString() || '10',
         isActive: product.isActive ?? true,
         allowNegativeStock: product.allowNegativeStock ?? false,
@@ -174,7 +174,7 @@ export function ProductsPage() {
         type: 'simple',
         inventoryItemId: '',
         recipe: [],
-        category: '',
+        category_id: '',
         lowStockThreshold: '10',
         isActive: true,
         allowNegativeStock: false,
@@ -218,7 +218,7 @@ export function ProductsPage() {
           display_order: 0,
           is_active: true
         });
-        setFormData({ ...formData, category: newCategoryName.trim() });
+        setFormData({ ...formData, category_id: newCategoryName.trim() }); // Temporary store name for new category
         setNewCategoryName('');
         setIsAddingNewCategory(false);
         toast.success('New category added!');
@@ -233,7 +233,7 @@ export function ProductsPage() {
     e.preventDefault();
 
     // Validation
-    if (!formData.name || !formData.price || !formData.category) {
+    if (!formData.name || !formData.price || !formData.category_id) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -246,7 +246,12 @@ export function ProductsPage() {
     const formDataToSend = new FormData();
     formDataToSend.append('name', formData.name);
     formDataToSend.append('base_price', formData.price);
-    formDataToSend.append('category_id', categories.find(c => c.name === formData.category)?.id || categories[0]?.id || '');
+    // If category_id is a name (from new category flow), try to find the ID after refresh
+    let finalCategoryId = formData.category_id;
+    if (finalCategoryId && !finalCategoryId.includes('-')) { // Simple check for UUID vs name
+      finalCategoryId = categories.find(c => c.name === formData.category_id)?.id || '';
+    }
+    formDataToSend.append('category_id', finalCategoryId);
     formDataToSend.append('product_type', formData.type);
     formDataToSend.append('pricing_type', 'fixed');
     formDataToSend.append('taxable', 'true');
@@ -319,7 +324,7 @@ export function ProductsPage() {
 
   };
 
-  const isFormValid = formData.name && formData.price && formData.category;
+  const isFormValid = formData.name && formData.price && formData.category_id;
 
   return (
     <AnimatedPage className="space-y-6">
@@ -767,19 +772,19 @@ export function ProductsPage() {
                       <div className="flex gap-2">
                         <select
                           required
-                          value={formData.category}
+                          value={formData.category_id}
                           onChange={(e) => {
                             if (e.target.value === 'new') {
                               setIsAddingNewCategory(true);
                             } else {
-                              setFormData({ ...formData, category: e.target.value });
+                              setFormData({ ...formData, category_id: e.target.value });
                             }
                           }}
                           className="flex-1 rounded-lg border border-border bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20"
                         >
                           <option value="">Select Category</option>
                           {categories.map(cat => (
-                            <option key={cat.id} value={cat.name}>{cat.name}</option>
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
                           ))}
                           <option value="new" className="font-semibold text-primary">+ Add New Category</option>
                         </select>

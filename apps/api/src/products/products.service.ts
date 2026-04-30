@@ -42,28 +42,28 @@ export class ProductsService {
 
 
         return this.dataSource.transaction(async (manager) => {
-            const product = manager.create(Product, {
+            const productData: Partial<Product> = {
                 name: createProductDto.name,
                 description: createProductDto.description,
                 product_type: createProductDto.product_type,
-                pricing_type: createProductDto.pricing_type || 'fixed',
+                category_id: createProductDto.category_id,
+                pricing_type: (createProductDto.pricing_type && createProductDto.pricing_type.trim()) ? createProductDto.pricing_type : 'fixed',
                 base_price: createProductDto.base_price,
                 cost_price: createProductDto.cost_price,
                 taxable: createProductDto.taxable ?? true,
                 tax_rate: createProductDto.tax_rate ?? 0,
-                track_inventory: this.toBoolean(createProductDto.track_inventory ?? true),
-                allow_negative_stock: false, //this.toBoolean(createProductDto.allow_negative_stock ?? false),
-                is_active: this.toBoolean(createProductDto.is_active ?? true),
+                track_inventory: createProductDto.track_inventory ?? true,
+                allow_negative_stock: false,
+                is_active: createProductDto.is_active ?? true,
                 store_id: createProductDto.store_id,
                 sku: createProductDto.sku,
                 barcode: createProductDto.barcode,
                 image_url: createProductDto.image_url,
                 tags: createProductDto.tags,
-                product_addons: undefined,
-                variants: undefined,
-                recipe: undefined,
-                modifier_groups: undefined,
-            });
+            };
+
+            const product = manager.create(Product, productData);
+            const savedProduct = await manager.save(product);
 
             // For simplistic inventory tie
             let createdInventoryItem: InventoryItem | null = null;
@@ -78,8 +78,6 @@ export class ProductsService {
                 });
                 createdInventoryItem = await manager.save(inventoryItem);
             }
-
-            const savedProduct = await manager.save(product);
 
             if (createProductDto.product_type === ProductType.SIMPLE && createdInventoryItem) {
                 const recipe = manager.create(ProductRecipe, {
@@ -323,7 +321,7 @@ export class ProductsService {
                 barcode: updateProductDto.barcode,
                 category_id: updateProductDto.category_id,
                 product_type: updateProductDto.product_type,
-                pricing_type: updateProductDto.pricing_type,
+                pricing_type: (updateProductDto.pricing_type && updateProductDto.pricing_type.trim()) ? updateProductDto.pricing_type : 'fixed',
                 base_price: updateProductDto.base_price,
                 cost_price: updateProductDto.cost_price,
                 taxable: updateProductDto.taxable,
@@ -524,14 +522,32 @@ export class ProductsService {
     }
 
     private parseJsonFields(dto: any) {
-        try {
-            if (typeof dto.recipe === 'string') dto.recipe = JSON.parse(dto.recipe);
-            if (typeof dto.addons === 'string') dto.addons = JSON.parse(dto.addons);
-            if (typeof dto.variants === 'string') dto.variants = JSON.parse(dto.variants);
-            if (typeof dto.modifier_groups === 'string') dto.modifier_groups = JSON.parse(dto.modifier_groups);
-            if (typeof dto.tags === 'string') dto.tags = JSON.parse(dto.tags);
-        } catch (e) {
-            // Ignore parse errors, fallback to DTO default
+        const safeParse = (val: any) => {
+            if (typeof val !== 'string') return val;
+            if (!val || val === 'undefined' || val === 'null' || val === '[]' || val === '{}') return undefined;
+            try {
+                return JSON.parse(val);
+            } catch (e) {
+                return undefined;
+            }
+        };
+
+        dto.recipe = safeParse(dto.recipe);
+        dto.addons = safeParse(dto.addons);
+        dto.variants = safeParse(dto.variants);
+        dto.modifier_groups = safeParse(dto.modifier_groups);
+        dto.tags = safeParse(dto.tags);
+
+        const cid = dto.category_id || dto.categoryId;
+        if (!cid || cid === '' || cid === 'null' || cid === 'undefined') {
+            dto.category_id = null;
+        } else {
+            dto.category_id = cid;
+        }
+
+        // Normalize pricing_type
+        if (dto.pricing_type !== undefined) {
+            dto.pricing_type = (dto.pricing_type && dto.pricing_type.trim()) ? dto.pricing_type : 'fixed';
         }
 
         // Convert numeric fields if they are strings

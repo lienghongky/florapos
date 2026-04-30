@@ -6,6 +6,7 @@ import { User, Bell, Globe, Shield, UserPlus, Trash2, Edit2, X, Check, Store } f
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { StoreProfileSection } from '@/app/components/settings/StoreProfileSection';
+import { ChangePasswordModal } from '@/app/components/settings/ChangePasswordModal';
 import { PageHeader } from '@/app/components/ui/page-header';
 
 export function SettingsPage() {
@@ -22,6 +23,7 @@ export function SettingsPage() {
     dailyReport: false,
   });
   const [language, setLanguage] = useState('en');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // User Management state
   const [isAddingStaff, setIsAddingStaff] = useState(false);
@@ -108,17 +110,29 @@ export function SettingsPage() {
                 <p className="text-xs text-slate-400">Permissions are managed by the administrator.</p>
               </div>
             </div>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="rounded-2xl bg-brand-primary px-8 py-3.5 font-bold text-white shadow-xl shadow-brand-primary/20 transition-all hover:bg-brand-primary/90"
+                className="w-full sm:w-auto rounded-2xl bg-brand-primary px-8 py-3.5 font-bold text-white shadow-xl shadow-brand-primary/20 transition-all hover:bg-brand-primary/90"
               >
                 Save Profile
               </motion.button>
+              <button
+                onClick={() => setIsChangingPassword(true)}
+                className="w-full sm:w-auto rounded-2xl border border-slate-200 bg-white px-8 py-3.5 font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+              >
+                <Shield className="size-4" />
+                Change Password
+              </button>
             </div>
           </div>
         </motion.div>
+
+        <ChangePasswordModal 
+          isOpen={isChangingPassword} 
+          onClose={() => setIsChangingPassword(false)} 
+        />
 
         {/* Store Profile Section (Owner Only) */}
         {user?.role === 'owner' && (

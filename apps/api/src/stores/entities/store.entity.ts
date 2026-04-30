@@ -38,7 +38,13 @@ export class Store {
 
     @Column({ nullable: true })
     invoice_prefix: string;
+
+    @Column({ type: 'int', default: 1 })
+    invoice_next_number: number;
     
+    @Column({ default: true })
+    enable_tax: boolean;
+
     @Column('decimal', { precision: 5, scale: 2, default: 0, transformer: {
         to: (value: number) => value,
         from: (value: string) => parseFloat(value)

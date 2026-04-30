@@ -20,6 +20,7 @@ interface AuthState {
   updateStoreInfo: (storeId: string, data: any) => Promise<void>;
   uploadStoreBanner: (storeId: string, file: File) => Promise<void>;
   uploadStoreLogo: (storeId: string, file: File) => Promise<void>;
+  changePassword: (oldPass: string, newPass: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -126,6 +127,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       selectedStore: state.selectedStore?.id === storeId ? updatedStore : state.selectedStore
     }));
     await get().refreshStores();
+  },
+
+  changePassword: async (oldPass, newPass) => {
+    const { token } = get();
+    if (!token) return;
+    await request('/auth/change-password', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ old_password: oldPass, new_password: newPass })
+    });
   },
 
   initAuth: async () => {

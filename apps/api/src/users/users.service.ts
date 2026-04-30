@@ -199,4 +199,24 @@ export class UsersService {
         user.activation_token = null;
         return this.usersRepository.save(user);
     }
+
+    async changePassword(userId: string, oldPass: string, newPass: string): Promise<void> {
+        const user = await this.usersRepository.findOne({ 
+            where: { id: userId },
+            select: ['id', 'password_hash']
+        });
+        
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        const isMatch = await bcrypt.compare(oldPass, user.password_hash);
+        if (!isMatch) {
+            throw new ConflictException('Current password does not match');
+        }
+
+        const salt = await bcrypt.genSalt();
+        user.password_hash = await bcrypt.hash(newPass, salt);
+        await this.usersRepository.save(user);
+    }
 }

@@ -184,9 +184,11 @@ export interface Store {
     description?: string;
     tax_id?: string;
     tax_rate?: number;
+    enable_tax?: boolean;
     website?: string;
     receipt_footer_text?: string;
     invoice_prefix?: string;
+    invoice_next_number?: number;
     banner_image?: string;
     logo_url?: string;
     exchange_rate?: number;

@@ -46,4 +46,16 @@ export class AuthController {
     activate(@Query('token') token: string) {
         return this.authService.activate(token);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('change-password')
+    @HttpCode(HttpStatus.OK)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Change current user password' })
+    @ApiResponse({ status: 200, description: 'Password changed successfully' })
+    @ApiResponse({ status: 409, description: 'Old password incorrect' })
+    async changePassword(@Request() req: any, @Body() body: any) {
+        await this.authService.changePassword(req.user.userId, body.old_password, body.new_password);
+        return { message: 'Password changed successfully' };
+    }
 }

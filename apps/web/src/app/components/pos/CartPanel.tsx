@@ -65,7 +65,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
       return sum + (Number(item.product.base_price) + variantPrice + addonsPrice + modifiersPrice) * item.quantity;
     }, 0);
 
-    const taxRate = selectedStore?.tax_rate || 0;
+    const taxRate = (selectedStore?.enable_tax !== false) ? (selectedStore?.tax_rate || 0) : 0;
     const taxAmt = sub * (taxRate / 100);
     const totalAmt = Math.max(0, sub + taxAmt + (serviceType === 'delivery' ? deliveryFee : 0));
     return { subTotal: sub, tax: taxAmt, total: totalAmt, taxRate };
@@ -112,7 +112,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
         customer_name: customerName || undefined,
         customer_phone: customerPhone || undefined,
         exchange_rate: selectedStore.exchange_rate || 4100,
-        tax_rate: selectedStore.tax_rate || 0,
+        tax_rate: (selectedStore?.enable_tax !== false) ? (selectedStore?.tax_rate || 0) : 0,
       };
 
       await checkoutOrder(payload);
@@ -370,10 +370,12 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
               <span>Sub Total</span>
               <span className="font-medium text-foreground">${subTotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Tax ({selectedStore?.tax_rate || 0}%)</span>
-              <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
-            </div>
+            {selectedStore?.enable_tax !== false && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Tax ({selectedStore?.tax_rate || 0}%)</span>
+                <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
+              </div>
+            )}
             {serviceType === 'delivery' && (
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Delivery Fee</span>

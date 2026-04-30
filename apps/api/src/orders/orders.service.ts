@@ -12,6 +12,7 @@ import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { InventoryService } from '../inventory/inventory.service';
 import { InventoryActionType } from '../inventory/entities/inventory-history.entity';
 import { User } from '../users/entities/user.entity';
+import { Store } from '../stores/entities/store.entity';
 
 @Injectable()
 export class OrdersService {
@@ -93,9 +94,21 @@ export class OrdersService {
             const grandTotal = subtotal + taxAmount + deliveryFee - discountAmount;
 
             const { items, ...orderData } = createDto;
+            
+            // Generate sequential order number
+            const store = await manager.findOne(Store, { where: { id: createDto.store_id } });
+            const nextNum = store?.invoice_next_number || 1;
+            const orderNumber = nextNum.toString().padStart(5, '0');
+
+            // Increment the next number for the store
+            if (store) {
+                store.invoice_next_number = nextNum + 1;
+                await manager.save(store);
+            }
+
             const order = manager.create(Order, {
                 ...orderData,
-                order_number: `ORD-${Date.now()}`, // simplfied 
+                order_number: orderNumber,
                 subtotal,
                 tax_total: taxAmount,
                 discount_total: discountAmount,

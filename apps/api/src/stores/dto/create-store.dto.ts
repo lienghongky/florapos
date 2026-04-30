@@ -57,10 +57,19 @@ export class CreateStoreDto {
     @IsOptional()
     invoice_prefix?: string;
 
+    @ApiProperty({ example: 1, description: 'Next number for invoices', required: false, default: 1 })
+    @IsNumber()
+    @IsOptional()
+    invoice_next_number?: number;
+
     @ApiProperty({ example: 5.00, description: 'Default tax rate for the store (%)', required: false, default: 0 })
     @IsNumber()
     @IsOptional()
     tax_rate?: number;
+
+    @ApiProperty({ example: true, description: 'Whether to enable tax calculations and display on receipts', required: false, default: true })
+    @IsOptional()
+    enable_tax?: boolean;
 
     @ApiProperty({ example: 1.0, description: 'Default exchange rate for the store', required: false, default: 1.0 })
     @IsNumber()
