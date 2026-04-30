@@ -38,6 +38,8 @@ services:
       - PORT=3000
       - MASTER_EMAIL=master@florapos.com
       - MASTER_PASSWORD=master123456
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
     ports:
       - "3000:3000"
     volumes:

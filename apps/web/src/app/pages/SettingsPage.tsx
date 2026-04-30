@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { StoreProfileSection } from '@/app/components/settings/StoreProfileSection';
 import { ChangePasswordModal } from '@/app/components/settings/ChangePasswordModal';
+import { TelegramLinkingSection } from '@/app/components/settings/TelegramLinkingSection';
 import { PageHeader } from '@/app/components/ui/page-header';
 
 export function SettingsPage() {
@@ -127,6 +128,15 @@ export function SettingsPage() {
               </button>
             </div>
           </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+          className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
+        >
+          <TelegramLinkingSection />
         </motion.div>
 
         <ChangePasswordModal 

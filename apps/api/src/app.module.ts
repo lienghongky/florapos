@@ -18,6 +18,9 @@ import { CategoriesModule } from './categories/categories.module';
 import { MasterModule } from './master/master.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TelegramModule } from './telegram/telegram.module';
 
 
 @Module({
@@ -26,6 +29,8 @@ import { join } from 'path';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -54,6 +59,7 @@ import { join } from 'path';
     }]),
     CategoriesModule,
     MasterModule,
+    TelegramModule,
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',

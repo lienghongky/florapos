@@ -13,6 +13,8 @@ import { InventoryService } from '../inventory/inventory.service';
 import { InventoryActionType } from '../inventory/entities/inventory-history.entity';
 import { User } from '../users/entities/user.entity';
 import { Store } from '../stores/entities/store.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OrderCreatedEvent } from '../telegram/events/order-created.event';
 
 @Injectable()
 export class OrdersService {
@@ -31,6 +33,7 @@ export class OrdersService {
         private inventoryService: InventoryService,
         private storesService: StoresService,
         private dataSource: DataSource,
+        private eventEmitter: EventEmitter2,
     ) { }
 
     async create(userId: string, createDto: CreateOrderDto): Promise<Order> {
@@ -38,7 +41,7 @@ export class OrdersService {
         const user = await this.userRepository.findOne({ where: { id: userId } });
         const salespersonName = user ? (user.full_name || user.email) : 'System';
 
-        return this.dataSource.transaction(async (manager) => {
+        const result = await this.dataSource.transaction(async (manager) => {
             const productIds = createDto.items.map(item => item.product_id);
             const products = await manager.find(Product, {
                 where: { id: In(productIds) },
@@ -219,6 +222,19 @@ export class OrdersService {
 
             return finalOrder as any;
         });
+
+        // Emit event for Telegram notifications (fire-and-forget, non-blocking)
+        this.eventEmitter.emit('order.created', new OrderCreatedEvent({
+            store_id: createDto.store_id,
+            order_id: result.id,
+            order_number: result.order_number,
+            grand_total: Number(result.grand_total),
+            staff_name: salespersonName,
+            item_count: createDto.items.length,
+            payment_method: createDto.payment_method || 'N/A',
+        }));
+
+        return result;
     }
 
     async findAll(
