@@ -312,8 +312,8 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
                                     key={tab.id}
                                     onClick={() => setDateFilter(tab.id as any)}
                                     className={`flex-1 sm:flex-none rounded-lg px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-bold transition-all whitespace-nowrap ${dateFilter === tab.id
-                                            ? 'bg-brand-primary text-white shadow-sm'
-                                            : 'text-muted-foreground hover:bg-muted'
+                                        ? 'bg-brand-primary text-white shadow-sm'
+                                        : 'text-muted-foreground hover:bg-muted'
                                         }`}
                                 >
                                     {tab.label}
@@ -518,17 +518,17 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
                         }}
                     >
                         <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            initial={isMobile ? { y: '100%', opacity: 0 } : { scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ y: 0, scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: '100%', opacity: 0 } : { scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ type: 'spring', damping: 30, stiffness: 500 }}
-                            className={`bg-white shadow-2xl w-full max-w-md overflow-hidden pointer-events-auto transition-all ${isMobile ? 'rounded-t-[2.5rem] max-h-[90vh]' : 'rounded-[2.5rem]'}`}
+                            className={`bg-white shadow-2xl w-full overflow-hidden pointer-events-auto transition-all ${isMobile ? 'rounded-t-[2.5rem] max-h-[90vh]' : 'rounded-[2.5rem] max-w-md'}`}
                             onClick={e => e.stopPropagation()}
                         >
-                            <div className="p-6 md:p-8">
+                            <div className="p-4 md:p-8">
                                 {paymentStep === 'select' ? (
                                     <>
-                                        <div className="text-center mb-8">
+                                        <div className="text-center mb-6 md:mb-8 px-2">
                                             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-green-100 text-green-600">
                                                 <Wallet className="size-8" />
                                             </div>
@@ -552,8 +552,8 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
                                                         }
                                                     }}
                                                     className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-3 md:p-4 transition-all ${paymentMethod === method.id
-                                                            ? 'border-brand-primary bg-brand-primary/5 text-brand-primary'
-                                                            : 'border-slate-100 hover:border-slate-200 text-slate-500'
+                                                        ? 'border-brand-primary bg-brand-primary/5 text-brand-primary'
+                                                        : 'border-slate-100 hover:border-slate-200 text-slate-500'
                                                         }`}
                                                 >
                                                     <method.icon className="size-6" />
@@ -581,7 +581,7 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
                                     </>
                                 ) : (
                                     <>
-                                        <div className="mb-4 flex items-center justify-between">
+                                        <div className="mb-4 flex items-center justify-between px-2">
                                             <button
                                                 onClick={() => {
                                                     setPaymentStep('select');

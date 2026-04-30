@@ -6,7 +6,7 @@ import {
 import { useCartStore } from '@/app/store/cart-store';
 import { useOrderStore } from '@/app/store/order-store';
 import { useAuthStore } from '@/app/store/auth-store';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { AnimatedModal } from '../motion/AnimatedPage';
 import { toast } from 'sonner';
 import { OrderListModal } from './OrderListModal';
@@ -40,6 +40,14 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
   const { checkoutOrder } = useOrderStore();
   const { selectedStore } = useAuthStore();
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   // ── Form state ─────────────────────────────────────────────────────────────
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -61,7 +69,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
       const variantPrice = item.selectedVariant ? Number(item.selectedVariant.price_modifier) : 0;
       const addonsPrice = item.selectedAddons?.reduce((acc, opt) => acc + Number(opt.price), 0) || 0;
       const modifiersPrice = Object.values(item.selectedModifiers || {}).flat().reduce((acc, curr) => acc + Number(curr.price_adjustment), 0);
-      
+
       return sum + (Number(item.product.base_price) + variantPrice + addonsPrice + modifiersPrice) * item.quantity;
     }, 0);
 
@@ -89,17 +97,17 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
           quantity: item.quantity,
           addons: [
             ...(item.selectedAddons?.map(a => ({
-                name_snapshot: a.name,
-                price: Number(a.price),
-                addon_id: a.id,
+              name_snapshot: a.name,
+              price: Number(a.price),
+              addon_id: a.id,
             })) || []),
-            ...Object.entries(item.selectedModifiers || {}).flatMap(([groupId, options]) => 
-                options.map(opt => ({
-                    name_snapshot: opt.name,
-                    price: Number(opt.price_adjustment),
-                    modifier_option_id: opt.id,
-                    modifier_group_id: groupId
-                }))
+            ...Object.entries(item.selectedModifiers || {}).flatMap(([groupId, options]) =>
+              options.map(opt => ({
+                name_snapshot: opt.name,
+                price: Number(opt.price_adjustment),
+                modifier_option_id: opt.id,
+                modifier_group_id: groupId
+              }))
             )
           ],
         })),
@@ -287,11 +295,10 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                     setServiceType(type.id);
                     if (type.id === 'pickup') setDeliveryFee(0);
                   }}
-                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
-                    serviceType === type.id
-                      ? 'bg-brand-primary text-white shadow-md'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${serviceType === type.id
+                    ? 'bg-brand-primary text-white shadow-md'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
                   {type.label}
                 </button>
@@ -404,99 +411,103 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
       </div>
 
       {/* Checkout Modal */}
-      <AnimatedModal isOpen={showCheckoutModal} position="center" onClose={() => {
+      <AnimatedModal isOpen={showCheckoutModal} position={isMobile ? 'bottom' : 'center'} onClose={() => {
         setShowCheckoutModal(false);
         setPaymentStep('select');
         setReceivedAmount('');
       }}>
-        <div className="rounded-[2.5rem] bg-white p-6 sm:p-8 shadow-2xl w-[90vw] sm:w-full sm:max-w-[500px] mx-auto my-auto relative">
+        <div className={`bg-white shadow-2xl transition-all relative ${isMobile
+          ? 'w-screen rounded-t-[2.5rem] py-6 pb-10 max-h-[90vh] overflow-y-auto px-0'
+          : 'rounded-[2.5rem] p-8 w-full max-w-[500px] mx-auto my-auto'
+          }`}>
           {paymentStep === 'select' ? (
             <>
-              <div className="text-center mb-8">
-                <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-green-100 text-green-600">
-                  <Wallet className="size-6" />
+              <div className="text-center mb-6 md:mb-8 px-4">
+                <div className="mx-auto mb-3 md:mb-4 flex size-12 md:size-14 items-center justify-center rounded-full bg-green-100 text-green-600">
+                  <Wallet className="size-6 md:size-8" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900">Select Payment</h2>
-                <div className="text-slate-500 text-sm font-medium">
+                <h2 className="text-xl md:text-2xl font-bold text-slate-900">Select Payment</h2>
+                <div className="text-slate-500 text-sm font-medium mt-1">
                   Total Amount: <span className="text-slate-900 font-bold">${total.toFixed(2)}</span>
-                  <span className="ml-2 text-xs opacity-70">/ {(total * (selectedStore?.exchange_rate || 4100)).toLocaleString()}៛</span>
+                  <span className="ml-2 text-[10px] md:text-xs opacity-70">/ {(total * (selectedStore?.exchange_rate || 4100)).toLocaleString()}៛</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8 px-2 md:px-4">
                 {([
                   { id: 'cash', label: 'Cash', icon: Banknote },
                   { id: 'credit', label: 'Credit Card', icon: CreditCard },
                   { id: 'pay_later', label: 'Pay Later', icon: Clock },
                   { id: 'qr', label: 'QR Code', icon: ScanLine },
                 ] as const).map((method) => (
-                    <button
-                      key={method.id}
-                      onClick={() => {
-                        setPaymentMethod(method.id);
-                        if (method.id === 'cash') {
-                          setPaymentStep('cash');
-                        } else {
-                          setPaymentStep('select');
-                        }
-                      }}
-                      className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-6 transition-all ${
-                        paymentMethod === method.id
-                          ? 'border-brand-primary bg-brand-primary/5 text-brand-primary ring-4 ring-brand-primary/10'
-                          : 'border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200'
+                  <button
+                    key={method.id}
+                    onClick={() => {
+                      setPaymentMethod(method.id);
+                      if (method.id === 'cash') {
+                        setPaymentStep('cash');
+                      } else {
+                        setPaymentStep('select');
+                      }
+                    }}
+                    className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 md:p-6 transition-all ${paymentMethod === method.id
+                      ? 'border-brand-primary bg-brand-primary/5 text-brand-primary ring-4 ring-brand-primary/10'
+                      : 'border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 text-slate-500'
                       }`}
-                    >
-                      <method.icon className="size-6" />
-                      <span className="font-bold text-sm">{method.label}</span>
-                    </button>
+                  >
+                    <method.icon className="size-5 md:size-6" />
+                    <span className="font-bold text-xs md:text-sm">{method.label}</span>
+                  </button>
                 ))}
               </div>
 
-              <button
-                onClick={handleCheckout}
-                disabled={isProcessing || !paymentMethod}
-                className="w-full rounded-xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/25 disabled:opacity-50 hover:bg-brand-primary/90 transition-all active:scale-95"
-              >
-                {isProcessing 
-                  ? 'Processing...' 
-                  : !paymentMethod 
-                    ? 'Select Payment Method' 
-                    : (paymentMethod === 'pay_later' ? 'Confirm & Pay Later' : 'Complete Transaction')}
-              </button>
+              <div className="px-2 md:px-4">
+                <button
+                  onClick={handleCheckout}
+                  disabled={isProcessing || !paymentMethod}
+                  className="w-full rounded-xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/25 disabled:opacity-50 hover:bg-brand-primary/90 transition-all active:scale-95"
+                >
+                  {isProcessing
+                    ? 'Processing...'
+                    : !paymentMethod
+                      ? 'Select Payment Method'
+                      : (paymentMethod === 'pay_later' ? 'Confirm & Pay Later' : 'Complete Transaction')}
+                </button>
+              </div>
             </>
           ) : (
             /* Cash Calculator UI */
             <>
-              <div className="mb-4 flex items-center justify-between">
-                <button 
+              <div className="mb-4 flex items-center justify-between px-4">
+                <button
                   onClick={() => {
                     setPaymentStep('select');
                     setPaymentMethod(null);
-                  }} 
+                  }}
                   className="text-sm font-bold text-slate-400 hover:text-slate-900 flex items-center gap-1"
                 >
                   &larr; Back
                 </button>
                 <h3 className="font-black uppercase tracking-widest text-xs text-slate-900">Cash Payment</h3>
-                <div className="w-8" />
+                <div className="w-12" />
               </div>
 
-              <div className="mb-6 rounded-[2rem] bg-slate-50 p-6 space-y-3 border border-slate-100">
-                <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-slate-400">
+              <div className="mb-4 md:mb-6 md:rounded-[2rem] bg-slate-50 p-4 md:p-6 space-y-2 md:space-y-3 border-y md:border border-slate-100">
+                <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400">
                   <span>Total Due</span>
                   <div className="text-right">
                     <div className="text-slate-900 font-bold">${total.toFixed(2)}</div>
                     <div className="text-[10px] text-muted-foreground">{(total * (selectedStore?.exchange_rate || 4100)).toLocaleString()}៛</div>
                   </div>
                 </div>
-                <div className="flex justify-between items-end border-b border-slate-200 pb-3">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Received</span>
-                  <span className="text-3xl font-black text-brand-primary">${receivedAmount || '0'}</span>
+                <div className="flex justify-between items-end border-b border-slate-200 pb-2 md:pb-3">
+                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400">Received</span>
+                  <span className="text-2xl md:text-3xl font-black text-brand-primary">${receivedAmount || '0'}</span>
                 </div>
-                <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest pt-1">
+                <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-widest pt-1">
                   <span className="text-slate-400">Change</span>
                   <div className="text-right">
-                    <div className="text-green-600 font-black text-2xl">
+                    <div className="text-green-600 font-black text-xl md:text-2xl">
                       ${Math.max(0, (parseFloat(receivedAmount || '0') - total)).toFixed(2)}
                     </div>
                     <div className="text-[10px] font-bold text-green-600/70">
@@ -507,50 +518,50 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
               </div>
 
               {/* Keypad */}
-              <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="grid grid-cols-3 gap-1 mb-4 md:mb-6 md:px-4">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map((key) => (
                   <button
                     key={key}
                     onClick={() => setReceivedAmount(prev => prev + key.toString())}
-                    className="flex h-14 items-center justify-center rounded-2xl bg-slate-50 text-lg font-black hover:bg-slate-100 transition-all border border-slate-100"
+                    className="flex h-14 items-center justify-center bg-slate-50 text-xl font-black hover:bg-slate-100 transition-all border border-slate-100 md:rounded-2xl"
                   >
                     {key}
                   </button>
                 ))}
                 <button
                   onClick={() => setReceivedAmount(prev => prev.slice(0, -1))}
-                  className="flex h-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 hover:bg-red-100 transition-all border border-red-100"
+                  className="flex h-14 items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 transition-all border border-red-100 md:rounded-2xl"
                 >
-                  <Delete className="size-5" />
+                  <Delete className="size-6" />
                 </button>
               </div>
 
               {/* Quick amounts */}
-              <div className="flex gap-2 mb-6">
+              <div className="flex gap-1 mb-4 md:mb-6 md:px-4">
                 {[10, 20, 50, 100].map(amt => (
                   <button
                     key={amt}
                     onClick={() => setReceivedAmount(amt.toString())}
-                    className="flex-1 rounded-xl border border-slate-200 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
+                    className="flex-1 border border-slate-200 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all md:rounded-xl"
                   >
                     ${amt}
                   </button>
                 ))}
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 px-2 md:px-4">
                 <button
                   onClick={() => setReceivedAmount('')}
-                  className="flex-1 rounded-2xl border border-slate-200 py-4 font-bold text-slate-400 hover:bg-slate-50 transition-all uppercase tracking-widest text-xs"
+                  className="flex-1 h-12 md:h-14 rounded-xl md:rounded-2xl border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition-all uppercase tracking-widest text-[10px] md:text-xs"
                 >
                   Clear
                 </button>
                 <button
                   onClick={handleCheckout}
                   disabled={isProcessing || parseFloat(receivedAmount || '0') < total}
-                  className="flex-[2] rounded-2xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-[2] h-12 md:h-14 rounded-xl md:rounded-2xl bg-brand-primary text-white font-bold shadow-lg shadow-brand-primary/25 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-[10px] md:text-xs"
                 >
-                  {isProcessing ? 'Processing...' : 'Confirm Transaction'}
+                  {isProcessing ? 'Processing...' : 'Confirm'}
                 </button>
               </div>
             </>

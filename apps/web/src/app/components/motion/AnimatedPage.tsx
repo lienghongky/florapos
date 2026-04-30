@@ -52,7 +52,7 @@ export function AnimatedModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className={`fixed inset-0 z-50 flex ${position === 'center' ? 'items-center' : 'items-end sm:items-center'} justify-center bg-black/50 p-0 sm:p-4 overflow-y-auto`}
+          className={`fixed inset-0 z-50 flex ${position === 'center' ? 'items-center' : 'items-end lg:items-center'} justify-center bg-black/50 p-0 lg:p-4 overflow-y-auto`}
           onClick={onClose}
         >
           <motion.div
