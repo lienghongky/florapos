@@ -249,10 +249,12 @@ export class TelegramService {
 
     async getBotUsername(): Promise<string> {
         try {
+            // Try real-time first if bot is initialized
             const me = await this.bot.telegram.getMe();
             return me.username;
         } catch {
-            return 'your_bot';
+            // Fallback to your specific bot name
+            return 'posxx_bot';
         }
     }
 
