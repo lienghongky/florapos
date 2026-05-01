@@ -4,6 +4,8 @@ import { OrderCreatedEvent } from './events/order-created.event';
 import { TelegramService } from './telegram.service';
 import { NotificationQueueService } from './notification-queue.service';
 import { ConfigService } from '@nestjs/config';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { StoresService } from '../stores/stores.service';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -19,6 +21,8 @@ export class NotificationListener {
         private readonly telegramService: TelegramService,
         private readonly notificationQueue: NotificationQueueService,
         private readonly configService: ConfigService,
+        private readonly subscriptionsService: SubscriptionsService,
+        private readonly storesService: StoresService,
     ) {}
 
     @OnEvent('order.created')
@@ -26,6 +30,19 @@ export class NotificationListener {
         this.logger.log(`Order created event: #${event.order_number} in store ${event.store_id}`);
 
         try {
+            // Plan Gating: Only send if owner has telegram_notifications feature
+            const ownerId = await this.storesService.getStoreOwnerId(event.store_id);
+            if (!ownerId) {
+                this.logger.warn(`Owner not found for store ${event.store_id}. Skipping notification.`);
+                return;
+            }
+
+            const hasTelegramFeature = await this.subscriptionsService.hasFeature(ownerId, 'telegram_notifications');
+            if (!hasTelegramFeature) {
+                this.logger.debug(`Store owner ${ownerId} does not have telegram_notifications feature enabled. Skipping.`);
+                return;
+            }
+
             // Find all active Telegram accounts for this store
             const accounts = await this.telegramService.findActiveAccountsByStoreId(event.store_id);
 

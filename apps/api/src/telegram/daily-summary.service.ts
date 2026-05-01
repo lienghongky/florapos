@@ -6,6 +6,8 @@ import { TelegramAccount } from './entities/telegram-account.entity';
 import { NotificationQueueService } from './notification-queue.service';
 import { OrdersService } from '../orders/orders.service';
 import { StoreUser } from '../stores/entities/store-user.entity';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { StoresService } from '../stores/stores.service';
 
 /**
  * Sends a daily sales summary via Telegram at 20:00 (Asia/Phnom_Penh).
@@ -22,6 +24,8 @@ export class DailySummaryService {
         private storeUserRepo: Repository<StoreUser>,
         private readonly notificationQueue: NotificationQueueService,
         private readonly ordersService: OrdersService,
+        private readonly subscriptionsService: SubscriptionsService,
+        private readonly storesService: StoresService,
     ) {}
 
     /**
@@ -59,6 +63,16 @@ export class DailySummaryService {
             // For each store, fetch stats and send summary
             for (const [storeId, storeAccounts] of storeAccountsMap) {
                 try {
+                    // Check if owner has the feature
+                    const ownerId = await this.storesService.getStoreOwnerId(storeId);
+                    if (!ownerId) continue;
+
+                    const hasTelegramFeature = await this.subscriptionsService.hasFeature(ownerId, 'telegram_notifications');
+                    if (!hasTelegramFeature) {
+                        this.logger.debug(`Store owner ${ownerId} for store ${storeId} does not have telegram_notifications enabled. Skipping daily summary.`);
+                        continue;
+                    }
+
                     const firstAccount = storeAccounts[0];
                     const today = new Date();
                     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;

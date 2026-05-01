@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, QrCode, Link as LinkIcon, Check, X, RefreshCw, ExternalLink, Bot, BellRing } from 'lucide-react';
+import { Send, QrCode, Link as LinkIcon, Check, X, RefreshCw, ExternalLink, Bot, BellRing, Crown } from 'lucide-react';
 import { useAuthStore } from '@/app/store/auth-store';
 import { telegramService, TelegramStatus, TelegramLinkResponse } from '@/app/services/telegram.service';
 import { toast } from 'sonner';
@@ -13,7 +13,27 @@ export function TelegramLinkingSection() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [linkData, setLinkData] = useState<TelegramLinkResponse | null>(null);
   const [showQR, setShowQR] = useState(false);
-  const [isLinkingEnabled, setIsLinkingEnabled] = useState(true);
+  const [isGlobalEnabled, setIsGlobalEnabled] = useState(true);
+  
+  const planFeaturesArray = user?.subscription?.plan?.features || [];
+  const flattenedFeaturesArray = (user?.subscription as any)?.plan_features || [];
+  
+  const hasTelegramFeature = planFeaturesArray.includes('telegram_notifications') || 
+                            flattenedFeaturesArray.includes('telegram_notifications');
+
+  // Linking is allowed if global setting is ON AND user has the feature
+  const isLinkingEnabled = isGlobalEnabled && !!hasTelegramFeature;
+
+  useEffect(() => {
+    console.log('TelegramLinkingSection: Debug Info', {
+      planName: user?.subscription?.plan?.name,
+      planFeatures: planFeaturesArray,
+      flattenedFeatures: flattenedFeaturesArray,
+      hasTelegramFeature,
+      isGlobalEnabled,
+      isLinkingEnabled
+    });
+  }, [user, isGlobalEnabled, isLinkingEnabled]);
 
   const fetchStatus = async () => {
     if (!token) return;
@@ -23,7 +43,7 @@ export function TelegramLinkingSection() {
         telegramService.getGlobalStatus(token)
       ]);
       setStatus(data);
-      setIsLinkingEnabled(globalStatus.enabled);
+      setIsGlobalEnabled(globalStatus.enabled);
     } catch (error) {
       console.error('Failed to fetch Telegram status', error);
     } finally {
@@ -82,7 +102,14 @@ export function TelegramLinkingSection() {
           </div>
         </div>
 
-        {status?.linked ? (
+        {status?.linked && !hasTelegramFeature && (
+          <div className="flex items-center gap-2 rounded-full bg-red-50 px-4 py-2 text-red-600 border border-red-100">
+            <X className="size-4" />
+            <span className="text-xs font-bold uppercase tracking-wider">Upgrade Required</span>
+          </div>
+        )}
+
+        {status?.linked && hasTelegramFeature && (
           status.is_active ? (
             <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-green-600 border border-green-100">
               <Check className="size-4" />
@@ -94,20 +121,45 @@ export function TelegramLinkingSection() {
               <span className="text-xs font-bold uppercase tracking-wider">Account Suspended</span>
             </div>
           )
-        ) : !isLinkingEnabled ? (
-          <div className="flex items-center gap-2 rounded-full bg-red-50 px-4 py-2 text-red-600 border border-red-100">
-            <X className="size-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">Feature Disabled</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-slate-500 border border-slate-100">
-            <X className="size-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">Not Connected</span>
-          </div>
+        )}
+
+        {!status?.linked && (
+          !isLinkingEnabled ? (
+            <div className="flex items-center gap-2 rounded-full bg-red-50 px-4 py-2 text-red-600 border border-red-100">
+              <X className="size-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">
+                {!hasTelegramFeature ? 'Upgrade Required' : 'Feature Disabled'}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-slate-500 border border-slate-100">
+              <X className="size-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">Not Connected</span>
+            </div>
+          )
         )}
       </div>
 
-      <div className="rounded-3xl border border-slate-100 bg-slate-50/50 p-6">
+      <div className="rounded-3xl border border-slate-100 bg-slate-50/50 p-6 relative overflow-hidden">
+        {status?.linked && !hasTelegramFeature && (
+          <div className="absolute inset-0 z-10 bg-slate-50/60 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
+            <div className="size-16 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4 shadow-xl">
+              <Crown className="size-8" />
+            </div>
+            <h4 className="text-lg font-bold text-slate-900">Upgrade your plan</h4>
+            <p className="text-sm text-slate-600 max-w-xs mt-2">
+              Telegram notifications are not included in your current <strong>Starter</strong> plan. 
+              Upgrade to Pro or Elite to re-enable this feature.
+            </p>
+            <button 
+              onClick={() => (window as any).location.href = '/settings?tab=plan'}
+              className="mt-6 rounded-xl bg-brand-primary px-8 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all"
+            >
+              View Plans
+            </button>
+          </div>
+        )}
+
         {status?.linked ? (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

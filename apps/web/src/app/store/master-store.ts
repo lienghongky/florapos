@@ -39,6 +39,10 @@ interface MasterState {
   updateSubscription: (userId: string, data: any) => Promise<void>;
   getSystemSetting: (key: string) => Promise<string>;
   setSystemSetting: (key: string, value: string) => Promise<void>;
+  
+  createPlan: (data: any) => Promise<void>;
+  updatePlan: (id: string, data: any) => Promise<void>;
+  deletePlan: (id: string) => Promise<void>;
 }
 
 export const useMasterStore = create<MasterState>((set, get) => ({
@@ -276,6 +280,53 @@ export const useMasterStore = create<MasterState>((set, get) => ({
       });
     } catch (e: any) {
       toast.error(e.message || 'Failed to update system setting');
+    }
+  },
+
+  createPlan: async (data) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    try {
+      await request('/master/plans', { 
+        method: 'POST', 
+        body: JSON.stringify(data), 
+        token 
+      });
+      toast.success('Plan created');
+      await get().refreshPlans();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to create plan');
+    }
+  },
+
+  updatePlan: async (id, data) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    try {
+      await request(`/master/plans/${id}`, { 
+        method: 'PATCH', 
+        body: JSON.stringify(data), 
+        token 
+      });
+      toast.success('Plan updated');
+      await get().refreshPlans();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update plan');
+    }
+  },
+
+  deletePlan: async (id) => {
+    const { token } = useAuthStore.getState();
+    if (!token || !confirm('Are you sure you want to delete this plan?')) return;
+    try {
+      await request(`/master/plans/${id}`, { 
+        method: 'DELETE', 
+        token 
+      });
+      toast.success('Plan deleted');
+      await get().refreshPlans();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete plan');
     }
   },
 }));

@@ -12,6 +12,7 @@ import { NotificationQueueService } from './notification-queue.service';
 import { DailySummaryService } from './daily-summary.service';
 import { StoreUser } from '../stores/entities/store-user.entity';
 import { OrdersModule } from '../orders/orders.module';
+import { StoresModule } from '../stores/stores.module';
 import { SystemSetting } from '../master/entities/system-setting.entity';
 
 @Module({
@@ -49,6 +50,7 @@ import { SystemSetting } from '../master/entities/system-setting.entity';
             inject: [ConfigService],
         }),
         OrdersModule,
+        StoresModule,
     ],
     controllers: [TelegramController],
     providers: [

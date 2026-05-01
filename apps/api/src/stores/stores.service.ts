@@ -37,6 +37,13 @@ export class StoresService {
         return savedStore;
     }
 
+    async getStoreOwnerId(storeId: string): Promise<string | null> {
+        const owner = await this.storeUsersRepository.findOne({
+            where: { store_id: storeId, role: 'OWNER' as any }
+        });
+        return owner?.user_id || null;
+    }
+
     async findAll(userId: string): Promise<Store[]> {
         return this.storesRepository.createQueryBuilder('store')
             .innerJoin('store.users', 'storeUser')

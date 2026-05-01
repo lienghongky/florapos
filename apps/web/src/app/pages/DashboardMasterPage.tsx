@@ -21,7 +21,11 @@ import {
   Trash2,
   Send,
   Power,
-  PowerOff
+  PowerOff,
+  Crown,
+  Zap,
+  Shield,
+  Layers
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '@/app/components/ui/button';
@@ -66,7 +70,7 @@ export function DashboardMasterPage() {
 
   const { user } = useAuthStore();
 
-  const [activeTab, setActiveTab] = useState<'owners' | 'stores' | 'staff' | 'payments' | 'telegram' | 'subscriptions'>('owners');
+  const [activeTab, setActiveTab] = useState<'owners' | 'stores' | 'staff' | 'payments' | 'telegram' | 'subscriptions' | 'plans'>('owners');
   const [telegramSearchTerm, setTelegramSearchTerm] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
@@ -126,6 +130,33 @@ export function DashboardMasterPage() {
   const [subPeriodEnd, setSubPeriodEnd] = useState('');
   const [subAutoRenew, setSubAutoRenew] = useState(true);
   const [subCancelAtEnd, setSubCancelAtEnd] = useState(false);
+
+  // Plan Management Modal State
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [planName, setPlanName] = useState('');
+  const [planPrice, setPlanPrice] = useState(0);
+  const [planCurrency, setPlanCurrency] = useState('USD');
+  const [planMaxStores, setPlanMaxStores] = useState(1);
+  const [planMaxUsers, setPlanMaxUsers] = useState(1);
+  const [planFeatures, setPlanFeatures] = useState<string>(''); // comma separated for editing
+  const handleSavePlan = async () => {
+    const data = {
+      name: planName,
+      price: planPrice,
+      currency: planCurrency,
+      max_stores: planMaxStores,
+      max_users: planMaxUsers,
+      features: planFeatures.split(',').map(f => f.trim()).filter(f => f !== ''),
+    };
+
+    if (editingPlan) {
+      await useMasterStore.getState().updatePlan(editingPlan.id, data);
+    } else {
+      await useMasterStore.getState().createPlan(data);
+    }
+    setIsPlanModalOpen(false);
+  };
 
   const filteredOwners = owners.filter(o => 
     o.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -454,6 +485,13 @@ export function DashboardMasterPage() {
         >
           Subscriptions
           {activeTab === 'subscriptions' && <motion.div layoutId="master-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />}
+        </button>
+        <button
+          onClick={() => setActiveTab('plans')}
+          className={`pb-3 font-medium transition-colors relative ${activeTab === 'plans' ? 'text-brand-primary' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Subscription Plans
+          {activeTab === 'plans' && <motion.div layoutId="master-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />}
         </button>
       </div>
 
@@ -1260,6 +1298,115 @@ export function DashboardMasterPage() {
             </CardContent>
           </>
         )}
+
+        {activeTab === 'plans' && (
+          <>
+            <CardHeader className="border-b bg-slate-50/50 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Subscription Plans</CardTitle>
+                  <CardDescription>Manage the available tiers and their associated limits.</CardDescription>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button 
+                    className="bg-brand-primary hover:bg-brand-primary/90 text-white"
+                    size="sm"
+                    onClick={() => {
+                      setEditingPlan(null);
+                      setPlanName('');
+                      setPlanPrice(0);
+                      setPlanCurrency('USD');
+                      setPlanMaxStores(1);
+                      setPlanMaxUsers(1);
+                      setPlanFeatures('');
+                      setIsPlanModalOpen(true);
+                    }}
+                  >
+                    <Plus className="size-4 mr-2" />
+                    New Plan
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <tr>
+                      <th className="px-6 py-4">Plan Name</th>
+                      <th className="px-6 py-4">Price</th>
+                      <th className="px-6 py-4">Stores</th>
+                      <th className="px-6 py-4">Staff</th>
+                      <th className="px-6 py-4">Features</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {plans.map((plan) => (
+                      <motion.tr 
+                        key={plan.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="hover:bg-slate-50/50 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Crown className={`size-4 ${plan.name.toLowerCase() === 'elite' ? 'text-amber-500' : 'text-slate-400'}`} />
+                            <span className="font-bold">{plan.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-medium">${plan.price}</span>
+                          <span className="text-[10px] text-muted-foreground ml-1">/{plan.currency}</span>
+                        </td>
+                        <td className="px-6 py-4 font-medium">{plan.max_stores}</td>
+                        <td className="px-6 py-4 font-medium">{plan.max_users}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {plan.features?.map((f: string) => (
+                              <Badge key={f} variant="outline" className="text-[9px] px-1.5 py-0">
+                                {f}
+                              </Badge>
+                            )) || <span className="text-xs text-muted-foreground">No features</span>}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="size-8 text-slate-400 hover:text-brand-primary"
+                              onClick={() => {
+                                setEditingPlan(plan);
+                                setPlanName(plan.name);
+                                setPlanPrice(plan.price);
+                                setPlanCurrency(plan.currency);
+                                setPlanMaxStores(plan.max_stores);
+                                setPlanMaxUsers(plan.max_users);
+                                setPlanFeatures(plan.features?.join(', ') || '');
+                                setIsPlanModalOpen(true);
+                              }}
+                            >
+                              <Edit className="size-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="size-8 text-slate-400 hover:text-red-500"
+                              onClick={() => useMasterStore.getState().deletePlan(plan.id)}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </>
+        )}
       </Card>
 
       {/* Modals (Native backdrop for simplicity) */}
@@ -1828,6 +1975,93 @@ export function DashboardMasterPage() {
               <Button variant="ghost" onClick={() => setIsSubModalOpen(false)}>Cancel</Button>
               <Button className="bg-brand-primary hover:bg-brand-primary/90 text-white" onClick={handleUpdateSubscription}>
                 Save Changes
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {isPlanModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+          >
+            <div className="p-6 border-b flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                <Crown className="size-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">{editingPlan ? 'Edit Plan' : 'Create New Plan'}</h3>
+                <p className="text-sm text-muted-foreground">Define subscription details and feature limits.</p>
+              </div>
+            </div>
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <label className="text-sm font-medium">Plan Name</label>
+                  <Input 
+                    placeholder="e.g. Pro Plan" 
+                    value={planName}
+                    onChange={(e) => setPlanName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Price (Monthly)</label>
+                  <Input 
+                    type="number"
+                    value={planPrice}
+                    onChange={(e) => setPlanPrice(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Currency</label>
+                  <Input 
+                    value={planCurrency}
+                    onChange={(e) => setPlanCurrency(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Store className="size-3" /> Max Stores
+                  </label>
+                  <Input 
+                    type="number"
+                    value={planMaxStores}
+                    onChange={(e) => setPlanMaxStores(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Users className="size-3" /> Max Users
+                  </label>
+                  <Input 
+                    type="number"
+                    value={planMaxUsers}
+                    onChange={(e) => setPlanMaxUsers(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2 border-t pt-4">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Shield className="size-4" /> Feature Keys
+                </label>
+                <CardDescription className="mb-2">
+                  Comma-separated list of feature slugs (e.g. telegram_notifications, advanced_reports).
+                </CardDescription>
+                <textarea 
+                  className="w-full min-h-[100px] p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all text-sm"
+                  placeholder="telegram_notifications, advanced_reports..."
+                  value={planFeatures}
+                  onChange={(e) => setPlanFeatures(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 flex items-center justify-end gap-3">
+              <Button variant="ghost" onClick={() => setIsPlanModalOpen(false)}>Cancel</Button>
+              <Button className="bg-brand-primary hover:bg-brand-primary/90 text-white px-8" onClick={handleSavePlan}>
+                {editingPlan ? 'Save Changes' : 'Create Plan'}
               </Button>
             </div>
           </motion.div>

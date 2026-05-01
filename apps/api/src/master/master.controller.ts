@@ -193,6 +193,24 @@ export class MasterController {
         return this.masterService.getPlans();
     }
 
+    @Post('plans')
+    @ApiOperation({ summary: 'Create a new subscription plan' })
+    createPlan(@Body() data: any) {
+        return this.masterService.createPlan(data);
+    }
+
+    @Patch('plans/:id')
+    @ApiOperation({ summary: 'Update a subscription plan' })
+    updatePlan(@Param('id') id: string, @Body() data: any) {
+        return this.masterService.updatePlan(id, data);
+    }
+
+    @Delete('plans/:id')
+    @ApiOperation({ summary: 'Delete a subscription plan' })
+    deletePlan(@Param('id') id: string) {
+        return this.masterService.deletePlan(id);
+    }
+
     @Patch('subscriptions/:userId')
     @ApiOperation({ summary: 'Update a user subscription' })
     updateSubscription(

@@ -45,6 +45,24 @@ export class MasterService {
         return this.planRepo.find({ order: { price: 'ASC' } });
     }
 
+    async createPlan(data: Partial<SubscriptionPlan>) {
+        const plan = this.planRepo.create(data);
+        return this.planRepo.save(plan);
+    }
+
+    async updatePlan(id: string, data: Partial<SubscriptionPlan>) {
+        const plan = await this.planRepo.findOne({ where: { id } });
+        if (!plan) throw new NotFoundException('Plan not found');
+        Object.assign(plan, data);
+        return this.planRepo.save(plan);
+    }
+
+    async deletePlan(id: string) {
+        const plan = await this.planRepo.findOne({ where: { id } });
+        if (!plan) throw new NotFoundException('Plan not found');
+        return this.planRepo.remove(plan);
+    }
+
     async updateSubscription(userId: string, updateData: { 
         plan_id?: string, 
         status?: SubscriptionStatus, 
