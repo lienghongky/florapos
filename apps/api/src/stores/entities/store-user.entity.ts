@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Store } from './store.entity';
 
@@ -32,4 +32,10 @@ export class StoreUser {
     @ManyToOne(() => Store, (store) => store.users, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'store_id' })
     store: Store;
+
+    @CreateDateColumn()
+    created_at: Date;
+
+    @UpdateDateColumn()
+    updated_at: Date;
 }

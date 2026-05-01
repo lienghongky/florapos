@@ -10,6 +10,8 @@ import * as bcrypt from 'bcrypt';
 import { ConflictException } from '@nestjs/common';
 import { TelegramAccount } from '../telegram/entities/telegram-account.entity';
 import { SystemSetting } from './entities/system-setting.entity';
+import { Subscription, SubscriptionStatus } from '../subscriptions/entities/subscription.entity';
+import { SubscriptionPlan } from '../subscriptions/entities/subscription-plan.entity';
 
 @Injectable()
 export class MasterService {
@@ -26,7 +28,60 @@ export class MasterService {
         private telegramAccountRepo: Repository<TelegramAccount>,
         @InjectRepository(SystemSetting)
         private systemSettingRepo: Repository<SystemSetting>,
+        @InjectRepository(Subscription)
+        private subscriptionRepo: Repository<Subscription>,
+        @InjectRepository(SubscriptionPlan)
+        private planRepo: Repository<SubscriptionPlan>,
     ) { }
+
+    async getAllSubscriptions() {
+        return this.subscriptionRepo.find({
+            relations: ['user', 'plan'],
+            order: { created_at: 'DESC' }
+        });
+    }
+
+    async getPlans() {
+        return this.planRepo.find({ order: { price: 'ASC' } });
+    }
+
+    async updateSubscription(userId: string, updateData: { 
+        plan_id?: string, 
+        status?: SubscriptionStatus, 
+        trial_end_at?: Date | null,
+        current_period_start?: Date | null,
+        current_period_end?: Date | null,
+        is_auto_renew?: boolean,
+        cancel_at_period_end?: boolean
+    }) {
+        let sub = await this.subscriptionRepo.findOne({ where: { user_id: userId } });
+        
+        if (!sub) {
+            // Create new subscription if missing
+            if (!updateData.plan_id) throw new NotFoundException('Subscription missing. Please provide a plan_id to initialize.');
+            
+            sub = this.subscriptionRepo.create({
+                user_id: userId,
+                plan_id: updateData.plan_id,
+                status: updateData.status || SubscriptionStatus.ACTIVE,
+                trial_end_at: updateData.trial_end_at || null,
+                current_period_start: updateData.current_period_start || new Date(),
+                current_period_end: updateData.current_period_end || null,
+                is_auto_renew: updateData.is_auto_renew ?? true,
+                cancel_at_period_end: updateData.cancel_at_period_end ?? false,
+            });
+        } else {
+            if (updateData.plan_id) sub.plan_id = updateData.plan_id;
+            if (updateData.status) sub.status = updateData.status;
+            if (updateData.trial_end_at !== undefined) sub.trial_end_at = updateData.trial_end_at;
+            if (updateData.current_period_start !== undefined) sub.current_period_start = updateData.current_period_start;
+            if (updateData.current_period_end !== undefined) sub.current_period_end = updateData.current_period_end;
+            if (updateData.is_auto_renew !== undefined) sub.is_auto_renew = updateData.is_auto_renew;
+            if (updateData.cancel_at_period_end !== undefined) sub.cancel_at_period_end = updateData.cancel_at_period_end;
+        }
+
+        return this.subscriptionRepo.save(sub);
+    }
 
     async getSaaSStats() {
         const totalOwners = await this.usersRepository.count({ where: { role: UserRole.OWNER } });

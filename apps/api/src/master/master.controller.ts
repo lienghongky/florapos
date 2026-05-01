@@ -179,6 +179,29 @@ export class MasterController {
         return this.masterService.toggleTelegramAccount(id);
     }
 
+    // ── Subscription Management ──────────────────────────────────────────
+
+    @Get('subscriptions')
+    @ApiOperation({ summary: 'Get all user subscriptions' })
+    getSubscriptions() {
+        return this.masterService.getAllSubscriptions();
+    }
+
+    @Get('plans')
+    @ApiOperation({ summary: 'Get all subscription plans' })
+    getPlans() {
+        return this.masterService.getPlans();
+    }
+
+    @Patch('subscriptions/:userId')
+    @ApiOperation({ summary: 'Update a user subscription' })
+    updateSubscription(
+        @Param('userId') userId: string,
+        @Body() updateData: any
+    ) {
+        return this.masterService.updateSubscription(userId, updateData);
+    }
+
     // ── System Settings ──────────────────────────────────────────────────
 
     /**

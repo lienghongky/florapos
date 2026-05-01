@@ -11,12 +11,16 @@ interface MasterState {
   globalStaff: any[];
   saasPayments: any[];
   telegramAccounts: any[];
+  subscriptions: any[];
+  plans: any[];
   
   refreshMasterData: () => Promise<void>;
   refreshGlobalStores: () => Promise<void>;
   refreshGlobalStaff: () => Promise<void>;
   refreshSaaSPayments: () => Promise<void>;
   refreshTelegramAccounts: () => Promise<void>;
+  refreshSubscriptions: () => Promise<void>;
+  refreshPlans: () => Promise<void>;
   
   toggleUserActive: (id: string) => Promise<void>;
   deleteGlobalUser: (id: string) => Promise<void>;
@@ -32,6 +36,7 @@ interface MasterState {
   uploadStoreLogo: (storeId: string, file: File) => Promise<void>;
   disconnectTelegramAccount: (id: string) => Promise<void>;
   toggleTelegramAccount: (id: string) => Promise<void>;
+  updateSubscription: (userId: string, data: any) => Promise<void>;
   getSystemSetting: (key: string) => Promise<string>;
   setSystemSetting: (key: string, value: string) => Promise<void>;
 }
@@ -42,6 +47,9 @@ export const useMasterStore = create<MasterState>((set, get) => ({
   globalStores: [],
   globalStaff: [],
   saasPayments: [],
+  telegramAccounts: [],
+  subscriptions: [],
+  plans: [],
 
   refreshMasterData: async () => {
     const { token, user } = useAuthStore.getState();
@@ -206,6 +214,44 @@ export const useMasterStore = create<MasterState>((set, get) => ({
       await get().refreshTelegramAccounts();
     } catch (e: any) {
       toast.error(e.message || 'Failed to toggle telegram account');
+    }
+  },
+
+  refreshSubscriptions: async () => {
+    const { token, user } = useAuthStore.getState();
+    if (!token || user?.role !== 'master') return;
+    try {
+      const data = await request<any[]>('/master/subscriptions', { token });
+      set({ subscriptions: data });
+    } catch (e) {
+      console.error("Failed to refresh subscriptions", e);
+    }
+  },
+
+  refreshPlans: async () => {
+    const { token, user } = useAuthStore.getState();
+    if (!token || user?.role !== 'master') return;
+    try {
+      const data = await request<any[]>('/master/plans', { token });
+      set({ plans: data });
+    } catch (e) {
+      console.error("Failed to refresh plans", e);
+    }
+  },
+
+  updateSubscription: async (userId, data) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    try {
+      await request(`/master/subscriptions/${userId}`, { 
+        method: 'PATCH', 
+        body: JSON.stringify(data), 
+        token 
+      });
+      toast.success('Subscription updated');
+      await get().refreshSubscriptions();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update subscription');
     }
   },
 

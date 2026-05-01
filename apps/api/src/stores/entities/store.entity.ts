@@ -57,6 +57,9 @@ export class Store {
     } })
     exchange_rate: number;
 
+    @Column({ default: true })
+    is_active: boolean;
+
     @OneToMany(() => StoreUser, (storeUser) => storeUser.store)
     users: StoreUser[];
 

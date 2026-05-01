@@ -6,6 +6,7 @@ import { StoreUser, UserRole } from './entities/store-user.entity';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { User } from '../users/entities/user.entity';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class StoresService {
@@ -14,9 +15,13 @@ export class StoresService {
         private storesRepository: Repository<Store>,
         @InjectRepository(StoreUser)
         private storeUsersRepository: Repository<StoreUser>,
+        private subscriptionsService: SubscriptionsService,
     ) { }
 
     async create(userId: string, createStoreDto: CreateStoreDto): Promise<Store> {
+        // Check Subscription Limit
+        await this.subscriptionsService.checkLimit(userId, 'stores');
+
         // Create Store
         const store = this.storesRepository.create(createStoreDto);
         const savedStore = await this.storesRepository.save(store);

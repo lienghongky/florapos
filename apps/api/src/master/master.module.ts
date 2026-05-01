@@ -8,10 +8,21 @@ import { StoreUser } from '../stores/entities/store-user.entity';
 import { SaaSPayment } from './entities/saas-payment.entity';
 import { TelegramAccount } from '../telegram/entities/telegram-account.entity';
 import { SystemSetting } from './entities/system-setting.entity';
+import { Subscription } from '../subscriptions/entities/subscription.entity';
+import { SubscriptionPlan } from '../subscriptions/entities/subscription-plan.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([User, Store, StoreUser, SaaSPayment, TelegramAccount, SystemSetting]),
+        TypeOrmModule.forFeature([
+            User, 
+            Store, 
+            StoreUser, 
+            SaaSPayment, 
+            TelegramAccount, 
+            SystemSetting,
+            Subscription,
+            SubscriptionPlan
+        ]),
     ],
     controllers: [MasterController],
     providers: [MasterService],

@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 import { LoginDto } from './dto/login.dto';
 import { UserRole } from '../users/dto/create-user.dto';
 import { StoresService } from '../stores/stores.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +14,7 @@ export class AuthService {
         private usersService: UsersService,
         private storesService: StoresService,
         private jwtService: JwtService,
+        private subscriptionsService: SubscriptionsService,
     ) { }
 
     async validateUser(email: string, pass: string): Promise<any> {
@@ -46,6 +48,7 @@ export class AuthService {
 
         // Automatically create a default store if registering as an owner
         if (createUserDto.role === UserRole.OWNER || createUserDto.role === 'owner') {
+            await this.subscriptionsService.initializeSubscription(user.id);
             await this.storesService.create(user.id, {
                 name: `${user.full_name || 'My'} Store`,
                 currency: 'USD'

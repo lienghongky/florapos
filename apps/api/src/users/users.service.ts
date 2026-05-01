@@ -7,6 +7,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { StoreUser } from '../stores/entities/store-user.entity';
 import { Order } from '../orders/entities/order.entity';
 import { InventoryHistory } from '../inventory/entities/inventory-history.entity';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -20,9 +21,15 @@ export class UsersService {
         private ordersRepository: Repository<Order>,
         @InjectRepository(InventoryHistory)
         private inventoryHistoryRepository: Repository<InventoryHistory>,
+        private subscriptionsService: SubscriptionsService,
     ) { }
 
     async create(createUserDto: CreateUserDto, creatorId?: string): Promise<User> {
+        // Check Subscription Limit if created by owner
+        if (creatorId) {
+            await this.subscriptionsService.checkLimit(creatorId, 'users');
+        }
+
         const email = createUserDto.email.toLowerCase();
         const existingUser = await this.usersRepository.findOne({ where: { email } });
 

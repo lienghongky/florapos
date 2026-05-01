@@ -21,6 +21,7 @@ import { join } from 'path';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TelegramModule } from './telegram/telegram.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 
 @Module({
@@ -60,6 +61,7 @@ import { TelegramModule } from './telegram/telegram.module';
     CategoriesModule,
     MasterModule,
     TelegramModule,
+    SubscriptionsModule,
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',

@@ -55,13 +55,18 @@ export function DashboardMasterPage() {
     refreshTelegramAccounts,
     disconnectTelegramAccount,
     toggleTelegramAccount,
+    subscriptions,
+    plans,
+    refreshSubscriptions,
+    refreshPlans,
+    updateSubscription,
     getSystemSetting,
     setSystemSetting
   } = useMasterStore();
 
   const { user } = useAuthStore();
 
-  const [activeTab, setActiveTab] = useState<'owners' | 'stores' | 'staff' | 'payments' | 'telegram'>('owners');
+  const [activeTab, setActiveTab] = useState<'owners' | 'stores' | 'staff' | 'payments' | 'telegram' | 'subscriptions'>('owners');
   const [telegramSearchTerm, setTelegramSearchTerm] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [storeSearchTerm, setStoreSearchTerm] = useState('');
@@ -111,6 +116,17 @@ export function DashboardMasterPage() {
   const [newPassword, setNewPassword] = useState('');
   const [isTelegramLinkingEnabled, setIsTelegramLinkingEnabled] = useState(true);
 
+  // Subscription Management Modal State
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [editingSub, setEditingSub] = useState<any>(null);
+  const [subPlanId, setSubPlanId] = useState('');
+  const [subStatus, setSubStatus] = useState('');
+  const [subTrialEnd, setSubTrialEnd] = useState('');
+  const [subPeriodStart, setSubPeriodStart] = useState('');
+  const [subPeriodEnd, setSubPeriodEnd] = useState('');
+  const [subAutoRenew, setSubAutoRenew] = useState(true);
+  const [subCancelAtEnd, setSubCancelAtEnd] = useState(false);
+
   const filteredOwners = owners.filter(o => 
     o.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -130,6 +146,24 @@ export function DashboardMasterPage() {
     s.full_name?.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
     s.email?.toLowerCase().includes(staffSearchTerm.toLowerCase())
   );
+
+  const handleUpdateSubscription = async () => {
+    if (!editingSub) return;
+    try {
+      await updateSubscription(editingSub.user_id, {
+        plan_id: subPlanId,
+        status: subStatus,
+        trial_end_at: subTrialEnd || null,
+        current_period_start: subPeriodStart || null,
+        current_period_end: subPeriodEnd || null,
+        is_auto_renew: subAutoRenew,
+        cancel_at_period_end: subCancelAtEnd
+      });
+      setIsSubModalOpen(false);
+    } catch (e) {
+      // toast already shown in store
+    }
+  };
 
   const handleToggleActive = async (id: string) => {
     try {
@@ -288,6 +322,8 @@ export function DashboardMasterPage() {
     refreshSaaSPayments();
     refreshGlobalStaff();
     refreshTelegramAccounts();
+    refreshSubscriptions();
+    refreshPlans();
     
     // Fetch Telegram Linking Status
     getSystemSetting('telegram_linking_enabled').then(val => {
@@ -304,7 +340,13 @@ export function DashboardMasterPage() {
           <p className="text-muted-foreground mt-1">Manage your platform owners, stores, and monitor global growth.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => { refreshMasterData(); refreshGlobalStores(); refreshGlobalStaff(); }}>
+          <Button variant="outline" onClick={() => { 
+            refreshMasterData(); 
+            refreshGlobalStores(); 
+            refreshGlobalStaff(); 
+            refreshSubscriptions();
+            refreshPlans();
+          }}>
             <Activity className="size-4 mr-2" />
             Sync Platform
           </Button>
@@ -406,6 +448,13 @@ export function DashboardMasterPage() {
           Telegram Links
           {activeTab === 'telegram' && <motion.div layoutId="master-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />}
         </button>
+        <button
+          onClick={() => setActiveTab('subscriptions')}
+          className={`pb-3 font-medium transition-colors relative ${activeTab === 'subscriptions' ? 'text-brand-primary' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Subscriptions
+          {activeTab === 'subscriptions' && <motion.div layoutId="master-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />}
+        </button>
       </div>
 
       {/* Content */}
@@ -448,79 +497,105 @@ export function DashboardMasterPage() {
                   ownerPayments.sort((a, b) => new Date(b.coverage_end_date).getTime() - new Date(a.coverage_end_date).getTime());
                   const latestPayment = ownerPayments[0];
 
-                  let daysLeftText = "No Subscription";
                   let isExpired = false;
                   let daysLeft = 0;
 
                   if (latestPayment) {
                     const end = new Date(latestPayment.coverage_end_date);
                     const today = new Date();
-                    // Reset time to strictly compare dates
                     today.setHours(0, 0, 0, 0);
                     end.setHours(0, 0, 0, 0);
-                    
                     const diffTime = end.getTime() - today.getTime();
                     daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    
-                    if (daysLeft < 0) {
-                      isExpired = true;
-                      daysLeftText = `Expired ${Math.abs(daysLeft)} days ago`;
-                    } else {
-                      daysLeftText = `${daysLeft} days left`;
-                    }
+                    if (daysLeft < 0) isExpired = true;
                   }
 
                   return (
-                  <motion.tr 
-                    key={owner.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="hover:bg-slate-50/50 transition-colors group"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="size-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-sm">
-                          {owner.full_name?.[0] || owner.email[0].toUpperCase()}
+                    <motion.tr 
+                      key={owner.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="hover:bg-slate-50/50 transition-colors group"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="size-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-sm">
+                            {owner.full_name?.[0] || owner.email[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{owner.full_name || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">{owner.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{owner.full_name || 'N/A'}</p>
-                          <p className="text-xs text-muted-foreground">{owner.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {owner.is_active ? (
-                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none px-2 py-0.5 rounded-full font-medium">
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 border-none px-2 py-0.5 rounded-full font-medium">
-                          Inactive
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {owner.store_roles?.map((sr: any) => (
-                          <Badge key={sr.id} variant="outline" className="text-[10px] py-0 px-1.5 h-4 font-normal border-slate-200">
-                            {sr.store?.name || 'Unknown'}
+                      </td>
+                      <td className="px-6 py-4">
+                        {owner.is_active ? (
+                          <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none px-2 py-0.5 rounded-full font-medium">
+                            Active
                           </Badge>
-                        ))}
-                        {(!owner.store_roles || owner.store_roles.length === 0) && (
-                          <span className="text-xs text-muted-foreground italic">No stores</span>
+                        ) : (
+                          <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 border-none px-2 py-0.5 rounded-full font-medium">
+                            Inactive
+                          </Badge>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {daysLeftText === 'No Subscription' ? (
-                        <span className="text-xs text-muted-foreground italic">None</span>
-                      ) : (
-                        <div className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full w-fit ${isExpired ? 'bg-red-100 text-red-700' : daysLeft <= 7 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                          {isExpired || daysLeft <= 7 ? <AlertCircle className="size-3" /> : <UserCheck className="size-3" />}
-                          {daysLeftText}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {owner.store_roles?.map((sr: any) => (
+                            <Badge key={sr.id} variant="outline" className="text-[10px] py-0 px-1.5 h-4 font-normal border-slate-200">
+                              {sr.store?.name || 'Unknown'}
+                            </Badge>
+                          ))}
+                          {(!owner.store_roles || owner.store_roles.length === 0) && (
+                            <span className="text-xs text-muted-foreground italic">No stores</span>
+                          )}
                         </div>
-                      )}
-                    </td>
+                      </td>
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const sub = subscriptions.find(s => s.user_id === owner.id);
+                          if (!sub) return (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs text-muted-foreground italic">No Subscription</span>
+                              <Button 
+                                variant="link" 
+                                className="p-0 h-auto text-[10px] text-brand-primary justify-start"
+                                onClick={() => {
+                                  setEditingSub({ user_id: owner.id, user: owner });
+                                  setSubPlanId(plans[0]?.id || '');
+                                  setSubStatus('active');
+                                  setSubTrialEnd('');
+                                  setSubPeriodStart(new Date().toISOString().split('T')[0]);
+                                  setSubPeriodEnd('');
+                                  setSubAutoRenew(true);
+                                  setSubCancelAtEnd(false);
+                                  setIsSubModalOpen(true);
+                                }}
+                              >
+                                + Set Plan
+                              </Button>
+                            </div>
+                          );
+
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <div className={`flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full w-fit ${sub.status === 'active' ? 'bg-green-100 text-green-700' : sub.status === 'trialing' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}`}>
+                                {sub.plan?.name}
+                              </div>
+                              {sub.status === 'trialing' && sub.trial_end_at && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  Trial Ends: {new Date(sub.trial_end_at).toLocaleDateString()}
+                                </span>
+                              )}
+                              {sub.status === 'active' && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  Period: {sub.current_period_start ? new Date(sub.current_period_start).toLocaleDateString() : 'N/A'} - {sub.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : 'N/A'}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </td>
                     <td className="px-6 py-4 text-xs text-muted-foreground">
                       {new Date(owner.created_at).toLocaleDateString()}
                     </td>
@@ -1070,6 +1145,121 @@ export function DashboardMasterPage() {
             </CardContent>
           </>
         )}
+        {activeTab === 'subscriptions' && (
+          <>
+            <CardHeader className="border-b bg-slate-50/50 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Subscription Management</CardTitle>
+                  <CardDescription>Oversee all active user plans and usage limits.</CardDescription>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={async () => {
+                      await refreshSubscriptions();
+                      await refreshPlans();
+                      toast.success('Data refreshed');
+                    }}
+                  >
+                    <Repeat className="size-4 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <tr>
+                      <th className="px-6 py-4">Owner</th>
+                      <th className="px-6 py-4">Current Plan</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Usage (S/U)</th>
+                      <th className="px-6 py-4">Period / Trial</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {subscriptions.map((sub) => (
+                      <motion.tr 
+                        key={sub.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="hover:bg-slate-50/50 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="size-8 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center text-xs font-bold">
+                              {sub.user?.full_name?.[0] || sub.user?.email[0].toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{sub.user?.full_name || 'N/A'}</p>
+                              <p className="text-[11px] text-muted-foreground">{sub.user?.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge className="bg-slate-900 text-white hover:bg-slate-900">
+                            {sub.plan?.name}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge variant={sub.status === 'active' ? 'success' : 'secondary'} className="text-[10px] uppercase tracking-wider">
+                            {sub.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium">
+                          {/* We don't have usage in the full list by default, but we could add it to the backend relation or query here */}
+                          <span className="text-muted-foreground font-normal italic">Check Details</span>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-muted-foreground">
+                          {sub.status === 'trialing' ? (
+                            <span>Ends: {sub.trial_end_at ? new Date(sub.trial_end_at).toLocaleDateString() : '-'}</span>
+                          ) : (
+                            <div className="flex flex-col">
+                              <span>Start: {sub.current_period_start ? new Date(sub.current_period_start).toLocaleDateString() : '-'}</span>
+                              <span>End: {sub.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : '-'}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-brand-primary"
+                            onClick={() => {
+                              setEditingSub(sub);
+                              setSubPlanId(sub.plan_id);
+                              setSubStatus(sub.status);
+                              setSubTrialEnd(sub.trial_end_at ? new Date(sub.trial_end_at).toISOString().split('T')[0] : '');
+                              setSubPeriodStart(sub.current_period_start ? new Date(sub.current_period_start).toISOString().split('T')[0] : '');
+                              setSubPeriodEnd(sub.current_period_end ? new Date(sub.current_period_end).toISOString().split('T')[0] : '');
+                              setSubAutoRenew(sub.is_auto_renew);
+                              setSubCancelAtEnd(sub.cancel_at_period_end);
+                              setIsSubModalOpen(true);
+                            }}
+                          >
+                            Manage
+                          </Button>
+                        </td>
+                      </motion.tr>
+                    ))}
+                    {subscriptions.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                          No active subscriptions found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </>
+        )}
       </Card>
 
       {/* Modals (Native backdrop for simplicity) */}
@@ -1526,6 +1716,118 @@ export function DashboardMasterPage() {
               <Button variant="ghost" onClick={() => setIsPasswordModalOpen(false)}>Cancel</Button>
               <Button className="bg-brand-primary hover:bg-brand-primary/90 text-white" onClick={handleResetPassword}>
                 Update Password
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {isSubModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+          >
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold">Manage Subscription</h3>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setIsSubModalOpen(false)}>
+                  <X className="size-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Updating subscription for <span className="font-semibold text-foreground">{editingSub?.user?.full_name || editingSub?.user?.email}</span>
+              </p>
+            </div>
+            <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Subscription Plan</label>
+                  <select 
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    value={subPlanId}
+                    onChange={(e) => setSubPlanId(e.target.value)}
+                  >
+                    {plans.map(plan => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name} (${plan.price}/mo)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Status</label>
+                  <select 
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    value={subStatus}
+                    onChange={(e) => setSubStatus(e.target.value)}
+                  >
+                    <option value="active">Active</option>
+                    <option value="trialing">Trialing</option>
+                    <option value="past_due">Past Due</option>
+                    <option value="canceled">Canceled</option>
+                    <option value="expired">Expired</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Trial End Date</label>
+                <Input 
+                  type="date"
+                  value={subTrialEnd}
+                  onChange={(e) => setSubTrialEnd(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Period Start</label>
+                  <Input 
+                    type="date"
+                    value={subPeriodStart}
+                    onChange={(e) => setSubPeriodStart(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Period End</label>
+                  <Input 
+                    type="date"
+                    value={subPeriodEnd}
+                    onChange={(e) => setSubPeriodEnd(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-slate-50">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium">Auto Renew</label>
+                    <p className="text-xs text-muted-foreground">Automatically bill at end of period</p>
+                  </div>
+                  <Switch 
+                    checked={subAutoRenew}
+                    onCheckedChange={setSubAutoRenew}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-slate-50">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium text-orange-600">Cancel at Period End</label>
+                    <p className="text-xs text-muted-foreground">Subscription will end on period end date</p>
+                  </div>
+                  <Switch 
+                    checked={subCancelAtEnd}
+                    onCheckedChange={setSubCancelAtEnd}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 flex items-center justify-end gap-3">
+              <Button variant="ghost" onClick={() => setIsSubModalOpen(false)}>Cancel</Button>
+              <Button className="bg-brand-primary hover:bg-brand-primary/90 text-white" onClick={handleUpdateSubscription}>
+                Save Changes
               </Button>
             </div>
           </motion.div>
