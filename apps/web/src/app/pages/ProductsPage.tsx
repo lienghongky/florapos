@@ -331,7 +331,7 @@ export function ProductsPage() {
       <PageHeader
         title="Products"
         subtitle="Manage your product catalog"
-        action={user?.role === 'owner' && (
+        action={user?.role?.toLowerCase() === 'owner' && (
           <motion.button
             whileHover={{ scale: 1.02, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
             whileTap={{ scale: 0.98 }}
@@ -465,7 +465,7 @@ export function ProductsPage() {
             </div>
 
             {/* Actions */}
-            {user?.role === 'owner' && (
+            {user?.role?.toLowerCase() === 'owner' && (
               <div className="flex flex-col gap-1 shrink-0">
                 <motion.button
                   whileTap={{ scale: 0.9 }}
@@ -509,7 +509,7 @@ export function ProductsPage() {
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Price</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Stock</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
-                {user?.role === 'owner' && (
+                {user?.role?.toLowerCase() === 'owner' && (
                   <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">Actions</th>
                 )}
               </tr>
@@ -584,7 +584,7 @@ export function ProductsPage() {
                       {product.isActive ? 'Active' : 'Hidden'}
                     </span>
                   </td>
-                  {user?.role === 'owner' && (
+                  {user?.role?.toLowerCase() === 'owner' && (
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <motion.button

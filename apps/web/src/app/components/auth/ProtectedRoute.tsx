@@ -4,7 +4,7 @@ import { useAuthStore } from '@/app/store/auth-store';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: ('master' | 'owner' | 'sales' | 'staff')[];
+  allowedRoles?: string[];
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -27,9 +27,10 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.map(r => r.toLowerCase()).includes(user.role.toLowerCase())) {
     // Role not authorized, redirect to their default dashboard
-    const defaultPath = user.role === 'master' ? '/dashboard-master' : (user.role === 'owner' ? '/dashboard-owner' : '/dashboard-sales');
+    const roleLower = user.role.toLowerCase();
+    const defaultPath = roleLower === 'master' ? '/dashboard-master' : (roleLower === 'owner' ? '/dashboard-owner' : '/dashboard-sales');
     return <Navigate to={defaultPath} replace />;
   }
 

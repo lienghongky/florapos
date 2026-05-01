@@ -89,7 +89,7 @@ export class SubscriptionsService implements OnModuleInit {
     async getSubscriptionStatus(userId: string) {
         const sub = await this.getSubscription(userId);
         if (!sub) {
-            throw new NotFoundException('Subscription not found');
+            return null;
         }
 
         // Count current usage
@@ -112,19 +112,11 @@ export class SubscriptionsService implements OnModuleInit {
         }
 
         return {
-            plan_name: sub.plan.name,
-            status: sub.status,
-            trial_end_at: sub.trial_end_at,
-            current_period_end: sub.current_period_end,
-            limits: {
-                max_stores: sub.plan.max_stores,
-                max_users: sub.plan.max_users,
-            },
+            ...sub,
             usage: {
                 stores: ownedStoresCount,
                 users: uniqueUsersCount,
             },
-            features: sub.plan.features,
         };
     }
 

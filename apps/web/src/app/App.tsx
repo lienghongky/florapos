@@ -18,6 +18,8 @@ import { DashboardMasterPage } from '@/app/pages/DashboardMasterPage';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/app/components/auth/ProtectedRoute';
 
+import { UserRole } from './types';
+
 function AppRoutes() {
   const { user } = useAuthStore();
 
@@ -33,25 +35,28 @@ function AppRoutes() {
       </Route>
 
       {/* Dashboards */}
-      <Route path="/dashboard-owner" element={<ProtectedRoute allowedRoles={['owner']}><Layout><DashboardOwnerPage /></Layout></ProtectedRoute>} />
-      <Route path="/dashboard-sales" element={<ProtectedRoute allowedRoles={['staff']}><Layout><DashboardSalesPage /></Layout></ProtectedRoute>} />
-      <Route path="/dashboard-master" element={<ProtectedRoute allowedRoles={['master']}><Layout><DashboardMasterPage /></Layout></ProtectedRoute>} />
+      <Route path="/dashboard-owner" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner']}><Layout><DashboardOwnerPage /></Layout></ProtectedRoute>} />
+      <Route path="/dashboard-sales" element={<ProtectedRoute allowedRoles={[UserRole.STAFF, 'staff']}><Layout><DashboardSalesPage /></Layout></ProtectedRoute>} />
+      <Route path="/dashboard-master" element={<ProtectedRoute allowedRoles={[UserRole.MASTER, 'master']}><Layout><DashboardMasterPage /></Layout></ProtectedRoute>} />
 
       {/* Feature Pages */}
-      <Route path="/pos" element={<ProtectedRoute allowedRoles={['owner', 'staff']}><Layout><POSPage /></Layout></ProtectedRoute>} />
-      <Route path="/pos-fullscreen" element={<ProtectedRoute allowedRoles={['owner', 'staff']}><Layout><POSPage /></Layout></ProtectedRoute>} />
-      <Route path="/orders" element={<ProtectedRoute allowedRoles={['owner', 'staff']}><Layout><OrdersPage /></Layout></ProtectedRoute>} />
-      <Route path="/products" element={<ProtectedRoute allowedRoles={['owner', 'staff']}><Layout><ProductsPage /></Layout></ProtectedRoute>} />
-      <Route path="/inventory" element={<ProtectedRoute allowedRoles={['owner', 'staff']}><Layout><InventoryPage /></Layout></ProtectedRoute>} />
-      <Route path="/inventory-history" element={<ProtectedRoute allowedRoles={['owner', 'staff']}><Layout><InventoryHistoryPage /></Layout></ProtectedRoute>} />
-      <Route path="/reports" element={<ProtectedRoute allowedRoles={['owner']}><Layout><ReportsPage /></Layout></ProtectedRoute>} />
-      <Route path="/expenses" element={<ProtectedRoute allowedRoles={['owner']}><Layout><ExpensesPage /></Layout></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute allowedRoles={['owner', 'staff']}><Layout><SettingsPage /></Layout></ProtectedRoute>} />
+      <Route path="/pos" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner', UserRole.STAFF, 'staff']}><Layout><POSPage /></Layout></ProtectedRoute>} />
+      <Route path="/pos-fullscreen" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner', UserRole.STAFF, 'staff']}><Layout><POSPage /></Layout></ProtectedRoute>} />
+      <Route path="/orders" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner', UserRole.STAFF, 'staff']}><Layout><OrdersPage /></Layout></ProtectedRoute>} />
+      <Route path="/products" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner', UserRole.STAFF, 'staff']}><Layout><ProductsPage /></Layout></ProtectedRoute>} />
+      <Route path="/inventory" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner', UserRole.STAFF, 'staff']}><Layout><InventoryPage /></Layout></ProtectedRoute>} />
+      <Route path="/inventory-history" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner', UserRole.STAFF, 'staff']}><Layout><InventoryHistoryPage /></Layout></ProtectedRoute>} />
+      <Route path="/reports" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner']}><Layout><ReportsPage /></Layout></ProtectedRoute>} />
+      <Route path="/expenses" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner']}><Layout><ExpensesPage /></Layout></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner', UserRole.STAFF, 'staff']}><Layout><SettingsPage /></Layout></ProtectedRoute>} />
 
       {/* Default Redirection */}
       <Route path="/" element={
         user ? (
-          <Navigate to={user.role === 'master' ? '/dashboard-master' : (user.role === 'owner' ? '/dashboard-owner' : '/dashboard-sales')} replace />
+          <Navigate to={
+            (user.role === UserRole.MASTER || user.role === 'master' || user.role === 'MASTER') ? '/dashboard-master' : 
+            ((user.role === UserRole.OWNER || user.role === 'owner' || user.role === 'OWNER') ? '/dashboard-owner' : '/dashboard-sales')
+          } replace />
         ) : (
           <Navigate to="/login" replace />
         )

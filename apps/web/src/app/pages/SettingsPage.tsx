@@ -1,14 +1,16 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
+import { UserRole } from '@/app/types';
 import { useAuthStore } from '@/app/store/auth-store';
 import { useStaffStore } from '@/app/store/staff-store';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Bell, Globe, Shield, UserPlus, Trash2, Edit2, X, Check, Store } from 'lucide-react';
+import { User, Bell, Globe, Shield, UserPlus, Trash2, Edit2, X, Check, Store, Crown, Sparkles, Zap, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { StoreProfileSection } from '@/app/components/settings/StoreProfileSection';
 import { ChangePasswordModal } from '@/app/components/settings/ChangePasswordModal';
 import { TelegramLinkingSection } from '@/app/components/settings/TelegramLinkingSection';
 import { PageHeader } from '@/app/components/ui/page-header';
+import { Badge } from '@/app/components/ui/badge';
 
 export function SettingsPage() {
   const { user, selectedStore } = useAuthStore();
@@ -72,14 +74,88 @@ export function SettingsPage() {
           transition={{ delay: 0.1 }}
           className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
         >
-          <div className="mb-8 flex items-center gap-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">
-              <User className="size-6" />
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <div className="flex size-20 items-center justify-center rounded-3xl bg-brand-primary text-white text-2xl font-bold shadow-lg shadow-brand-primary/20">
+                  {user?.full_name?.[0] || user?.email?.[0].toUpperCase()}
+                </div>
+                {user?.subscription && (
+                  <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-sm border-2 border-white ${
+                    (user.subscription.plan?.name === 'Elite' || (user.subscription as any).plan_name === 'Elite') ? 'bg-indigo-600' : 
+                    (user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Pro') ? 'bg-brand-primary' : 
+                    'bg-slate-600'
+                  }`}>
+                    {user.subscription.plan?.name || (user.subscription as any).plan_name}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">{user?.full_name || 'Owner Profile'}</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wider py-0 px-2 h-5 font-bold border-slate-200 text-slate-500">
+                    {user?.role}
+                  </Badge>
+                  {user?.subscription?.status === 'trialing' && (
+                    <Badge variant="secondary" className="text-[10px] uppercase tracking-wider py-0 px-2 h-5 font-bold bg-blue-50 text-blue-600 border-none">
+                      Trialing
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">Profile Information</h2>
-              <p className="text-sm text-slate-500">Your personal details and account role</p>
-            </div>
+
+            {user?.subscription && (
+              <motion.div 
+                whileHover={{ scale: 1.02 }}
+                className={`relative overflow-hidden flex flex-col items-start gap-1 px-5 py-4 rounded-[1.5rem] border shadow-sm ${
+                  (user.subscription.plan?.name === 'Elite' || (user.subscription as any).plan_name === 'Elite') 
+                    ? 'bg-gradient-to-br from-indigo-600 to-violet-700 border-indigo-500 text-white shadow-indigo-200' : 
+                  (user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Pro') 
+                    ? 'bg-gradient-to-br from-blue-600 to-brand-primary border-blue-500 text-white shadow-blue-200' : 
+                    'bg-white border-slate-200 text-slate-900 shadow-slate-100'
+                }`}
+              >
+                {/* Decorative background icon */}
+                <div className="absolute -right-2 -bottom-2 opacity-10 rotate-12">
+                  <Crown size={64} />
+                </div>
+
+                <div className={`text-[10px] font-black uppercase tracking-[0.2em] leading-none mb-1 flex items-center gap-1.5 ${
+                   (user.subscription.plan?.name === 'Elite' || user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Elite' || (user.subscription as any).plan_name === 'Pro')
+                   ? 'text-white/70' : 'text-slate-400'
+                }`}>
+                  <Crown size={10} className="fill-current" />
+                  Membership
+                </div>
+
+                <div className="flex items-center justify-between w-full gap-2 relative z-10">
+                  <span className="text-lg font-black tracking-tight">
+                    {user.subscription.plan?.name || (user.subscription as any).plan_name || 'Starter'}
+                  </span>
+                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${
+                    user.subscription.status === 'active' 
+                      ? 'bg-green-500/20 text-white border-green-400/30' 
+                      : 'bg-amber-500/20 text-white border-amber-400/30'
+                  }`}>
+                    <Zap size={8} className="fill-current" />
+                    {user.subscription.status}
+                  </div>
+                </div>
+
+                <div className={`text-[10px] font-bold flex items-center gap-1 mt-0.5 ${
+                   (user.subscription.plan?.name === 'Elite' || user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Elite' || (user.subscription as any).plan_name === 'Pro')
+                   ? 'text-white/80' : 'text-slate-500'
+                }`}>
+                  <Calendar size={10} />
+                  {user.subscription.status === 'active' ? (
+                    <>Next billing: {new Date(user.subscription.current_period_end || '').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                  ) : (
+                    <>Expires: {new Date(user.subscription.trial_end_at || '').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                  )}
+                </div>
+              </motion.div>
+            )}
           </div>
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -145,7 +221,7 @@ export function SettingsPage() {
         />
 
         {/* Store Profile Section (Owner Only) */}
-        {user?.role === 'owner' && (
+        {user?.role?.toLowerCase() === UserRole.OWNER.toLowerCase() && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -157,7 +233,7 @@ export function SettingsPage() {
         )}
 
         {/* User Management Section (Owner Only) */}
-        {user?.role === 'owner' && (
+        {user?.role?.toLowerCase() === UserRole.OWNER.toLowerCase() && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

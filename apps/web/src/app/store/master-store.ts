@@ -53,7 +53,7 @@ export const useMasterStore = create<MasterState>((set, get) => ({
 
   refreshMasterData: async () => {
     const { token, user } = useAuthStore.getState();
-    if (!token || user?.role !== 'master') return;
+    if (!token || user?.role?.toLowerCase() !== 'master') return;
     try {
       const stats = await request<any>('/master/stats', { token });
       const ownersList = await request<any[]>('/master/owners', { token });
@@ -65,7 +65,7 @@ export const useMasterStore = create<MasterState>((set, get) => ({
 
   refreshGlobalStores: async () => {
     const { token, user } = useAuthStore.getState();
-    if (!token || user?.role !== 'master') return;
+    if (!token || user?.role?.toLowerCase() !== 'master') return;
     try {
       const storesList = await request<any[]>('/master/stores', { token });
       set({ globalStores: storesList });
@@ -76,7 +76,7 @@ export const useMasterStore = create<MasterState>((set, get) => ({
 
   refreshGlobalStaff: async () => {
     const { token, user } = useAuthStore.getState();
-    if (!token || user?.role !== 'master') return;
+    if (!token || user?.role?.toLowerCase() !== 'master') return;
     try {
       const staffList = await request<any[]>('/master/staff', { token });
       set({ globalStaff: staffList });
@@ -87,7 +87,7 @@ export const useMasterStore = create<MasterState>((set, get) => ({
 
   refreshSaaSPayments: async () => {
     const { token, user } = useAuthStore.getState();
-    if (!token || user?.role !== 'master') return;
+    if (!token || user?.role?.toLowerCase() !== 'master') return;
     try {
       const paymentsList = await request<any[]>('/master/payments', { token });
       set({ saasPayments: paymentsList });
@@ -98,7 +98,7 @@ export const useMasterStore = create<MasterState>((set, get) => ({
 
   refreshTelegramAccounts: async () => {
     const { token, user } = useAuthStore.getState();
-    if (!token || user?.role !== 'master') return;
+    if (!token || user?.role?.toLowerCase() !== 'master') return;
     try {
       const accounts = await request<any[]>('/master/telegram/accounts', { token });
       set({ telegramAccounts: accounts });
@@ -219,7 +219,7 @@ export const useMasterStore = create<MasterState>((set, get) => ({
 
   refreshSubscriptions: async () => {
     const { token, user } = useAuthStore.getState();
-    if (!token || user?.role !== 'master') return;
+    if (!token || user?.role?.toLowerCase() !== 'master') return;
     try {
       const data = await request<any[]>('/master/subscriptions', { token });
       set({ subscriptions: data });
@@ -230,7 +230,7 @@ export const useMasterStore = create<MasterState>((set, get) => ({
 
   refreshPlans: async () => {
     const { token, user } = useAuthStore.getState();
-    if (!token || user?.role !== 'master') return;
+    if (!token || user?.role?.toLowerCase() !== 'master') return;
     try {
       const data = await request<any[]>('/master/plans', { token });
       set({ plans: data });

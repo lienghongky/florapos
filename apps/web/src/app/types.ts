@@ -1,4 +1,9 @@
-export type UserRole = 'master' | 'owner' | 'sales' | 'staff';
+export enum UserRole {
+    MASTER = 'MASTER',
+    OWNER = 'OWNER',
+    MANAGER = 'MANAGER',
+    STAFF = 'STAFF'
+}
 
 export interface User {
     id: string;
@@ -8,6 +13,29 @@ export interface User {
     role: UserRole;
     avatar?: string;
     is_active: boolean;
+    subscription?: Subscription;
+}
+
+export interface SubscriptionPlan {
+    id: string;
+    name: string;
+    price: number;
+    max_stores: number;
+    max_users: number;
+    features: string[];
+}
+
+export interface Subscription {
+    id: string;
+    plan_id: string;
+    status: string;
+    trial_start_at?: string;
+    trial_end_at?: string;
+    current_period_start?: string;
+    current_period_end?: string;
+    is_auto_renew: boolean;
+    cancel_at_period_end: boolean;
+    plan?: SubscriptionPlan;
 }
 
 export interface InventoryItem {

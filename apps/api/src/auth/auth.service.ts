@@ -36,9 +36,23 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials or account inactive');
         }
         const payload = { email: user.email, sub: user.id, role: user.role };
+        
+        let subscription = null;
+        if (user.role === UserRole.OWNER) {
+            subscription = await this.subscriptionsService.getSubscriptionStatus(user.id);
+            if (!subscription) {
+                // Auto-initialize for legacy owners
+                await this.subscriptionsService.initializeSubscription(user.id);
+                subscription = await this.subscriptionsService.getSubscriptionStatus(user.id);
+            }
+        }
+
         return {
             access_token: this.jwtService.sign(payload),
-            user,
+            user: {
+                ...user,
+                subscription
+            },
         };
     }
 
@@ -84,40 +98,52 @@ export class AuthService {
         // Wait, I only updated findByEmail. I should verify if I need to update findOne.
         // Yes, getUserProfile calls usersService.findOne(userId).
 
-        const user = await this.usersService.findOne(userId); // This likely won't have store_roles unless I update UsersService
+        const user = await this.usersService.findOne(userId);
         if (!user) return null;
+
+        const role = this.deriveRole(user);
+        
+        // Fetch subscription if owner
+        let subscription = null;
+        if (role === UserRole.OWNER) {
+            subscription = await this.subscriptionsService.getSubscriptionStatus(userId);
+            if (!subscription) {
+                // Auto-initialize for legacy owners
+                await this.subscriptionsService.initializeSubscription(userId);
+                subscription = await this.subscriptionsService.getSubscriptionStatus(userId);
+            }
+        }
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password_hash, activation_token, ...result } = user;
 
         return {
             ...result,
-            role: this.deriveRole(user)
+            role,
+            subscription
         };
     }
 
     private deriveRole(user: any): string {
+        const rawRole = user.role?.toString().toUpperCase();
+
         // Prioritize the role column if set to MASTER
-        if (user.role === 'MASTER') {
-            return 'master';
+        if (rawRole === 'MASTER') {
+            return UserRole.MASTER;
         }
 
         if (!user.store_roles || user.store_roles.length === 0) {
             // If the user has OWNER role in the column but no stores yet, still return owner
-            if (user.role === 'OWNER') return 'owner';
-            return 'staff'; // Safe default
+            if (rawRole === 'OWNER') return UserRole.OWNER;
+            return UserRole.STAFF; // Safe default
         }
 
-        const roles = user.store_roles.map((sr: any) => sr.role);
+        const roles = user.store_roles.map((sr: any) => sr.role?.toString().toUpperCase());
 
-        if (roles.includes(UserRole.OWNER) || user.role === 'OWNER') {
-            return 'owner';
+        if (roles.includes('OWNER') || rawRole === 'OWNER') {
+            return UserRole.OWNER;
         }
 
-        if (roles.includes(UserRole.STAFF)) {
-            return 'staff';
-        }
-
-        return 'staff'; // Secure fallback
+        return UserRole.STAFF; // Secure fallback
     }
 }

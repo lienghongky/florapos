@@ -1,5 +1,6 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/app/store/auth-store';
+import { UserRole } from '@/app/types';
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -28,8 +29,9 @@ export function LoginPage() {
       // login success, navigation happens here or via initAuth in App.tsx but let's be explicit
       const user = useAuthStore.getState().user;
       if (user) {
-        if (user.role === 'master') navigate('/dashboard-master');
-        else if (user.role === 'owner') navigate('/dashboard-owner');
+        const roleLower = user.role.toLowerCase();
+        if (roleLower === UserRole.MASTER.toLowerCase()) navigate('/dashboard-master');
+        else if (roleLower === UserRole.OWNER.toLowerCase()) navigate('/dashboard-owner');
         else navigate('/dashboard-sales');
       }
     } catch (err: any) {

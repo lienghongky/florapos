@@ -17,12 +17,13 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/app/store/auth-store';
 import { useUIStore } from '@/app/store/ui-store';
 import { motion, AnimatePresence } from 'motion/react';
+import { UserRole } from '@/app/types';
 
 interface NavItem {
   id: string;
   label: string;
   icon: React.ReactNode;
-  roles: ('master' | 'owner' | 'sales' | 'staff')[];
+  roles: UserRole[];
   path: string;
 }
 
@@ -31,77 +32,77 @@ const navItems: NavItem[] = [
     id: 'dashboard',
     label: 'Dashboard',
     icon: <LayoutDashboard className="size-5" />,
-    roles: ['owner'],
+    roles: [UserRole.OWNER],
     path: '/dashboard-owner',
   },
   {
     id: 'dashboard-sales',
     label: 'Dashboard',
     icon: <LayoutDashboard className="size-5" />,
-    roles: ['staff'],
+    roles: [UserRole.STAFF],
     path: '/dashboard-sales',
   },
   {
     id: 'dashboard-master',
     label: 'Master Dashboard',
     icon: <LayoutDashboard className="size-5" />,
-    roles: ['master'],
+    roles: [UserRole.MASTER],
     path: '/dashboard-master',
   },
   {
     id: 'pos',
     label: 'POS System',
     icon: <ShoppingCart className="size-5" />,
-    roles: ['owner', 'staff'],
+    roles: [UserRole.OWNER, UserRole.STAFF],
     path: '/pos',
   },
   {
     id: 'orders',
     label: 'Orders',
     icon: <FileText className="size-5" />,
-    roles: ['owner', 'staff'],
+    roles: [UserRole.OWNER, UserRole.STAFF],
     path: '/orders',
   },
   {
     id: 'products',
     label: 'Products',
     icon: <Package className="size-5" />,
-    roles: ['owner', 'staff'],
+    roles: [UserRole.OWNER, UserRole.STAFF],
     path: '/products',
   },
   {
     id: 'inventory',
     label: 'Inventory',
     icon: <Warehouse className="size-5" />,
-    roles: ['owner', 'staff'],
+    roles: [UserRole.OWNER, UserRole.STAFF],
     path: '/inventory',
   },
   {
     id: 'inventory-history',
     label: 'Inventory History',
     icon: <History className="size-5" />,
-    roles: ['owner', 'staff'],
+    roles: [UserRole.OWNER, UserRole.STAFF],
     path: '/inventory-history',
   },
   {
     id: 'reports',
     label: 'Reports',
     icon: <FileText className="size-5" />,
-    roles: ['owner'],
+    roles: [UserRole.OWNER],
     path: '/reports',
   },
   {
     id: 'expenses',
     label: 'Expenses',
     icon: <TrendingDown className="size-5" />,
-    roles: ['owner'],
+    roles: [UserRole.OWNER],
     path: '/expenses',
   },
   {
     id: 'settings',
     label: 'Settings',
     icon: <Settings className="size-5" />,
-    roles: ['owner', 'staff'],
+    roles: [UserRole.OWNER, UserRole.STAFF],
     path: '/settings',
   },
 ];
@@ -118,7 +119,9 @@ export function Sidebar() {
 
   if (!user) return null;
 
-  const filteredItems = navItems.filter(item => item.roles.includes(user.role));
+  const filteredItems = navItems.filter(item => 
+    item.roles.some(role => role.toLowerCase() === user.role.toLowerCase())
+  );
 
   const handleLogout = () => {
     logout();
@@ -197,10 +200,19 @@ export function Sidebar() {
         </button>
 
         <div className={`flex items-center rounded-2xl bg-muted/50 p-2 ${isSidebarCollapsed ? 'justify-center flex-col gap-2' : 'gap-3'}`}>
-          <div className="size-8 overflow-hidden rounded-full bg-muted shrink-0">
-            <div className="flex size-full items-center justify-center bg-brand-secondary/20 text-brand-primary font-bold text-xs">
-              {user?.name?.[0] || 'U'}
+          <div className="relative shrink-0">
+            <div className="size-8 overflow-hidden rounded-full bg-muted">
+              <div className="flex size-full items-center justify-center bg-brand-secondary/20 text-brand-primary font-bold text-xs">
+                {user?.name?.[0] || 'U'}
+              </div>
             </div>
+            {user?.subscription && (
+              <div className={`absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border border-white z-10 ${
+                (user.subscription.plan?.name === 'Elite' || (user.subscription as any).plan_name === 'Elite') ? 'bg-indigo-600' : 
+                (user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Pro') ? 'bg-brand-primary' : 
+                'bg-slate-600'
+              }`} />
+            )}
           </div>
           {!isSidebarCollapsed && (
             <div className="overflow-hidden flex-1">
@@ -278,10 +290,19 @@ export function Sidebar() {
           {/* Footer */}
           <div className="mt-auto px-3 space-y-2">
             <div className="flex items-center gap-3 rounded-2xl bg-muted/50 p-3">
-              <div className="size-9 overflow-hidden rounded-full bg-muted shrink-0">
-                <div className="flex size-full items-center justify-center bg-brand-secondary/20 text-brand-primary font-bold text-sm">
-                  {user?.name?.[0] || 'U'}
+              <div className="relative shrink-0">
+                <div className="size-9 overflow-hidden rounded-full bg-muted">
+                  <div className="flex size-full items-center justify-center bg-brand-secondary/20 text-brand-primary font-bold text-sm">
+                    {user?.name?.[0] || 'U'}
+                  </div>
                 </div>
+                {user?.subscription && (
+                  <div className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border border-white z-10 ${
+                    (user.subscription.plan?.name === 'Elite' || (user.subscription as any).plan_name === 'Elite') ? 'bg-indigo-600' : 
+                    (user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Pro') ? 'bg-brand-primary' : 
+                    'bg-slate-600'
+                  }`} />
+                )}
               </div>
               <div className="overflow-hidden flex-1">
                 <p className="truncate text-sm font-semibold">{user?.name}</p>

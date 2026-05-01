@@ -1,4 +1,5 @@
 import { Flower2, ChevronDown, LogOut, Menu } from 'lucide-react';
+import { UserRole } from '@/app/types';
 import { useAuthStore } from '@/app/store/auth-store';
 import { useUIStore } from '@/app/store/ui-store';
 import { motion } from 'motion/react';
@@ -32,7 +33,7 @@ export function TopBar() {
             <div className="flex size-8 md:size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
               <Flower2 className="size-4 md:size-6" />
             </div>
-            <span className="text-base md:text-lg font-semibold hidden sm:block">FloraPos</span>
+            {/* <span className="text-base md:text-lg font-semibold hidden sm:block">FloraPos</span> */}
           </div>
         </div>
 
@@ -41,7 +42,7 @@ export function TopBar() {
 
           {/* Store Name/Selector */}
           <div className="relative">
-            {user.role === 'owner' ? (
+            {user.role.toLowerCase() === UserRole.OWNER.toLowerCase() ? (
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -61,34 +62,34 @@ export function TopBar() {
               </div>
             )}
 
-              {showStoreDropdown && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowStoreDropdown(false)}
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full z-20 mt-2 w-48 md:w-56 overflow-hidden rounded-lg border border-border bg-white shadow-lg"
-                  >
-                    {stores.map(store => (
-                      <button
-                        key={store.id}
-                        onClick={() => {
-                          setSelectedStore(store);
-                          setShowStoreDropdown(false);
-                        }}
-                        className={`w-full px-4 py-3 text-left text-sm transition-colors hover:bg-muted ${selectedStore?.id === store.id ? 'bg-muted' : ''}`}
-                      >
-                        {store.name}
-                      </button>
-                    ))}
-                  </motion.div>
-                </>
-              )}
-            </div>
+            {showStoreDropdown && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowStoreDropdown(false)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full z-20 mt-2 w-48 md:w-56 overflow-hidden rounded-lg border border-border bg-white shadow-lg"
+                >
+                  {stores.map(store => (
+                    <button
+                      key={store.id}
+                      onClick={() => {
+                        setSelectedStore(store);
+                        setShowStoreDropdown(false);
+                      }}
+                      className={`w-full px-4 py-3 text-left text-sm transition-colors hover:bg-muted ${selectedStore?.id === store.id ? 'bg-muted' : ''}`}
+                    >
+                      {store.name}
+                    </button>
+                  ))}
+                </motion.div>
+              </>
+            )}
+          </div>
 
           {/* User avatar */}
           <div className="relative">
@@ -98,10 +99,19 @@ export function TopBar() {
               onClick={() => setShowUserDropdown(!showUserDropdown)}
               className="flex items-center gap-2 md:gap-3 rounded-lg border border-border bg-white px-2 md:px-3 py-2 transition-shadow hover:shadow-md"
             >
-              <div className="size-7 md:size-8 overflow-hidden rounded-full bg-primary/10 shrink-0">
-                <div className="flex size-full items-center justify-center text-xs md:text-sm font-medium text-primary">
-                  {user.name.split(' ').map(n => n[0]).join('')}
+              <div className="relative shrink-0">
+                <div className="size-7 md:size-8 overflow-hidden rounded-full bg-primary/10">
+                  <div className="flex size-full items-center justify-center text-xs md:text-sm font-medium text-primary">
+                    {user.name.split(' ').map(n => n[0]).join('')}
+                  </div>
                 </div>
+                {user?.subscription && (
+                  <div className={`absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border border-white z-10 ${
+                    (user.subscription.plan?.name === 'Elite' || (user.subscription as any).plan_name === 'Elite') ? 'bg-indigo-600' : 
+                    (user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Pro') ? 'bg-brand-primary' : 
+                    'bg-slate-600'
+                  }`} />
+                )}
               </div>
               {/* Name only on sm+ */}
               <div className="hidden sm:block text-left">
