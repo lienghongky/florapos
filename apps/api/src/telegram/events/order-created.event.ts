@@ -12,6 +12,9 @@ export class OrderCreatedEvent {
     payment_method: string;
     items: {
         name: string;
+        quantity: number;
+        unit_price: number;
+        options?: string[]; // Names of selected variants, addons, or modifiers
         image_url?: string;
     }[];
 

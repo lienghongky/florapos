@@ -136,13 +136,22 @@ export class NotificationListener {
 
     private formatOrderNotification(event: OrderCreatedEvent): string {
         const total = Number(event.grand_total).toFixed(2);
-        const itemNames = event.items.map(i => i.name).join(', ');
+        
+        const itemRows = event.items.map((item, index) => {
+            let row = `${index + 1}. <b>${item.name}</b> x ${item.quantity}  ($${Number(item.unit_price).toFixed(2)})`;
+            if (item.options && item.options.length > 0) {
+                const optionsList = item.options.map(opt => `   • ${opt}`).join('\n');
+                row += `\n${optionsList}`;
+            }
+            return row;
+        }).join('\n\n');
         
         return [
             `🧾 <b>New Order #${event.order_number}</b>`,
             ``,
+            itemRows,
+            ``,
             `💰 Total: <b>$${total}</b>`,
-            `📦 Items: ${event.item_count} (${itemNames})`,
             `👤 Staff: ${event.staff_name}`,
             `💳 Payment: ${event.payment_method}`,
             ``,

@@ -233,7 +233,7 @@ export class OrdersService {
 
             const finalOrder = await manager.findOne(Order, {
                 where: { id: savedOrder.id },
-                relations: ['items', 'items.addons', 'items.product'],
+                relations: ['items', 'items.addons', 'items.product', 'items.variant', 'staff'],
             });
 
             return finalOrder as any;
@@ -248,10 +248,21 @@ export class OrdersService {
             staff_name: salespersonName,
             item_count: createDto.items.length,
             payment_method: createDto.payment_method || 'N/A',
-            items: result.items.map((item: any) => ({
-                name: item.product?.name || 'Unknown Item',
-                image_url: item.product?.image_url,
-            })),
+            items: result.items.map((item: any) => {
+                const options = [];
+                if (item.variant) options.push(item.variant.name);
+                if (item.addons) {
+                    item.addons.forEach((a: any) => options.push(a.name_snapshot));
+                }
+
+                return {
+                    name: item.product_name_snapshot || item.product?.name || 'Unknown Item',
+                    quantity: item.quantity,
+                    unit_price: Number(item.unit_price),
+                    options,
+                    image_url: item.product?.image_url,
+                };
+            }),
         }));
 
         return result;
