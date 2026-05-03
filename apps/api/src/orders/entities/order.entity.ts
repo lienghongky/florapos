@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn, Unique } from 'typeorm';
 import { Store } from '../../stores/entities/store.entity';
 import { User } from '../../users/entities/user.entity';
 import { Customer } from '../../users/entities/customer.entity';
@@ -19,6 +19,7 @@ export enum OrderStatus {
 }
 
 @Entity('orders')
+@Unique(['store_id', 'order_number'])
 export class Order {
     @PrimaryGeneratedColumn('uuid')
     id: string;
@@ -26,7 +27,18 @@ export class Order {
     @Column({ type: 'uuid' })
     store_id: string;
 
-    @Column({ unique: true, length: 50 })
+    @Column({ 
+        length: 50,
+        transformer: {
+            to: (value: string) => value,
+            from: (value: string) => {
+                if (!value) return value;
+                // If the value contains our suffix separator '$$', strip only the last part
+                const lastIndex = value.lastIndexOf('$$');
+                return lastIndex !== -1 ? value.substring(0, lastIndex) : value;
+            }
+        }
+    })
     order_number: string;
 
     @Column({

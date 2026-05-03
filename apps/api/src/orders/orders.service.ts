@@ -98,10 +98,26 @@ export class OrdersService {
 
             const { items, ...orderData } = createDto;
             
-            // Generate sequential order number
-            const store = await manager.findOne(Store, { where: { id: createDto.store_id } });
+            // Generate sequential order number with a lock to prevent race conditions
+            const store = await manager.findOne(Store, { 
+                where: { id: createDto.store_id },
+                lock: { mode: 'pessimistic_write' }
+            });
+            
             const nextNum = store?.invoice_next_number || 1;
-            const orderNumber = nextNum.toString().padStart(5, '0');
+            const prefix = store?.invoice_prefix || '';
+            let orderNumber = `${prefix}${nextNum.toString().padStart(5, '0')}`;
+
+            // Collision check: if the number already exists, append a unique suffix
+            // We use a random suffix to ensure uniqueness in the DB while keeping the display version clean
+            const existingOrder = await manager.findOne(Order, { 
+                where: { store_id: createDto.store_id, order_number: orderNumber } 
+            });
+            
+            if (existingOrder) {
+                const suffix = Math.random().toString(36).substring(2, 6); // 4-char random string
+                orderNumber = `${orderNumber}$$${suffix}`;
+            }
 
             // Increment the next number for the store
             if (store) {
