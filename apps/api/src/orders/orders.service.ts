@@ -302,7 +302,7 @@ export class OrdersService {
 
         const [items, count] = await this.orderRepository.findAndCount({
             where,
-            relations: ['items', 'items.addons', 'items.product'],
+            relations: ['items', 'items.addons', 'items.product', 'staff'],
             order: { created_at: 'DESC' },
             skip: (p - 1) * l,
             take: l

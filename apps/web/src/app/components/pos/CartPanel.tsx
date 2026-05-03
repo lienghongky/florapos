@@ -418,7 +418,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
       }}>
         <div className={`bg-white shadow-2xl transition-all relative ${isMobile
           ? 'w-screen rounded-t-[2.5rem] py-6 pb-10 max-h-[90vh] overflow-y-auto px-0'
-          : 'rounded-[2.5rem] p-8 w-full max-w-[500px] mx-auto my-auto'
+          : 'rounded-[2.5rem] p-8 w-[384px] mx-auto my-auto'
           }`}>
           {paymentStep === 'select' ? (
             <>

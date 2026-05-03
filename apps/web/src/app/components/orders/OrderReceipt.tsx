@@ -54,7 +54,7 @@ export function OrderReceipt({ order, onPrint, storeOverride, customInvoiceCode,
                         {storeAddress && <div className="mb-1 font-bold">{storeAddress}</div>}
                         {storePhone && <div>TEL: {storePhone}</div>}
                         {taxId && <div>VAT TIN : {taxId}</div>}
-                        <div>Invoice : {customInvoiceCode || (invoicePrefix + (order.order_number?.toUpperCase() || order.id.slice(-6).toUpperCase()))}</div>
+                        <div>Invoice : {customInvoiceCode || (order.order_number?.toUpperCase() || order.id.slice(-6).toUpperCase())}</div>
                         <div>ORDER : {order.id.replace(/-/g, '').toUpperCase()}</div>
                         <div>DATE : {formatDateTime(order.created_at)}</div>
                         <div>CASHIER : {order.staff_name || user?.full_name || 'System'}</div>

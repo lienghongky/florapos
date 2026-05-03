@@ -8,6 +8,7 @@ import { UserRole } from '../users/dto/create-user.dto';
 import { StoresService } from '../stores/stores.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
+
 @Injectable()
 export class AuthService {
     constructor(
@@ -36,7 +37,7 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials or account inactive');
         }
         const payload = { email: user.email, sub: user.id, role: user.role };
-        
+
         let subscription = null;
         if (user.role === UserRole.OWNER) {
             subscription = await this.subscriptionsService.getSubscriptionStatus(user.id);
@@ -102,7 +103,7 @@ export class AuthService {
         if (!user) return null;
 
         const role = this.deriveRole(user);
-        
+
         // Fetch subscription if owner
         let subscription = null;
         if (role === UserRole.OWNER) {

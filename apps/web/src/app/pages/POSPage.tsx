@@ -6,7 +6,7 @@ import { useProductStore } from '@/app/store/product-store';
 import { useCartStore } from '@/app/store/cart-store';
 import { useAuthStore } from '@/app/store/auth-store';
 import { Search, SlidersHorizontal, ShoppingBag, X, ChevronDown } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
@@ -43,6 +43,7 @@ export function POSPage() {
   const [showFilters, setShowFilters] = useState(true);
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   // Desktop: cart shown inline; Mobile: cart shown as bottom-sheet overlay
+  const [sortBy, setSortBy] = useState<'default' | 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'newest'>('newest');
   const [isCartOpen, setIsCartOpen] = useState(true);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
@@ -53,16 +54,41 @@ export function POSPage() {
 
   const allTags = ['All', ...Array.from(new Set(products.flatMap(p => p.tags || []))).sort()];
 
-  const filteredProducts = products.filter(product => {
-    const catName = categories.find(c => c.id === product.category_id)?.name || '';
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      catName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.tags || []).some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory = selectedCategory === 'All' || catName === selectedCategory;
-    const matchesTag = selectedTag === 'All' || (product.tags || []).map(t => t.toLowerCase()).includes(selectedTag.toLowerCase());
-    return matchesSearch && matchesCategory && matchesTag && product.is_active;
-  });
+  const filteredProducts = useMemo(() => {
+    let result = products.filter(product => {
+      const catName = categories.find(c => c.id === product.category_id)?.name || '';
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        catName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.tags || []).some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesCategory = selectedCategory === 'All' || catName === selectedCategory;
+      const matchesTag = selectedTag === 'All' || (product.tags || []).map(t => t.toLowerCase()).includes(selectedTag.toLowerCase());
+      return matchesSearch && matchesCategory && matchesTag && product.is_active;
+    });
+
+    // Apply Sorting
+    switch (sortBy) {
+      case 'name-asc':
+        result.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name-desc':
+        result.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case 'price-asc':
+        result.sort((a, b) => Number(a.base_price) - Number(b.base_price));
+        break;
+      case 'price-desc':
+        result.sort((a, b) => Number(b.base_price) - Number(a.base_price));
+        break;
+      case 'newest':
+        result.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        break;
+      default:
+        // Keep original order
+        break;
+    }
+    return result;
+  }, [products, categories, searchQuery, selectedCategory, selectedTag, sortBy]);
 
   const productsWithCategory = products.map(p => ({
     ...p,
@@ -158,14 +184,34 @@ export function POSPage() {
                     products={productsWithCategory}
                   />
                   
-                  {/* Tag Filter Bar */}
-                  {allTags.length > 1 && (
-                    <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
+                  <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
+                    {/* Sort Dropdown */}
+                    <div className="relative shrink-0">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase tracking-tighter pointer-events-none">SORT:</div>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="appearance-none bg-white border border-slate-200 rounded-full pl-11 pr-8 py-1.5 text-xs font-bold text-slate-600 outline-none hover:border-slate-300 transition-all cursor-pointer shadow-sm focus:ring-2 focus:ring-brand-primary/10"
+                      >
+                        <option value="default">Default</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                        <option value="price-asc">Price (↑)</option>
+                        <option value="price-desc">Price (↓)</option>
+                        <option value="newest">Newest</option>
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    <div className="w-px h-5 bg-slate-200 mx-1 shrink-0" />
+
+                    {/* Tag Filter Bar */}
+                    <div className="flex items-center gap-2">
                       {allTags.map(tag => (
                         <button
                           key={tag}
                           onClick={() => setSelectedTag(tag)}
-                          className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
                             selectedTag === tag
                               ? 'bg-brand-primary text-white shadow-md'
                               : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300'
@@ -175,7 +221,7 @@ export function POSPage() {
                         </button>
                       ))}
                     </div>
-                  )}
+                  </div>
                 </div>
               </motion.div>
             )}

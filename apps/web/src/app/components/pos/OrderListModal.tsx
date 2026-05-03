@@ -64,7 +64,7 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
     // Payment collection
     const [payingOrder, setPayingOrder] = useState<Order | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'qr'>('cash');
-    const [paymentStep, setPaymentStep] = useState<'select' | 'cash'>('select');
+    const [paymentStep, setPaymentStep] = useState<'select' | ''>('select');
     const [receivedAmount, setReceivedAmount] = useState('');
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 

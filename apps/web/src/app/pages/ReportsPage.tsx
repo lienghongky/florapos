@@ -1,7 +1,7 @@
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useAuthStore } from '@/app/store/auth-store';
 import { useProductStore } from '@/app/store/product-store';
-import { Product } from '@/app/types';
+import { Product, UserRole } from '@/app/types';
 import { Order } from '@/app/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, FileText, TrendingUp, Users, CreditCard, Calendar, Search, Filter, ChevronDown, BarChart3, Receipt, DollarSign, UserCheck, Percent, RefreshCw, Printer, AlertCircle } from 'lucide-react';
@@ -29,13 +29,13 @@ export function ReportsPage() {
   const [batchOrder, setBatchOrder] = useState<Order | null>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
-  
+
   // Download Customization State
   const [dlPrefix, setDlPrefix] = useState('');
   const [dlStartNum, setDlStartNum] = useState(1);
   const [dlMode, setDlMode] = useState<'original' | 'auto'>('original');
   const [dlNote, setDlNote] = useState('');
-  
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -44,7 +44,7 @@ export function ReportsPage() {
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return dayNames.map(name => ({ date: '', sales: 0, dayName: name }));
   });
-  
+
   const receiptRef = useRef<HTMLDivElement>(null);
   const batchRef = useRef<HTMLDivElement>(null);
 
@@ -62,25 +62,25 @@ export function ReportsPage() {
   useEffect(() => {
     if (!selectedStore) return;
 
-    const status = (activeTab === 'sales' || activeTab === 'financial' || activeTab === 'invoices' || activeTab === 'staff') 
-      ? 'completed' 
+    const status = (activeTab === 'sales' || activeTab === 'financial' || activeTab === 'invoices' || activeTab === 'staff')
+      ? 'completed'
       : undefined;
-    
+
     setIsRefreshing(true);
     const timer = setTimeout(async () => {
       try {
         const token = localStorage.getItem('auth_token') || '';
         const response = await ordersService.getOrders(
-          token, 
-          selectedStore.id, 
-          status, 
-          startDate, 
-          endDate, 
+          token,
+          selectedStore.id,
+          status,
+          startDate,
+          endDate,
           (activeTab === 'history' || activeTab === 'invoices') ? searchQuery : undefined,
           currentPage,
           itemsPerPage
         );
-        
+
         // Handle paginated vs non-paginated response
         if (response && response.items) {
           setOrders(response.items);
@@ -89,7 +89,7 @@ export function ReportsPage() {
           setOrders(response || []);
           setTotalItems((response || []).length);
         }
-        
+
         setSelectedOrderIds([]);
       } catch (err) {
         console.error("Failed to fetch report orders", err);
@@ -110,14 +110,14 @@ export function ReportsPage() {
     const fetchWeeklyTrend = async () => {
       try {
         const token = localStorage.getItem('auth_token') || '';
-        
+
         // Get Current Week (Monday to Sunday)
         const now = new Date();
-        const day = now.getDay(); 
+        const day = now.getDay();
         const mon = new Date(now);
         mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
         mon.setHours(0, 0, 0, 0);
-        
+
         const sun = new Date(mon);
         sun.setDate(mon.getDate() + 6);
         sun.setHours(23, 59, 59, 999);
@@ -127,20 +127,20 @@ export function ReportsPage() {
         const sunStr = `${sun.getFullYear()}-${String(sun.getMonth() + 1).padStart(2, '0')}-${String(sun.getDate()).padStart(2, '0')}`;
 
         const stats = await ordersService.getStats(token, selectedStore.id, monStr, sunStr);
-        
+
         if (stats && stats.chart_data) {
           const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-          
+
           // The backend returns an array for the range. We ensure it's exactly 7 days
           // by mapping over our expected day names.
           const fullTrend = dayNames.map((name, i) => {
             const targetDate = new Date(mon);
             targetDate.setDate(mon.getDate() + i);
             const label = targetDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-            
+
             // Find the matching data point from backend
             const dataPoint = stats.chart_data.find((d: any) => d.date === label);
-            
+
             return {
               date: label,
               sales: dataPoint ? dataPoint.sales : 0,
@@ -166,8 +166,8 @@ export function ReportsPage() {
   // Filter Orders based on Status (sync with current Tab)
   // We trust the backend for date-range and search-term filtering
   const filteredOrders = useMemo(() => {
-    const activeStatus = (activeTab === 'sales' || activeTab === 'financial' || activeTab === 'invoices' || activeTab === 'staff') 
-      ? 'completed' 
+    const activeStatus = (activeTab === 'sales' || activeTab === 'financial' || activeTab === 'invoices' || activeTab === 'staff')
+      ? 'completed'
       : undefined;
 
     return (orders || []).filter((order: Order) => {
@@ -187,11 +187,11 @@ export function ReportsPage() {
   // Calculate Real Sales Over Time
   const salesOverTime = useMemo(() => {
     const dailyMap: Record<string, number> = {};
-    
+
     // Fill with zeroes for the date range to avoid gaps
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const localKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -218,7 +218,7 @@ export function ReportsPage() {
   // Calculate Real Top Products
   const topProductStats = useMemo(() => {
     const productMap: Record<string, { name: string, quantity: number, revenue: number }> = {};
-    
+
     filteredOrders.forEach((order: Order) => {
       order.items.forEach((item: any) => {
         if (!productMap[item.product_id]) {
@@ -282,7 +282,7 @@ export function ReportsPage() {
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`invoice-${invoice.order_number?.toLowerCase() || invoice.id.slice(-6)}.pdf`);
-      
+
       toast.success('Invoice downloaded successfully', { id: toastId });
     } catch (error) {
       console.error('PDF Generation Error:', error);
@@ -298,7 +298,7 @@ export function ReportsPage() {
   const processBatchPDF = async () => {
     setIsDownloadModalOpen(false);
     const toastId = toast.loading(`Preparing 0 of ${selectedOrders.length} invoices...`);
-    
+
     try {
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -310,7 +310,7 @@ export function ReportsPage() {
       for (let i = 0; i < selectedOrders.length; i++) {
         const order = selectedOrders[i];
         toast.loading(`Processing invoice ${i + 1} of ${selectedOrders.length}...`, { id: toastId });
-        
+
         // Custom Invoice Code Logic
         let customCode = undefined;
         if (dlMode === 'auto') {
@@ -319,7 +319,7 @@ export function ReportsPage() {
 
         // Set the batch order with extra props
         setBatchOrder({ ...order, customInvoiceCode: customCode, customNote: dlNote } as any);
-        
+
         // Wait for React to render
         await new Promise(resolve => setTimeout(resolve, 350));
 
@@ -405,7 +405,7 @@ export function ReportsPage() {
           className="h-9 rounded-lg border border-border bg-muted/30 px-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
         />
       </div>
-      <button 
+      <button
         onClick={handleResetFilters}
         className="text-xs font-semibold text-primary hover:underline"
       >
@@ -420,15 +420,14 @@ export function ReportsPage() {
         <button
           onClick={handleExport}
           disabled={activeTab === 'invoices' && selectedOrderIds.length === 0}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white shadow-md transition-all ${
-            (activeTab === 'invoices' && selectedOrderIds.length === 0)
-              ? 'bg-slate-300 cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700 active:scale-95'
-          }`}
+          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white shadow-md transition-all ${(activeTab === 'invoices' && selectedOrderIds.length === 0)
+            ? 'bg-slate-300 cursor-not-allowed'
+            : 'bg-green-600 hover:bg-green-700 active:scale-95'
+            }`}
         >
           <Download className="size-4" />
-          {activeTab === 'invoices' 
-            ? `Download ${selectedOrderIds.length > 0 ? 'Selected' : 'All'} Invoices (PDF)` 
+          {activeTab === 'invoices'
+            ? `Download ${selectedOrderIds.length > 0 ? 'Selected' : 'All'} Invoices (PDF)`
             : 'Export CSV'}
         </button>
       </div>
@@ -456,13 +455,13 @@ export function ReportsPage() {
 
       {/* Hidden container for batch PDF processing */}
       {batchOrder && (
-        <div 
+        <div
           className="fixed pointer-events-none opacity-0"
           style={{ width: '500px', left: '-5000px', top: 0, zIndex: -1 }}
         >
           <div ref={batchRef}>
-            <OrderReceipt 
-              order={batchOrder} 
+            <OrderReceipt
+              order={batchOrder}
               customInvoiceCode={(batchOrder as any).customInvoiceCode}
               customNote={(batchOrder as any).customNote}
             />
@@ -488,7 +487,7 @@ export function ReportsPage() {
           { id: 'staff', label: 'Staff Performance', icon: Users, ownerOnly: true },
         ].map((tab) => {
           // Quick check for owner permission, although simple app doesn't enforce strict auth yet
-          if (tab.ownerOnly && user?.role !== 'owner') return null;
+          if (tab.ownerOnly && user?.role !== UserRole.OWNER) return null;
           const Icon = tab.icon;
           return (
             <button
@@ -510,9 +509,9 @@ export function ReportsPage() {
       <div className="space-y-6 relative">
         <AnimatePresence mode="wait">
           {isRefreshing && (
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-[1px] rounded-xl"
             >
@@ -561,27 +560,27 @@ export function ReportsPage() {
                   {weeklyTrend.map((s, i) => {
                     const maxVal = Math.max(...weeklyTrend.map(t => t.sales), 1);
                     const height = (s.sales / maxVal) * 100;
-                    
+
                     return (
                       <div key={i} className="group relative w-full h-full flex items-end">
                         {/* Background column to show the day slot exists */}
                         <div className="absolute inset-0 w-full bg-slate-50/50 rounded-t-lg -z-0" />
-                        
+
                         {/* Actual Sales Bar */}
-                        <div 
+                        <div
                           className="relative w-full rounded-t-lg bg-primary/40 group-hover:bg-primary/60 transition-all z-10"
                           style={{ height: `100%`, opacity: 0.1 }} // Subtle background for the bar
                         />
-                        
+
                         <div
                           className="absolute bottom-0 w-full rounded-t-lg bg-primary transition-all group-hover:bg-primary/80 z-20 shadow-sm"
                           style={{ height: `${height}%`, minHeight: s.sales > 0 ? '4px' : '0' }}
                         />
-                        
+
                         <div className="absolute -bottom-8 w-full text-center text-[10px] font-black text-slate-400 uppercase tracking-tighter">
                           {s.dayName}
                         </div>
-                        
+
                         {/* Tooltip */}
                         <div className="absolute opacity-0 group-hover:opacity-100 bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] p-2 rounded-lg shadow-xl z-30 whitespace-nowrap transition-opacity pointer-events-none">
                           <p className="font-black text-white">${parsePrice(s.sales).toFixed(2)}</p>
@@ -658,8 +657,8 @@ export function ReportsPage() {
                 <thead className="bg-muted/30 border-b border-border">
                   <tr>
                     <th className="py-3 px-4 w-10">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="rounded border-border text-primary focus:ring-primary/20"
                         checked={selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0}
                         onChange={(e) => {
@@ -707,8 +706,8 @@ export function ReportsPage() {
                     return finalOrders.map((order: Order) => (
                       <tr key={order.id} className={`border-b border-border last:border-0 hover:bg-muted/50 transition-colors ${selectedOrderIds.includes(order.id) ? 'bg-primary/5' : ''}`}>
                         <td className="py-3 px-4">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             className="rounded border-border text-primary focus:ring-primary/20"
                             checked={selectedOrderIds.includes(order.id)}
                             onChange={(e) => {
@@ -744,12 +743,12 @@ export function ReportsPage() {
                   })()}
                 </tbody>
               </table>
-              
+
               {/* Pagination Controls */}
               <div className="flex items-center justify-between px-6 py-4 bg-muted/10 border-t border-border">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Show</span>
-                  <select 
+                  <select
                     value={itemsPerPage}
                     onChange={(e) => setItemsPerPage(Number(e.target.value))}
                     className="bg-white border border-border rounded-lg px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20"
@@ -792,7 +791,7 @@ export function ReportsPage() {
         {activeTab === 'financial' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <ReportControls />
-            
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 { label: 'Net Sales', value: `$${totalSales.toFixed(2)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-100', sub: 'After discounts' },
@@ -817,12 +816,12 @@ export function ReportsPage() {
 
             <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
-                 <h3 className="font-semibold text-lg">Financial Performance Summary</h3>
-                 <div className="flex gap-2">
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">Profitability: {financialSummary.profitMargin > 20 ? 'Good' : 'Review Costs'}</span>
-                 </div>
+                <h3 className="font-semibold text-lg">Financial Performance Summary</h3>
+                <div className="flex gap-2">
+                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">Profitability: {financialSummary.profitMargin > 20 ? 'Good' : 'Review Costs'}</span>
+                </div>
               </div>
-              
+
               <div className="space-y-6">
                 <div className="relative pt-1">
                   <div className="flex mb-2 items-center justify-between">
@@ -866,8 +865,15 @@ export function ReportsPage() {
               // Aggregate data
               const staffStats = filteredOrders.reduce((acc: any, order: Order) => {
                 const name = order.staff_name || order.staff_id || 'System';
+                const staffRole = order.staff?.role || ((order.staff_name || order.staff_id) ? 'Sales Associate' : 'System');
                 if (!acc[name]) {
-                  acc[name] = { name, transactions: 0, total: 0, discounts: 0, role: (order.staff_name || order.staff_id) ? 'Sales Associate' : 'System' };
+                  acc[name] = {
+                    name,
+                    transactions: 0,
+                    total: 0,
+                    discounts: 0,
+                    role: staffRole.charAt(0).toUpperCase() + staffRole.slice(1).toLowerCase()
+                  };
                 }
 
                 acc[name].transactions += 1;
@@ -968,13 +974,13 @@ export function ReportsPage() {
         {selectedOrder && (
           <div className="w-[500px] max-h-[90vh] overflow-y-auto no-scrollbar">
             <div ref={receiptRef}>
-              <OrderReceipt 
-                order={selectedOrder} 
-                onPrint={() => handlePrintInvoice(selectedOrder)} 
+              <OrderReceipt
+                order={selectedOrder}
+                onPrint={() => handlePrintInvoice(selectedOrder)}
               />
             </div>
             <div className="p-4 bg-white border-t border-border sticky bottom-0 flex gap-3">
-               <button
+              <button
                 onClick={() => setSelectedOrder(null)}
                 className="flex-1 rounded-lg border border-border bg-white py-2.5 font-medium hover:bg-muted/80 transition-colors"
               >
@@ -1108,14 +1114,14 @@ export function ReportsPage() {
             <div className="space-y-3">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Invoice Code Logic</label>
               <div className="grid grid-cols-2 gap-3">
-                <button 
+                <button
                   onClick={() => setDlMode('original')}
                   className={`p-4 rounded-2xl border transition-all text-left ${dlMode === 'original' ? 'border-brand-primary bg-brand-primary/5 ring-4 ring-brand-primary/5' : 'border-slate-100 bg-white hover:bg-slate-50'}`}
                 >
                   <p className="text-xs font-black uppercase tracking-widest mb-1">Original</p>
                   <p className="text-[10px] text-slate-500">Keep order #s</p>
                 </button>
-                <button 
+                <button
                   onClick={() => setDlMode('auto')}
                   className={`p-4 rounded-2xl border transition-all text-left ${dlMode === 'auto' ? 'border-brand-primary bg-brand-primary/5 ring-4 ring-brand-primary/5' : 'border-slate-100 bg-white hover:bg-slate-50'}`}
                 >
@@ -1128,8 +1134,8 @@ export function ReportsPage() {
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   <div className="space-y-1">
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest ml-1">Prefix</p>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="INV-"
                       value={dlPrefix}
                       onChange={e => setDlPrefix(e.target.value)}
@@ -1138,8 +1144,8 @@ export function ReportsPage() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest ml-1">Start No.</p>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       value={dlStartNum}
                       onChange={e => setDlStartNum(parseInt(e.target.value) || 1)}
                       className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
@@ -1152,7 +1158,7 @@ export function ReportsPage() {
             {/* Custom Note */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Export Note</label>
-              <textarea 
+              <textarea
                 placeholder="e.g. Monthly Tax Report - Q2"
                 value={dlNote}
                 onChange={e => setDlNote(e.target.value)}
@@ -1162,13 +1168,13 @@ export function ReportsPage() {
           </div>
 
           <div className="mt-10 flex gap-4">
-            <button 
+            <button
               onClick={() => setIsDownloadModalOpen(false)}
               className="flex-1 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600 transition-colors"
             >
               Cancel
             </button>
-            <button 
+            <button
               onClick={processBatchPDF}
               className="flex-[2] bg-brand-primary text-white rounded-2xl py-4 text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-brand-primary/25 hover:bg-brand-primary/90 active:scale-95 transition-all"
             >

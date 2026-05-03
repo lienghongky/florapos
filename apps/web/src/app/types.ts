@@ -178,6 +178,8 @@ export interface Order {
     status: OrderStatus;
     customer_id?: string;
     staff_id?: string;
+    staff_name?: string;
+    staff?: User;
     session_id?: string;
     subtotal: number;
     discount_total: number;
