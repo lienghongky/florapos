@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { ProductInventorySection } from '@/app/components/products/ProductInventorySection';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { ModifierGroup, ModifierOption } from '@/app/types';
+import { useInventoryStore } from '@/app/store/inventory-store';
 
 export interface ProductOption {
   id: string;
@@ -19,6 +20,7 @@ export interface ProductOption {
 
 export function ProductsPage() {
   const { products, addProduct, updateProduct, deleteProduct, categories, addProductCategory, refreshProducts, refreshProductCategories } = useProductStore();
+  const { refreshInventory } = useInventoryStore();
   const { user, selectedStore } = useAuthStore();
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
@@ -36,6 +38,7 @@ export function ProductsPage() {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
+    costPrice: '',
     stock: '',
     unit: 'piece' as 'piece' | 'stem' | 'bouquet',
     trackInventory: true,
@@ -68,6 +71,7 @@ export function ProductsPage() {
   useEffect(() => {
     refreshProducts();
     refreshProductCategories();
+    refreshInventory();
   }, [selectedStore?.id]);
 
   // Reset to page 1 when filters change
@@ -143,6 +147,7 @@ export function ProductsPage() {
       setFormData({
         name: product.name,
         price: product.price.toString(),
+        costPrice: product.cost_price?.toString() || '0',
         stock: product.stock.toString(),
         unit: product.unit || 'piece',
         trackInventory: product.trackInventory ?? true,
@@ -254,6 +259,7 @@ export function ProductsPage() {
     formDataToSend.append('category_id', finalCategoryId);
     formDataToSend.append('product_type', formData.type);
     formDataToSend.append('pricing_type', 'fixed');
+    formDataToSend.append('cost_price', formData.costPrice || '0');
     formDataToSend.append('taxable', 'true');
     formDataToSend.append('tax_rate', '0');
     formDataToSend.append('track_inventory', formData.trackInventory.toString());
@@ -262,6 +268,10 @@ export function ProductsPage() {
     formDataToSend.append('is_active', formData.isActive.toString());
     formDataToSend.append('sku', formData.sku);
     formDataToSend.append('barcode', formData.barcode);
+
+    if (!editingProduct && formData.type === 'simple') {
+      formDataToSend.append('initial_stock', formData.stock || '0');
+    }
 
     if (formData.imageFile) {
       // New file uploaded — send it as multipart
@@ -443,21 +453,19 @@ export function ProductsPage() {
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 {/* Stock badge */}
                 {product.trackInventory ? (
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                    product.stock === 0 ? 'bg-gray-100 text-gray-700' :
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${product.stock === 0 ? 'bg-gray-100 text-gray-700' :
                     product.stock <= product.lowStockThreshold ? 'bg-red-100 text-red-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
-                    <span className={`size-1.5 rounded-full ${ product.stock === 0 ? 'bg-gray-400' : 'bg-current'}`} />
+                      'bg-green-100 text-green-700'
+                    }`}>
+                    <span className={`size-1.5 rounded-full ${product.stock === 0 ? 'bg-gray-400' : 'bg-current'}`} />
                     {product.stock === 0 ? 'Out of Stock' : `${product.stock} in stock`}
                   </span>
                 ) : (
                   <span className="text-[10px] text-muted-foreground italic">Unlimited</span>
                 )}
                 {/* Status badge */}
-                <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${
-                  product.isActive ? 'text-green-600' : 'text-muted-foreground'
-                }`}>
+                <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${product.isActive ? 'text-green-600' : 'text-muted-foreground'
+                  }`}>
                   {product.isActive ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
                   {product.isActive ? 'Active' : 'Hidden'}
                 </span>
@@ -915,8 +923,8 @@ export function ProductsPage() {
               <ProductInventorySection
                 trackInventory={formData.trackInventory}
                 onTrackChange={(trackInventory) => setFormData({ ...formData, trackInventory })}
-                stock={parseInt(formData.stock) || 0}
-                onStockChange={(stock) => setFormData({ ...formData, stock: stock.toString() })}
+                stock={formData.stock}
+                onStockChange={(stock) => setFormData({ ...formData, stock })}
                 unit={formData.unit}
                 onUnitChange={(unit) => setFormData({ ...formData, unit })}
                 recipe={formData.recipe}
@@ -929,6 +937,7 @@ export function ProductsPage() {
                 onLowStockChange={(val) => setFormData({ ...formData, lowStockThreshold: val.toString() })}
                 allowNegativeStock={formData.allowNegativeStock}
                 onAllowNegativeChange={(val) => setFormData({ ...formData, allowNegativeStock: val })}
+                isNew={!editingProduct}
               />
 
               {/* Status Section */}

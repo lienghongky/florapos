@@ -71,7 +71,7 @@ export class ProductsService {
                 const inventoryItem = manager.create(InventoryItem, {
                     name: createProductDto.name,
                     store_id: createProductDto.store_id,
-                    current_stock: 0,
+                    current_stock: createProductDto.initial_stock || 0,
                     cost_price: createProductDto.cost_price || 0,
                     category_id: createProductDto.category_id,
                     tags: createProductDto.tags,
@@ -554,6 +554,7 @@ export class ProductsService {
         if (typeof dto.base_price === 'string') dto.base_price = parseFloat(dto.base_price);
         if (typeof dto.cost_price === 'string') dto.cost_price = parseFloat(dto.cost_price);
         if (typeof dto.tax_rate === 'string') dto.tax_rate = parseFloat(dto.tax_rate);
+        if (typeof dto.initial_stock === 'string') dto.initial_stock = parseFloat(dto.initial_stock);
 
         // Convert boolean fields
         if (dto.track_inventory !== undefined) {

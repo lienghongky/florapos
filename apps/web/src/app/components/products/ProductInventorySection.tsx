@@ -8,8 +8,8 @@ interface ProductInventorySectionProps {
     trackInventory: boolean;
     onTrackChange: (track: boolean) => void;
     // State
-    stock: number;
-    onStockChange: (qty: number) => void;
+    stock: string | number;
+    onStockChange: (qty: string) => void;
     unit: string;
     onUnitChange: (unit: 'piece' | 'stem' | 'bouquet') => void;
 
@@ -24,6 +24,9 @@ interface ProductInventorySectionProps {
     // Negative Stock
     allowNegativeStock: boolean;
     onAllowNegativeChange: (val: boolean) => void;
+
+    // Mode
+    isNew?: boolean;
 }
 
 export function ProductInventorySection({
@@ -38,7 +41,8 @@ export function ProductInventorySection({
     lowStockThreshold,
     onLowStockChange,
     allowNegativeStock,
-    onAllowNegativeChange
+    onAllowNegativeChange,
+    isNew = false
 }: ProductInventorySectionProps) {
     const { inventoryItems } = useInventoryStore();
     const [limitingItem, setLimitingItem] = useState<{ name: string, stock: number } | null>(null);
@@ -67,8 +71,8 @@ export function ProductInventorySection({
             const finalStock = maxPossibleStock === Infinity ? 0 : maxPossibleStock;
 
             // Only update if changed to avoid loops
-            if (stock !== finalStock) {
-                onStockChange(finalStock);
+            if (stock.toString() !== finalStock.toString()) {
+                onStockChange(finalStock.toString());
             }
 
             if (limiter) {
@@ -138,7 +142,7 @@ export function ProductInventorySection({
                                     {/* Stock Display */}
                                     <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
                                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
-                                            Available Stock
+                                            {isNew && isManualStock ? "Initial Stock Level" : "Available Stock"}
                                         </label>
 
                                         <div className="flex items-center gap-3">
@@ -146,8 +150,9 @@ export function ProductInventorySection({
                                                 <input
                                                     type="number"
                                                     value={stock}
-                                                    readOnly
-                                                    className="w-full text-3xl font-bold text-gray-900 bg-transparent outline-none border-b-2 border-transparent focus:border-primary/20 placeholder-gray-300"
+                                                    onChange={(e) => onStockChange(e.target.value)}
+                                                    readOnly={!isNew}
+                                                    className={`w-full text-3xl font-bold text-gray-900 bg-transparent outline-none border-b-2 transition-all placeholder-gray-300 ${isNew ? 'border-primary/20 focus:border-primary' : 'border-transparent'}`}
                                                     placeholder="0"
                                                 />
                                             ) : (
@@ -164,10 +169,19 @@ export function ProductInventorySection({
                                             </div>
                                         </div>
 
-                                        <div className="mt-3 flex items-start gap-2 text-[10px] text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-100/50">
-                                            <Info className="size-3 shrink-0 mt-0.5" />
-                                            <span>Current stock is read-only here. To add or adjust stock levels, please go to the <strong>Inventory</strong> page.</span>
-                                        </div>
+                                        {!isNew && (
+                                            <div className="mt-3 flex items-start gap-2 text-[10px] text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-100/50">
+                                                <Info className="size-3 shrink-0 mt-0.5" />
+                                                <span>Current stock is read-only here. To add or adjust stock levels, please go to the <strong>Inventory</strong> page.</span>
+                                            </div>
+                                        )}
+
+                                        {isNew && isManualStock && (
+                                            <div className="mt-3 flex items-start gap-2 text-[10px] text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-100/50">
+                                                <Info className="size-3 shrink-0 mt-0.5" />
+                                                <span>Enter the initial quantity of this product currently in your possession.</span>
+                                            </div>
+                                        )}
 
                                         {/* Limiting Factor Alert (for Recipe Mode) */}
                                         {hasRecipe && limitingItem && (

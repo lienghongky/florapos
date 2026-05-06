@@ -245,4 +245,10 @@ export class CreateProductDto {
     @IsString({ each: true })
     @Transform(({ value }) => typeof value === 'string' ? JSON.parse(value) : value)
     tags?: string[];
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @Transform(({ value }) => value ? parseFloat(value) : undefined)
+    @IsNumber()
+    initial_stock?: number;
 }

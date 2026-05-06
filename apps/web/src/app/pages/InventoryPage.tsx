@@ -4,7 +4,7 @@ import { useProductStore } from '@/app/store/product-store';
 import { useAuthStore } from '@/app/store/auth-store';
 import { InventoryItem } from '@/app/types';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, Package, Search, Filter, ArrowUpDown, Download, Upload, TrendingUp, TrendingDown, Edit, Save, X, RotateCcw, History, Trash2, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Package, Search, Filter, ArrowUpDown, Download, Upload, TrendingUp, TrendingDown, Edit, Save, X, RotateCcw, History, Trash2, Zap, ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
   AlertDialog,
@@ -30,7 +30,7 @@ export function InventoryPage() {
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortOption, setSortOption] = useState('name-asc');
+  const [sortOption, setSortOption] = useState('updated-desc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 100;
 
@@ -79,7 +79,8 @@ export function InventoryPage() {
         recipe: [],
         category: categories.find(c => c.id === categoryId)?.name || 'Uncategorized',
         tags: itemTags,
-        updated_at: item.updated_at || ownerProduct?.updated_at
+        updated_at: item.updated_at || ownerProduct?.updated_at,
+        selling_price: ownerProduct?.base_price || 0
       };
     }),
     ...(products || []).filter(p => p.product_type === 'composite').map(p => ({
@@ -95,7 +96,8 @@ export function InventoryPage() {
       unit_id: 'piece',
       category: categories.find(c => c.id === p.category_id)?.name || 'Uncategorized',
       tags: p.tags || [],
-      updated_at: p.updated_at
+      updated_at: p.updated_at,
+      selling_price: p.base_price || 0
     }))
   ];
 
@@ -103,7 +105,7 @@ export function InventoryPage() {
   const totalProducts = combinedItems.length;
   const lowStockCount = combinedItems.filter(p => (Number(p.current_stock) || 0) > 0 && (Number(p.current_stock) || 0) <= (Number(p.min_stock_threshold) || 10)).length;
   const outOfStockCount = combinedItems.filter(p => (Number(p.current_stock) || 0) === 0).length;
-  const totalValue = combinedItems.reduce((acc: number, p: any) => acc + ((Number(p.cost_price) || 0) * (Number(p.current_stock) || 0)), 0);
+  const totalValue = combinedItems.reduce((acc: number, p: any) => acc + ((Number(p.average_cost) || Number(p.cost_price) || Number(p.selling_price) || 0) * (Number(p.current_stock) || 0)), 0);
 
   // Filter & Sort
   const filteredProducts = combinedItems.filter((p: any) => {
@@ -153,10 +155,25 @@ export function InventoryPage() {
 
   // Handlers
   const handleExport = () => {
-    const headers = ['ID', 'Name', 'Type', 'Cost Price', 'Stock', 'Value'];
-    const rows = combinedItems.map((p: any) => [
-      p.id, p.name, p.isComposite ? 'Composite' : 'Material', Number(p.cost_price) || 0, Number(p.current_stock) || 0, ((Number(p.cost_price) || 0) * (Number(p.current_stock) || 0)).toFixed(2)
-    ]);
+    const headers = ['ID', 'Name', 'Status', 'Effective Cost', 'Stock', 'Total Value'];
+    const rows = combinedItems.map((p: any) => {
+      const cost = Number(p.average_cost) || Number(p.cost_price) || Number(p.selling_price) || 0;
+      const stock = Number(p.current_stock) || 0;
+      const value = cost * stock;
+      
+      let status = '🟢 In Stock';
+      if (stock === 0) status = '🔴 Out of Stock';
+      else if (!p.isComposite && stock <= (Number(p.min_stock_threshold) || 10)) status = '🟡 Low Stock';
+
+      return [
+        p.id,
+        p.name,
+        status,
+        cost.toFixed(2),
+        stock,
+        value.toFixed(2)
+      ];
+    });
     const csvContent = "data:text/csv;charset=utf-8,"
       + [headers, ...rows].map(e => (e as any[]).join(",")).join("\n");
 
@@ -401,7 +418,7 @@ export function InventoryPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-foreground">
-                    ${((Number(product.cost_price) || 0) * (Number(product.current_stock) || 0)).toFixed(2)}
+                    ${((Number(product.average_cost) || Number(product.cost_price) || Number(product.selling_price) || 0) * (Number(product.current_stock) || 0)).toFixed(2)}
                   </td>
                   <td className="px-6 py-4">
                     {(Number(product.current_stock) || 0) === 0 ? (
@@ -439,7 +456,7 @@ export function InventoryPage() {
                           className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                           title="Adjust Stock"
                         >
-                          <RotateCcw className="size-4" />
+                          <Settings2 className="size-4" />
                         </button>
                         <button
                           onClick={() => {
