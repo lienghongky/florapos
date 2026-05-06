@@ -44,7 +44,7 @@ export const expensesService = {
   async getTransactions(token: string, storeId: string, filters: any = {}): Promise<{ expenses: Expense[], incomes: Income[] }> {
     const queryParams = new URLSearchParams({ storeId, ...filters }).toString();
     const data = await request<any[]>(`/transactions?${queryParams}`, { token });
-    
+
     const expenses: Expense[] = [];
     const incomes: Income[] = [];
 

@@ -45,17 +45,17 @@ import { PageHeader } from '@/app/components/ui/page-header';
 export function ExpensesPage() {
     const { user, selectedStore } = useAuthStore();
     const { orders, refreshOrders } = useOrderStore();
-    const { 
-        expenses, 
-        expenseCategories, 
-        addExpense, 
-        deleteExpense, 
-        addCategory, 
-        deleteCategory, 
-        incomes, 
-        addIncome, 
-        deleteIncome, 
-        startingBalance, 
+    const {
+        expenses,
+        expenseCategories,
+        addExpense,
+        deleteExpense,
+        addCategory,
+        deleteCategory,
+        incomes,
+        addIncome,
+        deleteIncome,
+        startingBalance,
         setStartingBalance,
         isTransactionsLoading,
         isCategoriesLoading
@@ -91,12 +91,12 @@ export function ExpensesPage() {
     // Initial load and filter change
     const handleRefresh = async () => {
         if (!selectedStore?.id) return;
-        
+
         const filters = {
             startDate: dateRange.start,
             endDate: dateRange.end
         };
-        
+
         await Promise.all([
             refreshTransactions(filters),
             refreshExpenseCategories(),
@@ -320,7 +320,7 @@ export function ExpensesPage() {
         const arr = [];
         const start = new Date(startStr + 'T00:00:00');
         const end = new Date(endStr + 'T00:00:00');
-        
+
         const dt = new Date(start);
         while (dt <= end) {
             arr.push(new Date(dt).toISOString().split('T')[0]);
@@ -339,10 +339,10 @@ export function ExpensesPage() {
             const dateStr = d.toISOString().split('T')[0];
             return dateStr < beforeDate;
         }).reduce((sum, o) => sum + Number(o.grand_total), 0);
-        
+
         const historicalIncome = (incomes || []).filter(i => i.date < beforeDate).reduce((sum, i) => sum + i.amount, 0);
         const historicalExpenses = (expenses || []).filter(e => e.date < beforeDate).reduce((sum, e) => sum + e.amount, 0);
-        
+
         return startingBalance + historicalSales + historicalIncome - historicalExpenses;
     };
 
@@ -356,7 +356,7 @@ export function ExpensesPage() {
             if (isNaN(d.getTime())) return false;
             return d.toISOString().split('T')[0] === date;
         }).reduce((sum: number, order: Order) => sum + Number(order.grand_total), 0);
-        
+
         const daysIncome = filteredIncomes.filter((i: Income) => i.date === date).reduce((sum: number, i: Income) => sum + i.amount, 0);
         const totalDayIncome = daysSales + daysIncome;
 
@@ -397,7 +397,7 @@ export function ExpensesPage() {
         const baseColors = ['#10B981', '#3B82F6', '#38BDF8', '#14B8A6', '#6366F1', '#06B6D4'];
         if (index < baseColors.length) return baseColors[index];
         // Dynamic HSL variation within Green-Blue range (140 to 240)
-        const hue = (140 + (index * 37)) % 100 + 140; 
+        const hue = (140 + (index * 37)) % 100 + 140;
         const saturation = 65 + (index % 3) * 10;
         const lightness = 45 + (index % 2) * 10;
         return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
@@ -439,24 +439,24 @@ export function ExpensesPage() {
         // Type filter
         if (typeFilter === 'expense' && item.type !== 'expense') return false;
         if (typeFilter === 'income' && item.type !== 'income' && item.type !== 'sale') return false;
-        
+
         // Category filter
         if (categoryFilter !== 'all' && item.categoryId !== categoryFilter) return false;
-        
+
         // Search query
         const query = searchQuery.toLowerCase();
-        const matchesSearch = 
-            item.description?.toLowerCase().includes(query) || 
+        const matchesSearch =
+            item.description?.toLowerCase().includes(query) ||
             getCategoryName(item.categoryId).toLowerCase().includes(query) ||
             item.notes?.toLowerCase().includes(query);
-        
+
         return matchesSearch;
     });
 
     return (
         <AnimatedPage className="space-y-6">
-            <PageHeader 
-                title="Expense Management" 
+            <PageHeader
+                title="Expense Management"
                 subtitle="Track and manage business expenses"
                 action={
                     activeTab === 'categories' ? (
@@ -538,11 +538,10 @@ export function ExpensesPage() {
                                     <button
                                         key={tab.id}
                                         onClick={() => setTypeFilter(tab.id as any)}
-                                        className={`rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
-                                            typeFilter === tab.id 
-                                                ? 'bg-white text-primary shadow-sm' 
+                                        className={`rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${typeFilter === tab.id
+                                                ? 'bg-white text-primary shadow-sm'
                                                 : 'text-muted-foreground hover:text-foreground'
-                                        }`}
+                                            }`}
                                     >
                                         {tab.label}
                                     </button>
@@ -588,7 +587,7 @@ export function ExpensesPage() {
                             {/* Category Filter */}
                             <div className="flex items-center gap-2">
                                 <Filter className="size-4 text-muted-foreground" />
-                                <select 
+                                <select
                                     value={categoryFilter}
                                     onChange={(e) => setCategoryFilter(e.target.value)}
                                     className="h-10 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-primary/10 min-w-[150px]"
@@ -627,58 +626,58 @@ export function ExpensesPage() {
                                 <tbody className="divide-y divide-border">
                                     {filteredTransactions.length > 0 ? (
                                         filteredTransactions.map((item: any) => (
-                                                <tr key={`${item.type}-${item.id}`} className="hover:bg-muted/30 transition-colors group">
-                                                    <td className="py-4 px-6 text-sm text-muted-foreground">
-                                                        {new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                    </td>
-                                                    <td className="py-4 px-6">
-                                                        <p className="font-bold text-sm text-foreground">{item.description}</p>
-                                                        {item.notes && <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px] truncate">{item.notes}</p>}
-                                                        {item.type === 'sale' && <span className="inline-flex mt-1 text-[9px] font-black uppercase tracking-tighter text-brand-primary/60">Automated Sale</span>}
-                                                    </td>
-                                                    <td className="py-4 px-6">
-                                                        <span className="text-xs font-medium text-muted-foreground">
-                                                            {getCategoryName(item.categoryId)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-4 px-6">
-                                                        <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border ${item.type === 'expense'
-                                                            ? 'bg-red-50 text-red-600 border-red-100'
-                                                            : 'bg-green-50 text-green-600 border-green-100'
-                                                            }`}>
-                                                            {item.type === 'sale' ? 'Income' : item.type}
-                                                        </span>
-                                                    </td>
-                                                    <td className={`py-4 px-6 font-black text-sm ${item.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
-                                                        {item.type === 'expense' ? '-' : '+'}${item.amount.toFixed(2)}
-                                                    </td>
-                                                    <td className="py-4 px-6 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            {item.type !== 'sale' && (
-                                                                <>
-                                                                    <button 
-                                                                        onClick={() => handleEdit(item)}
-                                                                        className="p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-primary transition-colors"
-                                                                    >
-                                                                        <Edit className="size-4" />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            if (confirm('Are you sure?')) {
-                                                                                if (item.type === 'expense') deleteExpense(item.id);
-                                                                                if (item.type === 'income') deleteIncome(item.id);
-                                                                            }
-                                                                        }}
-                                                                        className="p-2 hover:bg-red-50 rounded-md text-muted-foreground hover:text-red-600 transition-colors"
-                                                                    >
-                                                                        <Trash2 className="size-4" />
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))
+                                            <tr key={`${item.type}-${item.id}`} className="hover:bg-muted/30 transition-colors group">
+                                                <td className="py-4 px-6 text-sm text-muted-foreground">
+                                                    {new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <p className="font-bold text-sm text-foreground">{item.description}</p>
+                                                    {item.notes && <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px] truncate">{item.notes}</p>}
+                                                    {item.type === 'sale' && <span className="inline-flex mt-1 text-[9px] font-black uppercase tracking-tighter text-brand-primary/60">Automated Sale</span>}
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <span className="text-xs font-medium text-muted-foreground">
+                                                        {getCategoryName(item.categoryId)}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border ${item.type === 'expense'
+                                                        ? 'bg-red-50 text-red-600 border-red-100'
+                                                        : 'bg-green-50 text-green-600 border-green-100'
+                                                        }`}>
+                                                        {item.type === 'sale' ? 'Income' : item.type}
+                                                    </span>
+                                                </td>
+                                                <td className={`py-4 px-6 font-black text-sm ${item.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
+                                                    {item.type === 'expense' ? '-' : '+'}${item.amount.toFixed(2)}
+                                                </td>
+                                                <td className="py-4 px-6 text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {item.type !== 'sale' && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleEdit(item)}
+                                                                    className="p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-primary transition-colors"
+                                                                >
+                                                                    <Edit className="size-4" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (confirm('Are you sure?')) {
+                                                                            if (item.type === 'expense') deleteExpense(item.id);
+                                                                            if (item.type === 'income') deleteIncome(item.id);
+                                                                        }
+                                                                    }}
+                                                                    className="p-2 hover:bg-red-50 rounded-md text-muted-foreground hover:text-red-600 transition-colors"
+                                                                >
+                                                                    <Trash2 className="size-4" />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
                                     ) : (
                                         <tr>
                                             <td colSpan={6} className="py-12 text-center text-muted-foreground">
@@ -937,23 +936,23 @@ export function ExpensesPage() {
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                        <XAxis 
-                                            dataKey="date" 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{ fontSize: 10, fill: '#6B7280' }} 
+                                        <XAxis
+                                            dataKey="date"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 10, fill: '#6B7280' }}
                                             minTickGap={30}
                                         />
-                                        <YAxis 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{ fontSize: 10, fill: '#6B7280' }} 
-                                            tickFormatter={(val) => `$${val >= 1000 ? (val/1000).toFixed(1) + 'k' : val}`} 
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 10, fill: '#6B7280' }}
+                                            tickFormatter={(val) => `$${val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val}`}
                                         />
                                         <Tooltip
-                                            contentStyle={{ 
-                                                borderRadius: '12px', 
-                                                border: '1px solid #E5E7EB', 
+                                            contentStyle={{
+                                                borderRadius: '12px',
+                                                border: '1px solid #E5E7EB',
                                                 boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                                                 padding: '12px'
                                             }}

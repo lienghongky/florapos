@@ -136,7 +136,7 @@ export interface Product {
     product_addons?: ProductAddon[];
     modifier_groups?: ModifierGroup[];
     recipe?: ProductRecipeItem[];
-    
+
     // UI specific
     calculated_stock?: number;
     tags?: string[];

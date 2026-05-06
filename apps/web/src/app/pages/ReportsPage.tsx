@@ -56,7 +56,8 @@ export function ReportsPage() {
   });
   const [endDate, setEndDate] = useState(() => {
     const now = new Date();
-    return toLocalDateString(now);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return toLocalDateString(lastDay);
   });
 
   useEffect(() => {
@@ -358,9 +359,9 @@ export function ReportsPage() {
       setIsDownloadModalOpen(true);
     } else {
       // CSV Export for Sales/History
-      const headers = ['Invoice ID', 'Date', 'Staff', 'Total', 'Payment', 'Status'];
+      const headers = ['Ref', 'Invoice ID', 'Date', 'Staff', 'Total', 'Payment', 'Status'];
       const rows = filteredOrders.map((o: Order) => [
-        o.id, new Date(o.created_at || Date.now()).toLocaleDateString(), o.staff_name || o.staff_id || 'Self-Serve', parsePrice(o.grand_total).toFixed(2), o.payment_method || 'Unknown', 'Paid'
+        o.id, o.order_number || '', new Date(o.created_at || Date.now()).toLocaleDateString(), o.staff_name || o.staff_id || 'Self-Serve', parsePrice(o.grand_total).toFixed(2), o.payment_method || 'Unknown', 'Paid'
       ]);
       const csvContent = "data:text/csv;charset=utf-8,"
         + [headers, ...rows].map(e => e.join(",")).join("\n");
