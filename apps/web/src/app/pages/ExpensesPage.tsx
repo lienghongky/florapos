@@ -22,7 +22,8 @@ import {
     Trash2,
     Edit,
     Download,
-    Printer
+    RefreshCw,
+    Loader2
 } from 'lucide-react';
 import {
     AreaChart,
@@ -42,8 +43,8 @@ import { toast } from 'sonner';
 import { PageHeader } from '@/app/components/ui/page-header';
 
 export function ExpensesPage() {
-    const { user } = useAuthStore();
-    const { orders } = useOrderStore();
+    const { user, selectedStore } = useAuthStore();
+    const { orders, refreshOrders } = useOrderStore();
     const { 
         expenses, 
         expenseCategories, 
@@ -55,54 +56,122 @@ export function ExpensesPage() {
         addIncome, 
         deleteIncome, 
         startingBalance, 
-        setStartingBalance 
+        setStartingBalance,
+        isTransactionsLoading,
+        isCategoriesLoading
     } = useExpenseStore();
+    const { isOrdersLoading } = useOrderStore();
     const [activeTab, setActiveTab] = useState('overview'); // overview, list, categories, reports
-    const [listTab, setListTab] = useState<'expenses' | 'income'>('expenses');
+    const [typeFilter, setTypeFilter] = useState<'all' | 'expense' | 'income'>('all');
+    const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newCategoryType, setNewCategoryType] = useState<'expense' | 'income'>('expense');
+    const [editingTransaction, setEditingTransaction] = useState<any>(null);
+
+    const { updateExpense } = useExpenseStore();
 
     const { refreshTransactions, refreshExpenseCategories } = useExpenseStore();
 
-    // Initial load
-    useEffect(() => {
-        refreshTransactions();
-        refreshExpenseCategories();
-    }, [useAuthStore.getState().selectedStore?.id]);
-
-    // Date Filters
-    const [dateRange, setDateRange] = useState({
-        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], // First day of current month
-        end: new Date().toISOString().split('T')[0] // Today
+    // Date Filters - Default to current full month
+    const [dateRange, setDateRange] = useState(() => {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return {
+            start: start.toISOString().split('T')[0],
+            end: end.toISOString().split('T')[0]
+        };
     });
+
+    // Initial load and filter change
+    const handleRefresh = async () => {
+        if (!selectedStore?.id) return;
+        
+        const filters = {
+            startDate: dateRange.start,
+            endDate: dateRange.end
+        };
+        
+        await Promise.all([
+            refreshTransactions(filters),
+            refreshExpenseCategories(),
+            refreshOrders({ ...filters, status: 'completed' })
+        ]);
+    };
+
+    useEffect(() => {
+        handleRefresh();
+    }, [selectedStore?.id, dateRange.start, dateRange.end]);
+
+    const isLoading = isTransactionsLoading || isOrdersLoading || isCategoriesLoading;
+
+    const handleEdit = (transaction: any) => {
+        setEditingTransaction({
+            id: transaction.id,
+            date: transaction.date,
+            description: transaction.description || transaction.source,
+            amount: transaction.amount,
+            categoryId: transaction.categoryId,
+            paymentMethod: transaction.paymentMethod,
+            notes: transaction.notes,
+            type: transaction.type
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateTransaction = async () => {
+        if (!editingTransaction.description || !editingTransaction.amount) {
+            toast.error("Description and amount are required");
+            return;
+        }
+
+        try {
+            await updateExpense(editingTransaction.id, {
+                transaction_date: editingTransaction.date,
+                description: editingTransaction.description,
+                amount: Number(editingTransaction.amount),
+                category_id: editingTransaction.categoryId,
+                payment_method: editingTransaction.paymentMethod?.toLowerCase().replace(' ', '_'),
+                notes: editingTransaction.notes,
+                type: editingTransaction.type
+            } as any);
+
+            toast.success("Transaction updated successfully");
+            setIsEditModalOpen(false);
+            setEditingTransaction(null);
+        } catch (err) {
+            toast.error("Failed to update transaction");
+        }
+    };
 
     const handlePrint = () => {
         window.print();
     };
 
     const handleExportCSV = () => {
-        const headers = ['Date', 'Description', 'Category', 'Amount', 'Payment Method', 'Notes'];
+        const headers = ['Date', 'Description', 'Category', 'Type', 'Amount', 'Notes'];
         const csvContent = [
             headers.join(','),
-            ...filteredExpenses.map(exp => [
-                exp.date,
-                `"${exp.description}"`,
-                getCategoryName(exp.categoryId),
-                exp.amount,
-                exp.paymentMethod,
-                `"${exp.notes || ''}"`
+            ...filteredTransactions.map(item => [
+                item.date,
+                `"${item.description}"`,
+                getCategoryName(item.categoryId),
+                item.type,
+                item.type === 'expense' ? `-${item.amount}` : item.amount,
+                `"${item.notes || ''}"`
             ].join(','))
         ].join('\n');
 
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `expenses-${dateRange.start}-to-${dateRange.end}.csv`;
+        a.download = `expense_income_${dateRange.start}_${dateRange.end}.csv`;
         a.click();
     };
 
@@ -366,6 +435,24 @@ export function ExpensesPage() {
         })
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    const filteredTransactions = allTransactions.filter(item => {
+        // Type filter
+        if (typeFilter === 'expense' && item.type !== 'expense') return false;
+        if (typeFilter === 'income' && item.type !== 'income' && item.type !== 'sale') return false;
+        
+        // Category filter
+        if (categoryFilter !== 'all' && item.categoryId !== categoryFilter) return false;
+        
+        // Search query
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+            item.description?.toLowerCase().includes(query) || 
+            getCategoryName(item.categoryId).toLowerCase().includes(query) ||
+            item.notes?.toLowerCase().includes(query);
+        
+        return matchesSearch;
+    });
+
     return (
         <AnimatedPage className="space-y-6">
             <PageHeader 
@@ -381,7 +468,15 @@ export function ExpensesPage() {
                             Add Category
                         </button>
                     ) : (
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={handleRefresh}
+                                disabled={isLoading}
+                                className="flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold shadow-sm transition-all hover:bg-muted active:scale-95 disabled:opacity-50"
+                            >
+                                <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
+                                <span className="hidden sm:inline">Refresh</span>
+                            </button>
                             <button
                                 onClick={() => setIsAddIncomeModalOpen(true)}
                                 className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-green-600/20 transition-all hover:bg-green-700 active:scale-95"
@@ -431,125 +526,140 @@ export function ExpensesPage() {
             <div className="space-y-6">
                 {activeTab === 'list' && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                        {/* List Toggle */}
-                        <div className="flex border-b border-border">
-                            <button
-                                onClick={() => setListTab('expenses')}
-                                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${listTab === 'expenses'
-                                    ? 'border-primary text-primary'
-                                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                                    }`}
-                            >
-                                Expenses
-                            </button>
-                            <button
-                                onClick={() => setListTab('income')}
-                                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${listTab === 'income'
-                                    ? 'border-green-600 text-green-700'
-                                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                                    }`}
-                            >
-                                Income
-                            </button>
-                        </div>
+                        {/* Advanced Filters Bar */}
+                        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
+                            {/* Type Toggle */}
+                            <div className="flex items-center gap-1 rounded-xl bg-muted/50 p-1">
+                                {[
+                                    { id: 'all', label: 'All' },
+                                    { id: 'expense', label: 'Expense' },
+                                    { id: 'income', label: 'Income' },
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setTypeFilter(tab.id as any)}
+                                        className={`rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
+                                            typeFilter === tab.id 
+                                                ? 'bg-white text-primary shadow-sm' 
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
 
-                        {/* Filters */}
-                        <div className="flex flex-wrap items-center gap-3 md:gap-4 rounded-xl border border-border bg-white p-4 shadow-sm">
-                            <div className="flex items-center flex-1 min-w-[200px]">
-                                <Search className="size-4 text-muted-foreground mr-2" />
+                            <div className="h-6 w-px bg-border hidden md:block" />
+
+                            {/* Search */}
+                            <div className="flex items-center flex-1 min-w-[200px] relative">
+                                <Search className="absolute left-3 size-4 text-muted-foreground" />
                                 <input
                                     type="text"
-                                    placeholder="Search expenses..."
+                                    placeholder="Search transactions..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+                                    className="w-full h-10 rounded-xl border border-border bg-muted/20 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/10 transition-all"
                                 />
                             </div>
-                            <div className="h-4 w-px bg-border mx-2" />
 
-                            {/* Date Filter in List */}
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground font-medium">Date:</span>
+                            <div className="h-6 w-px bg-border hidden lg:block" />
+
+                            {/* Date Range */}
+                            <div className="flex items-center gap-2 bg-muted/30 rounded-xl px-3 py-1.5 border border-border">
+                                <Calendar className="size-4 text-muted-foreground" />
                                 <input
                                     type="date"
                                     value={dateRange.start}
                                     onChange={(e) => setDateRange((prev: any) => ({ ...prev, start: e.target.value }))}
-                                    className="text-xs border border-border rounded px-2 py-1"
+                                    className="text-xs border-none bg-transparent outline-none w-28"
                                 />
-                                <span className="text-muted-foreground text-xs">-</span>
+                                <span className="text-muted-foreground">-</span>
                                 <input
                                     type="date"
                                     value={dateRange.end}
                                     onChange={(e) => setDateRange((prev: any) => ({ ...prev, end: e.target.value }))}
-                                    className="text-xs border border-border rounded px-2 py-1"
+                                    className="text-xs border-none bg-transparent outline-none w-28"
                                 />
                             </div>
 
-                            <div className="h-4 w-px bg-border mx-2" />
+                            <div className="h-6 w-px bg-border hidden xl:block" />
 
-                            <button onClick={handleExportCSV} className="p-1.5 border border-border rounded hover:bg-muted text-muted-foreground transition-colors" title="Export CSV">
-                                <Download className="size-4" />
-                            </button>
-                            <button onClick={handlePrint} className="p-1.5 border border-border rounded hover:bg-muted text-muted-foreground transition-colors" title="Print Report">
-                                <Printer className="size-4" />
-                            </button>
+                            {/* Category Filter */}
+                            <div className="flex items-center gap-2">
+                                <Filter className="size-4 text-muted-foreground" />
+                                <select 
+                                    value={categoryFilter}
+                                    onChange={(e) => setCategoryFilter(e.target.value)}
+                                    className="h-10 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-primary/10 min-w-[150px]"
+                                >
+                                    <option value="all">All Categories</option>
+                                    {expenseCategories.map(cat => (
+                                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                    ))}
+                                    <option value="Sales">Sales Revenue</option>
+                                </select>
+                            </div>
 
-                            <button className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-                                <Filter className="size-4" />
-                                Filter
-                            </button>
+                            <div className="h-6 w-px bg-border" />
+
+                            {/* Export Actions */}
+                            <div className="flex gap-2">
+                                <button onClick={handleExportCSV} className="p-2 border border-border rounded-xl hover:bg-muted text-muted-foreground transition-colors" title="Export CSV">
+                                    <Download className="size-5" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Table */}
-                        <div className="rounded-xl border border-border bg-white shadow-sm overflow-x-auto scrollbar-hide">
-                            <table className="w-full min-w-[600px]">
+                        <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden overflow-x-auto scrollbar-hide">
+                            <table className="w-full min-w-[800px]">
                                 <thead className="bg-muted/30 border-b border-border">
                                     <tr>
-                                        <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">Date</th>
-                                        <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">Description</th>
-                                        <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">Category</th>
-                                        <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">Amount</th>
-                                        <th className="text-right py-3 px-6 font-medium text-sm text-muted-foreground">Actions</th>
+                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Date</th>
+                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Description</th>
+                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Category</th>
+                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
+                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Amount</th>
+                                        <th className="text-right py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {allTransactions.filter(item => {
-                                        if (listTab === 'expenses') return item.type === 'expense';
-                                        if (listTab === 'income') return item.type === 'income' || item.type === 'sale';
-                                        return true;
-                                    }).length > 0 ? (
-                                        allTransactions
-                                            .filter(item => {
-                                                if (listTab === 'expenses') return item.type === 'expense';
-                                                if (listTab === 'income') return item.type === 'income' || item.type === 'sale';
-                                                return true;
-                                            })
-                                            .map((item: any) => (
-                                                <tr key={`${item.type}-${item.id}`} className="hover:bg-muted/50 transition-colors group">
+                                    {filteredTransactions.length > 0 ? (
+                                        filteredTransactions.map((item: any) => (
+                                                <tr key={`${item.type}-${item.id}`} className="hover:bg-muted/30 transition-colors group">
                                                     <td className="py-4 px-6 text-sm text-muted-foreground">
-                                                        {new Date(item.date).toLocaleDateString()}
-                                                    </td>
-                                                    <td className="py-4 px-6 font-medium">
-                                                        {item.description}
-                                                        {item.notes && <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>}
-                                                        {item.type === 'sale' && <p className="text-xs text-muted-foreground mt-0.5">Automated Enty</p>}
+                                                        {new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                                     </td>
                                                     <td className="py-4 px-6">
-                                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${item.type === 'expense'
-                                                            ? 'bg-gray-100 text-gray-800 border-gray-200'
-                                                            : 'bg-green-100 text-green-800 border-green-200'
-                                                            }`}>
+                                                        <p className="font-bold text-sm text-foreground">{item.description}</p>
+                                                        {item.notes && <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px] truncate">{item.notes}</p>}
+                                                        {item.type === 'sale' && <span className="inline-flex mt-1 text-[9px] font-black uppercase tracking-tighter text-brand-primary/60">Automated Sale</span>}
+                                                    </td>
+                                                    <td className="py-4 px-6">
+                                                        <span className="text-xs font-medium text-muted-foreground">
                                                             {getCategoryName(item.categoryId)}
                                                         </span>
                                                     </td>
-                                                    <td className={`py-4 px-6 font-medium ${item.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
+                                                    <td className="py-4 px-6">
+                                                        <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border ${item.type === 'expense'
+                                                            ? 'bg-red-50 text-red-600 border-red-100'
+                                                            : 'bg-green-50 text-green-600 border-green-100'
+                                                            }`}>
+                                                            {item.type === 'sale' ? 'Income' : item.type}
+                                                        </span>
+                                                    </td>
+                                                    <td className={`py-4 px-6 font-black text-sm ${item.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
                                                         {item.type === 'expense' ? '-' : '+'}${item.amount.toFixed(2)}
                                                     </td>
                                                     <td className="py-4 px-6 text-right">
-                                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="flex items-center justify-end gap-2">
                                                             {item.type !== 'sale' && (
                                                                 <>
-                                                                    <button className="p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-primary transition-colors">
+                                                                    <button 
+                                                                        onClick={() => handleEdit(item)}
+                                                                        className="p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-primary transition-colors"
+                                                                    >
                                                                         <Edit className="size-4" />
                                                                     </button>
                                                                     <button
@@ -571,12 +681,12 @@ export function ExpensesPage() {
                                             ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                                            <td colSpan={6} className="py-12 text-center text-muted-foreground">
                                                 <div className="flex flex-col items-center justify-center gap-2">
                                                     <div className="p-3 bg-muted rounded-full">
                                                         <DollarSign className="size-6 opacity-40" />
                                                     </div>
-                                                    <p>No {listTab} records found</p>
+                                                    <p>No {typeFilter !== 'all' ? typeFilter : 'transaction'} records found</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -692,9 +802,6 @@ export function ExpensesPage() {
                                 <div className="flex gap-2 ml-auto lg:ml-0">
                                     <button onClick={handleExportCSV} className="p-2 border border-border rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Export CSV">
                                         <Download className="size-5" />
-                                    </button>
-                                    <button onClick={handlePrint} className="p-2 border border-border rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Print Report">
-                                        <Printer className="size-5" />
                                     </button>
                                 </div>
                             </div>
@@ -886,9 +993,6 @@ export function ExpensesPage() {
                                         />
                                     </div>
                                     <div className="flex gap-2 ml-auto sm:ml-0">
-                                        <button onClick={handlePrint} className="p-2 border border-border bg-white rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Print Report">
-                                            <Printer className="size-4 md:size-5" />
-                                        </button>
                                         <button onClick={handleExportCSV} className="p-2 border border-border bg-white rounded-lg hover:bg-muted text-muted-foreground transition-colors" title="Export CSV">
                                             <Download className="size-4 md:size-5" />
                                         </button>
@@ -1101,6 +1205,89 @@ export function ExpensesPage() {
                             className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg shadow-sm hover:bg-primary/90 transition-colors"
                         >
                             Save Expense
+                        </button>
+                    </div>
+                </div>
+            </AnimatedModal>
+
+            {/* Edit Transaction Modal */}
+            <AnimatedModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
+                <div className="w-[500px] bg-white rounded-xl shadow-xl overflow-hidden">
+                    <div className="p-6 border-b border-border bg-muted/30">
+                        <h2 className="text-lg font-bold">Edit {editingTransaction?.type === 'expense' ? 'Expense' : 'Income'}</h2>
+                        <p className="text-sm text-muted-foreground">Modify transaction details</p>
+                    </div>
+                    {editingTransaction && (
+                        <div className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Date</label>
+                                    <input
+                                        type="date"
+                                        value={editingTransaction.date}
+                                        onChange={(e) => setEditingTransaction({ ...editingTransaction, date: e.target.value })}
+                                        className="w-full h-10 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Amount</label>
+                                    <div className="relative">
+                                        <DollarSign className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                                        <input
+                                            type="number"
+                                            placeholder="0.00"
+                                            value={editingTransaction.amount}
+                                            onChange={(e) => setEditingTransaction({ ...editingTransaction, amount: parseFloat(e.target.value) })}
+                                            className="w-full h-10 rounded-lg border border-border bg-white pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Description</label>
+                                <input
+                                    type="text"
+                                    placeholder="Description"
+                                    value={editingTransaction.description}
+                                    onChange={(e) => setEditingTransaction({ ...editingTransaction, description: e.target.value })}
+                                    className="w-full h-10 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Category</label>
+                                <SmartCategorySelect
+                                    value={editingTransaction.categoryId}
+                                    onChange={(val) => setEditingTransaction({ ...editingTransaction, categoryId: val })}
+                                    type={editingTransaction.type === 'income' ? 'income' : 'expense'}
+                                    placeholder="Select Category"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Notes (Optional)</label>
+                                <textarea
+                                    rows={3}
+                                    value={editingTransaction.notes || ''}
+                                    onChange={(e) => setEditingTransaction({ ...editingTransaction, notes: e.target.value })}
+                                    className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                                />
+                            </div>
+                        </div>
+                    )}
+                    <div className="p-4 bg-muted/50 flex justify-end gap-3">
+                        <button
+                            onClick={() => setIsEditModalOpen(false)}
+                            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleUpdateTransaction}
+                            className={`px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition-colors ${editingTransaction?.type === 'income' ? 'bg-green-600 hover:bg-green-700' : 'bg-primary hover:bg-primary/90'}`}
+                        >
+                            Update {editingTransaction?.type === 'expense' ? 'Expense' : 'Income'}
                         </button>
                     </div>
                 </div>

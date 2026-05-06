@@ -8,6 +8,8 @@ interface ExpenseState {
   incomes: Income[];
   expenseCategories: ExpenseCategory[];
   startingBalance: number;
+  isTransactionsLoading: boolean;
+  isCategoriesLoading: boolean;
   
   setStartingBalance: (val: number) => void;
   refreshExpenseCategories: () => Promise<void>;
@@ -26,6 +28,8 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
   incomes: [],
   expenseCategories: [],
   startingBalance: Number(localStorage.getItem('starting_balance') || 0),
+  isTransactionsLoading: false,
+  isCategoriesLoading: false,
 
   setStartingBalance: (val) => {
     localStorage.setItem('starting_balance', val.toString());
@@ -35,22 +39,28 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
   refreshExpenseCategories: async () => {
     const { token, selectedStore } = useAuthStore.getState();
     if (!token || !selectedStore) return;
+    set({ isCategoriesLoading: true });
     try {
       const cats = await expensesService.getCategories(token, selectedStore.id);
       set({ expenseCategories: cats });
     } catch (e) {
       console.error("Failed to fetch expense categories", e);
+    } finally {
+      set({ isCategoriesLoading: false });
     }
   },
 
-  refreshTransactions: async () => {
+  refreshTransactions: async (filters = {}) => {
     const { token, selectedStore } = useAuthStore.getState();
     if (!token || !selectedStore) return;
+    set({ isTransactionsLoading: true });
     try {
-      const { expenses, incomes } = await expensesService.getTransactions(token, selectedStore.id);
+      const { expenses, incomes } = await expensesService.getTransactions(token, selectedStore.id, filters);
       set({ expenses, incomes });
     } catch (e) {
       console.error("Failed to fetch transactions", e);
+    } finally {
+      set({ isTransactionsLoading: false });
     }
   },
 
