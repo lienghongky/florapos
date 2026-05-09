@@ -1,2 +1,8 @@
 packages:
   - 'apps/*'
+
+pnpm:
+  onlyBuiltDependencies:
+    - bcrypt
+    - "@nestjs/core"
+    - "@scarf/scarf"
