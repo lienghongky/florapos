@@ -40,6 +40,19 @@ export class EmenuSetting {
     @Column({ type: 'jsonb', default: [] })
     qr_tags: string[];
 
+    @Column({ type: 'jsonb', nullable: true })
+    social_links: {
+        instagram?: string;
+        facebook?: string;
+        twitter?: string;
+        tiktok?: string;
+        website?: string;
+    };
+
+    @Column({ type: 'jsonb', default: [] })
+    phone_numbers: string[];
+
+
     @CreateDateColumn()
     created_at: Date;
 

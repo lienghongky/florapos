@@ -45,4 +45,18 @@ export class UpdateEmenuSettingDto {
     @ApiProperty({ required: false, type: [String] })
     @IsOptional()
     qr_tags?: string[];
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    social_links?: {
+        instagram?: string;
+        facebook?: string;
+        twitter?: string;
+        tiktok?: string;
+        website?: string;
+    };
+
+    @ApiProperty({ required: false, type: [String] })
+    @IsOptional()
+    phone_numbers?: string[];
 }

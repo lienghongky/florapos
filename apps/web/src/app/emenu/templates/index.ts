@@ -5,6 +5,10 @@ import { MinimalTemplate } from './MinimalTemplate';
 import { NatureTemplate } from './NatureTemplate';
 import { RoyalWhiteTemplate } from './RoyalWhiteTemplate';
 import { RoyalBlueTemplate } from './RoyalBlueTemplate';
+import { AntiquePaperTemplate } from './AntiquePaperTemplate';
+import { ChalkboardPremiumTemplate } from './ChalkboardPremiumTemplate';
+import { MarbleLuxuryTemplate } from './MarbleLuxuryTemplate';
+import { SymphonyEliteTemplate } from './SymphonyEliteTemplate';
 
 export * from './types';
 
@@ -20,6 +24,17 @@ export const TEMPLATE_REGISTRY: Record<string, EMenuTemplateRegistry> = {
     },
     component: ClassicTemplate
   },
+  'antique': {
+    metadata: {
+      id: 'antique',
+      name: 'Antique Paper',
+      description: 'Minimalist physical menu style with textured paper.',
+      previewImage: '/templates/antique.png',
+      isFree: true,
+      requiredPlan: 'FREE'
+    },
+    component: AntiquePaperTemplate
+  },
   'modern': {
     metadata: {
       id: 'modern',
@@ -30,6 +45,39 @@ export const TEMPLATE_REGISTRY: Record<string, EMenuTemplateRegistry> = {
       requiredPlan: 'FREE'
     },
     component: ModernTemplate
+  },
+  'chalkboard': {
+    metadata: {
+      id: 'chalkboard',
+      name: 'Chalkboard Premium',
+      description: 'Hand-drawn chalkboard aesthetic with multi-column layout.',
+      previewImage: '/templates/chalkboard.png',
+      isFree: false,
+      requiredPlan: 'PRO'
+    },
+    component: ChalkboardPremiumTemplate
+  },
+  'royal-white': {
+    metadata: {
+      id: 'royal-white',
+      name: 'Royal White',
+      description: 'Fancy premium white with ornate gold accents.',
+      previewImage: '/templates/royal_white.png',
+      isFree: false,
+      requiredPlan: 'PRO'
+    },
+    component: RoyalWhiteTemplate
+  },
+  'royal-blue': {
+    metadata: {
+      id: 'royal-blue',
+      name: 'Royal Blue Khmer',
+      description: 'Deep navy and gold with artistic Khmer motifs.',
+      previewImage: '/templates/royal_blue.png',
+      isFree: false,
+      requiredPlan: 'PRO'
+    },
+    component: RoyalBlueTemplate
   },
   'minimal': {
     metadata: {
@@ -53,27 +101,27 @@ export const TEMPLATE_REGISTRY: Record<string, EMenuTemplateRegistry> = {
     },
     component: NatureTemplate
   },
-  'royal-white': {
+  'marble': {
     metadata: {
-      id: 'royal-white',
-      name: 'Royal White',
-      description: 'Fancy premium white with ornate gold accents.',
-      previewImage: '/templates/royal_white.png',
+      id: 'marble',
+      name: 'Marble Luxury',
+      description: 'Elite green marble aesthetic with large hero layouts.',
+      previewImage: '/templates/marble.png',
       isFree: false,
-      requiredPlan: 'PRO'
+      requiredPlan: 'ELITE'
     },
-    component: RoyalWhiteTemplate
+    component: MarbleLuxuryTemplate
   },
-  'royal-blue': {
+  'symphony': {
     metadata: {
-      id: 'royal-blue',
-      name: 'Royal Blue Khmer',
-      description: 'Deep navy and gold with artistic Khmer motifs.',
-      previewImage: '/templates/royal_blue.png',
+      id: 'symphony',
+      name: 'Symphony Elite',
+      description: 'Story-driven cinematic layout with luxury typography.',
+      previewImage: '/templates/symphony.png',
       isFree: false,
-      requiredPlan: 'PRO'
+      requiredPlan: 'ELITE'
     },
-    component: RoyalBlueTemplate
+    component: SymphonyEliteTemplate
   }
 };
 

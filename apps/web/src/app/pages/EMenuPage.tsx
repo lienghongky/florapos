@@ -25,7 +25,12 @@ import {
   Download,
   Trash2,
   Image as ImageIcon,
-  QrCode as QrCodeIcon
+  QrCode as QrCodeIcon,
+  Instagram,
+  Facebook,
+  Twitter,
+  Phone,
+  ShoppingBag
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAllTemplates } from '@/app/emenu/templates';
@@ -101,6 +106,33 @@ export function EMenuPage() {
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
     img.src = url;
+  };
+
+  const [socialLinks, setSocialLinks] = useState({
+    instagram: '',
+    facebook: '',
+    twitter: '',
+    website: ''
+  });
+  const [phoneNumbers, setPhoneNumbers] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (settings) {
+      setSocialLinks({
+        instagram: settings.social_links?.instagram || '',
+        facebook: settings.social_links?.facebook || '',
+        twitter: settings.social_links?.twitter || '',
+        website: settings.social_links?.website || ''
+      });
+      setPhoneNumbers(settings.phone_numbers || []);
+    }
+  }, [settings]);
+
+  const handleSaveContact = async () => {
+    await updateSettings(selectedStore.id, {
+      social_links: socialLinks,
+      phone_numbers: phoneNumbers
+    });
   };
 
   useEffect(() => {
@@ -412,6 +444,115 @@ export function EMenuPage() {
                           </div>
                         )}
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleBannerUpload} />
+                      </div>
+                    </div>
+
+                    <div className="pt-8 border-t border-slate-200">
+                      <div className="flex items-center justify-between mb-6">
+                        <label className="block text-sm font-black text-slate-800 uppercase tracking-widest">Social Media & Contact</label>
+                        <button 
+                          onClick={handleSaveContact}
+                          className="px-6 py-2 bg-slate-900 text-white font-black text-xs rounded-xl shadow-lg hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2"
+                        >
+                          <CheckCircle2 className="size-3.5" /> Save Changes
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Instagram URL</label>
+                          <div className="relative">
+                            <Instagram className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                            <input 
+                              type="text" 
+                              placeholder="https://instagram.com/yourstore"
+                              value={socialLinks.instagram}
+                              onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
+                              className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-brand-primary/5 focus:border-brand-primary outline-none transition-all font-medium text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Facebook URL</label>
+                          <div className="relative">
+                            <Facebook className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                            <input 
+                              type="text" 
+                              placeholder="https://facebook.com/yourstore"
+                              value={socialLinks.facebook}
+                              onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
+                              className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-brand-primary/5 focus:border-brand-primary outline-none transition-all font-medium text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Twitter (X) URL</label>
+                          <div className="relative">
+                            <Twitter className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                            <input 
+                              type="text" 
+                              placeholder="https://twitter.com/yourstore"
+                              value={socialLinks.twitter}
+                              onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
+                              className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-brand-primary/5 focus:border-brand-primary outline-none transition-all font-medium text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Website URL</label>
+                          <div className="relative">
+                            <Globe className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                            <input 
+                              type="text" 
+                              placeholder="https://yourwebsite.com"
+                              value={socialLinks.website}
+                              onChange={(e) => setSocialLinks({ ...socialLinks, website: e.target.value })}
+                              className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-brand-primary/5 focus:border-brand-primary outline-none transition-all font-medium text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-6 border-t border-slate-200">
+                        <div className="flex items-center justify-between mb-4">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Telephone List</label>
+                          <button 
+                            onClick={() => setPhoneNumbers([...phoneNumbers, ''])}
+                            className="text-[10px] font-black text-brand-primary hover:underline flex items-center gap-1"
+                          >
+                            <Plus className="size-3" /> Add Number
+                          </button>
+                        </div>
+                        <div className="space-y-3">
+                          {phoneNumbers.map((phone, idx) => (
+                            <div key={idx} className="flex gap-2">
+                              <div className="relative flex-1">
+                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                                <input 
+                                  type="text" 
+                                  value={phone}
+                                  onChange={(e) => {
+                                    const newPhones = [...phoneNumbers];
+                                    newPhones[idx] = e.target.value;
+                                    setPhoneNumbers(newPhones);
+                                  }}
+                                  placeholder="Phone number"
+                                  className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl font-medium text-sm"
+                                />
+                              </div>
+                              <button 
+                                onClick={() => setPhoneNumbers(phoneNumbers.filter((_, i) => i !== idx))}
+                                className="size-12 bg-white border border-slate-200 text-slate-400 hover:text-red-500 rounded-2xl flex items-center justify-center transition-colors"
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            </div>
+                          ))}
+                          {phoneNumbers.length === 0 && (
+                            <div className="text-center py-4 border-2 border-dashed border-slate-200 rounded-2xl">
+                              <p className="text-[10px] font-bold text-slate-400">No phone numbers added yet</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 

@@ -15,6 +15,14 @@ export interface EmenuSetting {
   require_customer_name: boolean;
   require_customer_phone: boolean;
   qr_tags: string[];
+  social_links?: {
+    instagram?: string;
+    facebook?: string;
+    twitter?: string;
+    tiktok?: string;
+    website?: string;
+  };
+  phone_numbers: string[];
 }
 
 interface EmenuState {
