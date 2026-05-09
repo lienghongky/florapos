@@ -5,5 +5,12 @@
         "dev:web": "pnpm --filter web dev",
         "dev:api": "pnpm --filter api start:dev",
         "build": "pnpm --recursive run build"
+    },
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "bcrypt",
+            "@nestjs/core",
+            "@scarf/scarf"
+        ]
     }
 }
