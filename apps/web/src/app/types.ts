@@ -139,6 +139,7 @@ export interface Product {
 
     // UI specific
     calculated_stock?: number;
+    is_out_of_stock?: boolean;
     tags?: string[];
     updated_at?: string;
     created_at?: string;
@@ -195,6 +196,7 @@ export interface Order {
     customer_phone?: string;
     exchange_rate?: number;
     tax_rate?: number;
+    tags?: string;
 }
 
 export interface CartItem {

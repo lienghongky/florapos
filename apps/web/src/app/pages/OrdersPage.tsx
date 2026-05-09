@@ -1,15 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Search, Filter, Calendar, ShoppingBag, ChevronDown, 
-  ChevronRight, RefreshCw, Printer, Clock, 
+import {
+  Search, Filter, Calendar, ShoppingBag, ChevronDown,
+  ChevronRight, RefreshCw, Printer, Clock,
   CheckCircle, XCircle, Package, ArrowUpRight, X,
   Instagram, Loader2, Sparkles
 } from 'lucide-react';
 import { useOrderStore } from '@/app/store/order-store';
 import { useAuthStore } from '@/app/store/auth-store';
 import { Order, OrderStatus } from '@/app/types';
-import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
+import { AnimatedPage, AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { OrderReceipt } from '@/app/components/orders/OrderReceipt';
 import { OrderShareCard } from '@/app/components/orders/OrderShareCard';
 import { OrderDetail } from '@/app/components/pos/OrderDetail';
@@ -19,6 +19,7 @@ import { domToCanvas } from 'modern-screenshot';
 import { useRef } from 'react';
 import { formatDate, formatTime, formatPaymentMethod } from '@/app/utils/format';
 import { PageHeader } from '@/app/components/ui/page-header';
+import { Wallet, CreditCard, Banknote, ScanLine } from 'lucide-react';
 
 const parsePrice = (val: any): number => {
   if (val && typeof val === 'object' && 'usd' in val) return Number(val.usd);
@@ -26,7 +27,7 @@ const parsePrice = (val: any): number => {
 };
 
 export function OrdersPage() {
-  const { orders, totalOrders, refreshOrders, updateOrderStatus, isOrdersLoading } = useOrderStore();
+  const { orders, totalOrders, refreshOrders, updateOrderStatus, updateOrderPayment, isOrdersLoading } = useOrderStore();
   const { selectedStore } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -34,6 +35,10 @@ export function OrdersPage() {
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [previewOrder, setPreviewOrder] = useState<Order | null>(null);
   const [printingOrders, setPrintingOrders] = useState<Order[]>([]);
+
+  // Payment Selection State
+  const [payingOrder, setPayingOrder] = useState<Order | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Batch Print State
   const [batchOrder, setBatchOrder] = useState<Order | null>(null);
@@ -87,78 +92,78 @@ export function OrdersPage() {
 
   const handlePrintSingle = async (order: Order) => {
     const toastId = toast.loading(`Generating receipt...`);
-    
+
     try {
-        const pdf = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      setBatchOrder(order);
+
+      // Wait for render
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      if (batchRef.current) {
+        const canvas = await domToCanvas(batchRef.current, {
+          scale: 2,
+          backgroundColor: '#ffffff'
         });
 
-        setBatchOrder(order);
-        
-        // Wait for render
-        await new Promise(resolve => setTimeout(resolve, 300));
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-        if (batchRef.current) {
-            const canvas = await domToCanvas(batchRef.current, {
-                scale: 2,
-                backgroundColor: '#ffffff'
-            });
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-            const imgData = canvas.toDataURL('image/png');
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        // Generate blob and print
+        const pdfBlob = pdf.output('blob');
+        const blobUrl = URL.createObjectURL(pdfBlob);
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            
-            // Generate blob and print
-            const pdfBlob = pdf.output('blob');
-            const blobUrl = URL.createObjectURL(pdfBlob);
-            
-            const printWindow = window.open(blobUrl);
-            if (printWindow) {
-                printWindow.onload = () => {
-                    printWindow.print();
-                };
-            } else {
-                pdf.save(`receipt-${order.order_number?.toLowerCase() || order.id.slice(-6)}.pdf`);
-            }
+        const printWindow = window.open(blobUrl);
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print();
+          };
+        } else {
+          pdf.save(`receipt-${order.order_number?.toLowerCase() || order.id.slice(-6)}.pdf`);
         }
+      }
 
-        setBatchOrder(null);
-        toast.success(`Receipt ready`, { id: toastId });
+      setBatchOrder(null);
+      toast.success(`Receipt ready`, { id: toastId });
     } catch (error) {
-        console.error('Print Error:', error);
-        toast.error('Failed to generate receipt', { id: toastId });
-        setBatchOrder(null);
+      console.error('Print Error:', error);
+      toast.error('Failed to generate receipt', { id: toastId });
+      setBatchOrder(null);
     }
   };
 
   const handleDownloadShareCard = async () => {
     if (!shareRef.current || !shareOrder) return;
-    
+
     setIsSharing(true);
     const toastId = toast.loading('Creating beautiful card...');
-    
+
     try {
-        const dataUrl = await domToCanvas(shareRef.current, {
-            scale: 3,
-            backgroundColor: '#ffffff'
-        });
-        
-        const link = document.createElement('a');
-        link.download = `gift-card-${shareOrder.order_number?.toLowerCase() || shareOrder.id.slice(-6)}.png`;
-        link.href = dataUrl.toDataURL('image/png');
-        link.click();
-        
-        toast.success('Ready to share!', { id: toastId });
+      const dataUrl = await domToCanvas(shareRef.current, {
+        scale: 3,
+        backgroundColor: '#ffffff'
+      });
+
+      const link = document.createElement('a');
+      link.download = `gift-card-${shareOrder.order_number?.toLowerCase() || shareOrder.id.slice(-6)}.png`;
+      link.href = dataUrl.toDataURL('image/png');
+      link.click();
+
+      toast.success('Ready to share!', { id: toastId });
     } catch (error) {
-        console.error('Share Error:', error);
-        toast.error('Failed to create share card', { id: toastId });
+      console.error('Share Error:', error);
+      toast.error('Failed to create share card', { id: toastId });
     } finally {
-        setIsSharing(false);
+      setIsSharing(false);
     }
   };
 
@@ -170,9 +175,10 @@ export function OrdersPage() {
   const filteredOrders = orders || [];
   const totalPages = Math.ceil(totalOrders / itemsPerPage);
 
-  const getStatusConfig = (status: OrderStatus) => {
+  const getStatusConfig = (status: OrderStatus | string) => {
     switch (status) {
       case 'pending': return { color: 'text-yellow-600 bg-yellow-50 border-yellow-100', icon: Clock };
+      case 'emenu_pending': return { color: 'text-purple-600 bg-purple-50 border-purple-100', icon: Clock };
       case 'preparing': return { color: 'text-blue-600 bg-blue-50 border-blue-100', icon: RefreshCw };
 
       case 'completed': return { color: 'text-green-600 bg-green-50 border-green-100', icon: CheckCircle };
@@ -192,12 +198,12 @@ export function OrdersPage() {
 
   return (
     <AnimatedPage className="space-y-6 pb-20">
-      <PageHeader 
-        title="Orders Management" 
+      <PageHeader
+        title="Orders Management"
         subtitle="Track, filter, and manage all your store transactions"
         action={
           <>
-            <button 
+            <button
               onClick={handleRefresh}
               className="flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold shadow-sm transition-all hover:bg-muted active:scale-95"
             >
@@ -240,11 +246,10 @@ export function OrdersPage() {
                 setDateFilter(tab.id as any);
                 setCurrentPageNum(1);
               }}
-              className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all ${
-                dateFilter === tab.id 
-                  ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' 
+              className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all ${dateFilter === tab.id
+                  ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20'
                   : 'text-muted-foreground hover:bg-muted'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -263,6 +268,7 @@ export function OrdersPage() {
             className="h-12 w-full appearance-none rounded-2xl border border-border bg-white pl-11 pr-10 text-sm font-bold outline-none ring-brand-primary/10 transition-all focus:ring-4"
           >
             <option value="all">All Statuses</option>
+            <option value="emenu_pending">E-Menu Pending</option>
             <option value="pending">Pending</option>
             <option value="preparing">Preparing</option>
 
@@ -282,12 +288,12 @@ export function OrdersPage() {
             const StatusIcon = statusCfg.icon;
 
             return (
-              <div 
-                key={order.id} 
+              <div
+                key={order.id}
                 className={`group overflow-hidden rounded-3xl border border-border bg-white transition-all hover:shadow-md ${isExpanded ? 'ring-2 ring-brand-primary/20' : ''}`}
               >
                 {/* Main Row */}
-                <div 
+                <div
                   className="flex cursor-pointer items-center gap-4 p-5 md:gap-8"
                   onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
                 >
@@ -300,9 +306,16 @@ export function OrdersPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
                       <h3 className="text-lg font-bold tracking-tight">Order #{order.order_number?.toUpperCase() || order.id.slice(-6).toUpperCase()}</h3>
-                      <span className="rounded-lg bg-muted px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                        {order.order_type || 'Standard'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-lg bg-muted px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          {order.order_type || 'Standard'}
+                        </span>
+                        {order.tags && (
+                          <span className="rounded-lg bg-indigo-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-white shadow-sm shadow-indigo-100">
+                             {order.tags}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1.5">
@@ -324,26 +337,40 @@ export function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* Financials */}
-                  <div className="text-right hidden sm:block">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Grand Total</p>
-                    <p className="text-2xl font-black text-brand-primary">${parsePrice(order.grand_total).toFixed(2)}</p>
+                  {/* Financials & Quick Pay */}
+                  <div className="hidden sm:flex items-center gap-6 ml-auto">
+                    {order.payment_method === 'pay_later' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPayingOrder(order);
+                        }}
+                        className="hidden lg:flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-green-600/20 hover:bg-green-700 active:scale-95 transition-all"
+                      >
+                        <Banknote className="size-4" />
+                        Collect Payment
+                      </button>
+                    )}
+                    <div className="text-right">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Grand Total</p>
+                      <p className="text-2xl font-black text-brand-primary">${parsePrice(order.grand_total).toFixed(2)}</p>
+                    </div>
                   </div>
 
                   {/* Actions & Chevron */}
                   <div className="flex items-center gap-4">
-                    <div className="hidden lg:flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                        <select 
-                            value={order.status}
-                            onChange={(e) => handleStatusUpdate(order.id, e.target.value as OrderStatus)}
-                            className={`rounded-lg border border-border px-3 py-1.5 text-xs font-bold outline-none transition-all focus:ring-2 focus:ring-brand-primary/20 ${statusCfg.color}`}
-                        >
-                            <option value="pending">Mark Pending</option>
-                            <option value="preparing">Mark Preparing</option>
-
-                            <option value="completed">Mark Completed</option>
-                            <option value="cancelled">Mark Cancelled</option>
-                        </select>
+                    <div className="hidden lg:flex items-center gap-3" onClick={e => e.stopPropagation()}>
+                      <select
+                        value={order.status}
+                        onChange={(e) => handleStatusUpdate(order.id, e.target.value as OrderStatus)}
+                        className={`rounded-lg border border-border px-3 py-1.5 text-xs font-bold outline-none transition-all focus:ring-2 focus:ring-brand-primary/20 ${statusCfg.color}`}
+                      >
+                        {order.status === 'emenu_pending' && <option value="emenu_pending">E-Menu Req</option>}
+                        <option value="pending">Mark Pending</option>
+                        <option value="preparing">Mark Preparing</option>
+                        <option value="completed">Mark Completed</option>
+                        <option value="cancelled">Mark Cancelled</option>
+                      </select>
                     </div>
                     <div className={`flex size-10 items-center justify-center rounded-xl bg-muted transition-all group-hover:bg-brand-primary group-hover:text-white ${isExpanded ? 'rotate-90 bg-brand-primary text-white' : ''}`}>
                       <ChevronRight className="size-5" />
@@ -363,46 +390,76 @@ export function OrdersPage() {
                       <div className="flex flex-col lg:flex-row gap-10 items-start">
                         {/* Order Detail UI */}
                         <div className="w-full lg:w-3/5">
-                           <OrderDetail 
-                             order={order} 
-                             onPreviewReceipt={() => setPreviewOrder(order)}
-                           />
+                          <OrderDetail
+                            order={order}
+                            onPreviewReceipt={() => setPreviewOrder(order)}
+                          />
                         </div>
 
                         {/* Quick Actions Side Panel */}
                         <div className="w-full lg:w-2/5 space-y-6">
-                            <div className="rounded-3xl bg-white p-6 shadow-sm border border-border">
-                                <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">Quick Actions</h4>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button 
-                                        onClick={() => handlePrintSingle(order)}
-                                        className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border p-4 transition-all hover:bg-muted group"
-                                    >
-                                        <Printer className="size-6 text-brand-primary group-hover:scale-110 transition-transform" />
-                                        <span className="text-xs font-bold">Print Invoice</span>
-                                    </button>
-                                    <button 
-                                        onClick={() => openShareModal(order)}
-                                        className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border p-4 transition-all hover:bg-muted group"
-                                    >
-                                        <ArrowUpRight className="size-6 text-green-600 group-hover:scale-110 transition-transform" />
-                                        <span className="text-xs font-bold">Share Order</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Internal Notes Mock */}
-                            <div className="rounded-3xl bg-white p-6 shadow-sm border border-border">
-                                <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-3">Internal Note</h4>
-                                <textarea 
-                                    className="w-full min-h-[100px] rounded-xl border border-border bg-muted/30 p-3 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20 placeholder:italic"
-                                    placeholder="Add private note about this order..."
-                                    defaultValue={order.notes}
-                                />
-                                <button className="mt-3 w-full rounded-xl bg-muted py-2 text-xs font-bold text-muted-foreground hover:bg-brand-primary hover:text-white transition-all">
-                                    Save Note
+                          <div className="rounded-3xl bg-white p-6 shadow-sm border border-border">
+                            <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">Order Management</h4>
+                            <div className="space-y-4">
+                              {order.payment_method === 'pay_later' && (
+                                <button
+                                  onClick={() => setPayingOrder(order)}
+                                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-sm font-bold text-white shadow-lg shadow-green-600/20 hover:bg-green-700 transition-all active:scale-95"
+                                >
+                                  <Banknote className="size-5" />
+                                  Collect Payment
                                 </button>
+                              )}
+                              
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Current Status</label>
+                                <select
+                                  value={order.status}
+                                  onChange={(e) => handleStatusUpdate(order.id, e.target.value as OrderStatus)}
+                                  className={`w-full rounded-2xl border border-border px-4 py-3 text-sm font-bold outline-none transition-all focus:ring-4 focus:ring-brand-primary/10 ${statusCfg.color}`}
+                                >
+                                  {order.status === 'emenu_pending' && <option value="emenu_pending">E-Menu Request</option>}
+                                  <option value="pending">Mark as Pending</option>
+                                  <option value="preparing">Mark as Preparing</option>
+                                  <option value="completed">Mark as Completed</option>
+                                  <option value="cancelled">Mark as Cancelled</option>
+                                </select>
+                              </div>
                             </div>
+                          </div>
+
+                          <div className="rounded-3xl bg-white p-6 shadow-sm border border-border">
+                            <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">Quick Actions</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              <button
+                                onClick={() => handlePrintSingle(order)}
+                                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border p-4 transition-all hover:bg-muted group"
+                              >
+                                <Printer className="size-6 text-brand-primary group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold">Print Invoice</span>
+                              </button>
+                              <button
+                                onClick={() => openShareModal(order)}
+                                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border p-4 transition-all hover:bg-muted group"
+                              >
+                                <ArrowUpRight className="size-6 text-green-600 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold">Share Order</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Internal Notes Mock */}
+                          <div className="rounded-3xl bg-white p-6 shadow-sm border border-border">
+                            <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-3">Internal Note</h4>
+                            <textarea
+                              className="w-full min-h-[100px] rounded-xl border border-border bg-muted/30 p-3 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20 placeholder:italic"
+                              placeholder="Add private note about this order..."
+                              defaultValue={order.notes}
+                            />
+                            <button className="mt-3 w-full rounded-xl bg-muted py-2 text-xs font-bold text-muted-foreground hover:bg-brand-primary hover:text-white transition-all">
+                              Save Note
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </motion.div>
@@ -418,15 +475,15 @@ export function OrdersPage() {
             </div>
             <h3 className="text-xl font-bold">No orders found</h3>
             <p className="max-w-xs text-muted-foreground mt-2">Try adjusting your filters or searches to find what you're looking for.</p>
-            <button 
-                onClick={() => {
-                    setDateFilter('all');
-                    setSelectedStatus('all');
-                    setSearchQuery('');
-                }}
-                className="mt-6 font-bold text-brand-primary hover:underline"
+            <button
+              onClick={() => {
+                setDateFilter('all');
+                setSelectedStatus('all');
+                setSearchQuery('');
+              }}
+              className="mt-6 font-bold text-brand-primary hover:underline"
             >
-                Clear all filters
+              Clear all filters
             </button>
           </div>
         )}
@@ -477,14 +534,14 @@ export function OrdersPage() {
       {/* Receipt Preview Overlay */}
       <AnimatePresence>
         {previewOrder && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={() => setPreviewOrder(null)}
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -492,7 +549,7 @@ export function OrdersPage() {
               onClick={e => e.stopPropagation()}
             >
               <div className="sticky top-0 right-0 p-4 flex justify-end bg-white/80 backdrop-blur-md z-10">
-                <button 
+                <button
                   onClick={() => setPreviewOrder(null)}
                   className="size-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all"
                 >
@@ -510,14 +567,14 @@ export function OrdersPage() {
       {/* Share Modal */}
       <AnimatePresence>
         {shareOrder && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4"
             onClick={() => setShareOrder(null)}
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -527,39 +584,39 @@ export function OrdersPage() {
               <div ref={shareRef} className="shrink-0">
                 <OrderShareCard order={shareOrder} storeName={selectedStore?.name} customMessage={shareMessage} />
               </div>
-              
+
               <div className="flex flex-col gap-6 w-full max-w-[380px]">
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[2rem] p-6 text-white">
-                    <h4 className="text-lg font-black mb-4 flex items-center gap-2 italic">
-                        <Sparkles className="size-5 text-yellow-300" />
-                        Personalize Message
-                    </h4>
-                    <textarea 
-                        value={shareMessage}
-                        onChange={(e) => setShareMessage(e.target.value)}
-                        placeholder="Type your gift message here..."
-                        className="w-full h-32 bg-white/10 border border-white/20 rounded-xl p-4 text-white placeholder:text-white/40 outline-none focus:ring-2 focus:ring-brand-primary/50 resize-none font-serif italic"
-                    />
-                    <p className="text-[10px] text-white/50 mt-3 font-bold uppercase tracking-widest text-center">
-                        This message will appear on the card
-                    </p>
+                  <h4 className="text-lg font-black mb-4 flex items-center gap-2 italic">
+                    <Sparkles className="size-5 text-yellow-300" />
+                    Personalize Message
+                  </h4>
+                  <textarea
+                    value={shareMessage}
+                    onChange={(e) => setShareMessage(e.target.value)}
+                    placeholder="Type your gift message here..."
+                    className="w-full h-32 bg-white/10 border border-white/20 rounded-xl p-4 text-white placeholder:text-white/40 outline-none focus:ring-2 focus:ring-brand-primary/50 resize-none font-serif italic"
+                  />
+                  <p className="text-[10px] text-white/50 mt-3 font-bold uppercase tracking-widest text-center">
+                    This message will appear on the card
+                  </p>
                 </div>
 
                 <div className="flex flex-col gap-3">
-                    <button 
-                        onClick={handleDownloadShareCard}
-                        disabled={isSharing}
-                        className="h-16 rounded-2xl bg-brand-primary text-white font-black flex items-center justify-center gap-3 shadow-2xl shadow-brand-primary/40 hover:scale-[1.02] transition-all disabled:opacity-50"
-                    >
-                        {isSharing ? <Loader2 className="size-5 animate-spin" /> : <Instagram className="size-5" />}
-                        {isSharing ? 'Generating Image...' : 'Save & Share to Instagram'}
-                    </button>
-                    <button 
-                        onClick={() => setShareOrder(null)}
-                        className="h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold hover:bg-white/20 transition-all"
-                    >
-                        Maybe Later
-                    </button>
+                  <button
+                    onClick={handleDownloadShareCard}
+                    disabled={isSharing}
+                    className="h-16 rounded-2xl bg-brand-primary text-white font-black flex items-center justify-center gap-3 shadow-2xl shadow-brand-primary/40 hover:scale-[1.02] transition-all disabled:opacity-50"
+                  >
+                    {isSharing ? <Loader2 className="size-5 animate-spin" /> : <Instagram className="size-5" />}
+                    {isSharing ? 'Generating Image...' : 'Save & Share to Instagram'}
+                  </button>
+                  <button
+                    onClick={() => setShareOrder(null)}
+                    className="h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold hover:bg-white/20 transition-all"
+                  >
+                    Maybe Later
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -582,6 +639,65 @@ export function OrdersPage() {
           </div>
         ))}
       </div>
+
+      {/* Payment Selection Modal */}
+      <AnimatedModal
+        isOpen={!!payingOrder}
+        position="center"
+        onClose={() => setPayingOrder(null)}
+      >
+        <div className="bg-white rounded-[2.5rem] p-8 w-[384px] shadow-2xl">
+          <div className="text-center mb-8">
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-green-100 text-green-600">
+              <Wallet className="size-8" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900">Select Payment</h2>
+            <p className="text-slate-500 text-sm font-medium mt-1">
+              Order #{payingOrder?.order_number?.toUpperCase() || payingOrder?.id.slice(-6).toUpperCase()}
+            </p>
+            <div className="text-brand-primary text-xl font-black mt-2">
+              ${parsePrice(payingOrder?.grand_total).toFixed(2)}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            {([
+              { id: 'cash', label: 'Cash', icon: Banknote },
+              { id: 'credit', label: 'Credit Card', icon: CreditCard },
+              { id: 'qr', label: 'QR Code', icon: ScanLine },
+            ] as const).map((method) => (
+              <button
+                key={method.id}
+                disabled={isProcessingPayment}
+                onClick={async () => {
+                  if (!payingOrder) return;
+                  setIsProcessingPayment(true);
+                  try {
+                    await updateOrderPayment(payingOrder.id, 'completed', method.id);
+                    toast.success(`Payment updated to ${method.label}`);
+                    setPayingOrder(null);
+                  } catch (e) {
+                    toast.error('Failed to update payment');
+                  } finally {
+                    setIsProcessingPayment(false);
+                  }
+                }}
+                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-slate-100 bg-slate-50/50 p-6 transition-all hover:bg-white hover:border-brand-primary/50 hover:text-brand-primary group active:scale-95 disabled:opacity-50"
+              >
+                <method.icon className="size-6 text-slate-400 group-hover:text-brand-primary transition-colors" />
+                <span className="font-bold text-sm">{method.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setPayingOrder(null)}
+            className="w-full rounded-xl border border-slate-200 py-3 font-bold text-slate-500 hover:bg-slate-50 transition-all"
+          >
+            Cancel
+          </button>
+        </div>
+      </AnimatedModal>
     </AnimatedPage>
   );
 }

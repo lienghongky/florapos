@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In, Between, ILike, MoreThanOrEqual, LessThanOrEqual, Not } from 'typeorm';
-import { Order, OrderStatus } from './entities/order.entity';
+import { Order, OrderStatus, OrderType } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { OrderItemAddon } from './entities/order-item-addon.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -37,9 +37,12 @@ export class OrdersService {
     ) { }
 
     async create(userId: string, createDto: CreateOrderDto): Promise<Order> {
-        await this.storesService.findOne(userId, createDto.store_id);
-        const user = await this.userRepository.findOne({ where: { id: userId } });
-        const salespersonName = user ? (user.full_name || user.email) : 'System';
+        if (createDto.order_type !== OrderType.EMENU) {
+            await this.storesService.findOne(userId, createDto.store_id);
+        }
+        
+        const user = userId ? await this.userRepository.findOne({ where: { id: userId } }) : null;
+        const salespersonName = user ? (user.full_name || user.email) : 'Customer (E-Menu)';
 
         const result = await this.dataSource.transaction(async (manager) => {
             const productIds = createDto.items.map(item => item.product_id);
@@ -132,6 +135,7 @@ export class OrdersService {
                 tax_total: taxAmount,
                 discount_total: discountAmount,
                 grand_total: grandTotal,
+                status: orderData.status || OrderStatus.PENDING,
                 staff_name: salespersonName,
                 staff_id: orderData.staff_id || userId,
             });
@@ -160,7 +164,9 @@ export class OrdersService {
 
                 // Inventory Deduction Logic
                 const product = itemData.product;
-                if (product.track_inventory) {
+                const isEmenuPending = order.status === OrderStatus.EMENU_PENDING || order.order_type === OrderType.EMENU;
+                
+                if (product.track_inventory && !isEmenuPending) {
                     // Check if it's a composite product or simple
                     if (product.recipe && product.recipe.length > 0) {
                         // Composite Product: Deduct each item in recipe
@@ -499,8 +505,80 @@ export class OrdersService {
             const oldStatus = order.status;
             const newStatus = updateDto.status as OrderStatus;
 
-            // Restoration Logic: If status changes TO cancelled FROM PENDING (only pending orders get restocked)
-            if (newStatus === OrderStatus.CANCELLED && oldStatus === OrderStatus.PENDING) {
+            // If changing from EMENU_PENDING to PENDING/PREPARING/COMPLETED, deduct inventory now
+            if (oldStatus === OrderStatus.EMENU_PENDING && 
+               (newStatus === OrderStatus.PENDING || newStatus === OrderStatus.PREPARING || newStatus === OrderStatus.COMPLETED)) {
+                for (const item of order.items) {
+                    const product = item.product;
+                    if (product && product.track_inventory) {
+                        if (product.recipe && product.recipe.length > 0) {
+                            for (const recipeItem of product.recipe) {
+                                const invItem = recipeItem.inventory_item;
+                                if (invItem) {
+                                    const totalDeduction = (Number(recipeItem.quantity_required) || 0) * (item.quantity || 0);
+                                    const previousStock = Number(invItem.current_stock) || 0;
+                                    const newStock = previousStock - totalDeduction;
+
+                                    if (newStock < 0 && !product.allow_negative_stock) {
+                                        throw new BadRequestException(`Insufficient stock for ingredient: ${invItem.name}`);
+                                    }
+
+                                    invItem.current_stock = newStock;
+                                    await manager.save(invItem);
+
+                                    await this.inventoryService.createHistoryEntry(manager, {
+                                        store_id: invItem.store_id,
+                                        inventory_item_id: invItem.id,
+                                        action_type: InventoryActionType.COMPOSITE_DEDUCTION,
+                                        quantity_change: -totalDeduction,
+                                        quantity_before: previousStock,
+                                        quantity_after: newStock,
+                                        reference_id: order.id,
+                                        reference_type: 'sale',
+                                        performed_by_user_id: userId,
+                                        notes: `Recipe for ${product.name} (Accepted EMenu Order #${order.order_number})`,
+                                    });
+                                }
+                            }
+                        } else {
+                            const invItem = await manager.findOne(InventoryItem, {
+                                where: { store_id: order.store_id, name: product.name }
+                            });
+
+                            if (invItem) {
+                                const previousStock = Number(invItem.current_stock) || 0;
+                                const deductionQty = Number(item.quantity) || 0;
+                                const newStock = previousStock - deductionQty;
+
+                                if (newStock < 0 && !product.allow_negative_stock) {
+                                    throw new BadRequestException(`Insufficient stock for product: ${product.name}`);
+                                }
+
+                                invItem.current_stock = newStock;
+                                await manager.save(invItem);
+
+                                await this.inventoryService.createHistoryEntry(manager, {
+                                    store_id: invItem.store_id,
+                                    inventory_item_id: invItem.id,
+                                    action_type: InventoryActionType.SALE,
+                                    quantity_change: -deductionQty,
+                                    quantity_before: previousStock,
+                                    quantity_after: newStock,
+                                    reference_id: order.id,
+                                    reference_type: 'sale',
+                                    performed_by_user_id: userId,
+                                    notes: `Sale: ${product.name} (Accepted EMenu Order #${order.order_number})`,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Restoration Logic: If status changes TO cancelled FROM PENDING, PREPARING, READY, OR COMPLETED 
+            // (but NOT from EMENU_PENDING since it never deducted inventory)
+            if (newStatus === OrderStatus.CANCELLED && 
+               (oldStatus === OrderStatus.PENDING || oldStatus === OrderStatus.PREPARING || oldStatus === OrderStatus.READY || oldStatus === OrderStatus.COMPLETED)) {
                 for (const item of order.items) {
                     const product = item.product;
                     if (product && product.track_inventory) {

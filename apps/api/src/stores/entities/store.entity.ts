@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne } from 'typeorm';
 import { StoreUser } from './store-user.entity';
+import { EmenuSetting } from '../../emenu/entities/emenu-setting.entity';
 
 @Entity('stores')
 export class Store {
@@ -62,6 +63,9 @@ export class Store {
 
     @OneToMany(() => StoreUser, (storeUser) => storeUser.store)
     users: StoreUser[];
+
+    @OneToOne(() => EmenuSetting, (emenuSetting) => emenuSetting.store)
+    emenu_setting: EmenuSetting;
 
     @CreateDateColumn()
     created_at: Date;

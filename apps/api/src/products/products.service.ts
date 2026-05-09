@@ -538,11 +538,13 @@ export class ProductsService {
         dto.modifier_groups = safeParse(dto.modifier_groups);
         dto.tags = safeParse(dto.tags);
 
-        const cid = dto.category_id || dto.categoryId;
-        if (!cid || cid === '' || cid === 'null' || cid === 'undefined') {
-            dto.category_id = null;
-        } else {
-            dto.category_id = cid;
+        if (dto.category_id !== undefined || dto.categoryId !== undefined) {
+            const cid = dto.category_id || dto.categoryId;
+            if (!cid || cid === '' || cid === 'null' || cid === 'undefined') {
+                dto.category_id = null;
+            } else {
+                dto.category_id = cid;
+            }
         }
 
         // Normalize pricing_type

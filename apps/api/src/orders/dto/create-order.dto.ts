@@ -1,7 +1,7 @@
 import { IsString, IsNotEmpty, IsEnum, IsOptional, IsNumber, IsArray, ValidateNested, IsUUID, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { OrderType } from '../entities/order.entity';
+import { OrderType, OrderStatus } from '../entities/order.entity';
 
 class OrderItemAddonDto {
     @ApiProperty()
@@ -64,6 +64,11 @@ export class CreateOrderDto {
     @ApiProperty({ enum: OrderType })
     @IsEnum(OrderType)
     order_type: OrderType;
+
+    @ApiProperty({ enum: OrderStatus, required: false })
+    @IsOptional()
+    @IsEnum(OrderStatus)
+    status?: OrderStatus;
 
     @ApiProperty({ type: [CreateOrderItemDto] })
     @IsArray()
@@ -135,4 +140,9 @@ export class CreateOrderDto {
     @IsNumber()
     @IsOptional()
     tax_rate?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    tags?: string;
 }

@@ -12,6 +12,8 @@ import { InventoryHistoryPage } from '@/app/pages/InventoryHistoryPage';
 import { ReportsPage } from '@/app/pages/ReportsPage';
 import { OrdersPage } from '@/app/pages/OrdersPage';
 import { SettingsPage } from '@/app/pages/SettingsPage';
+import { EMenuPage } from '@/app/pages/EMenuPage';
+import { PublicEMenuPage } from '@/app/pages/PublicEMenuPage';
 import { Toaster } from '@/app/components/ui/sonner';
 import { ExpensesPage } from '@/app/pages/ExpensesPage';
 import { DashboardMasterPage } from '@/app/pages/DashboardMasterPage';
@@ -28,6 +30,7 @@ function AppRoutes() {
       {/* Public Routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/menu/:storeId" element={<PublicEMenuPage />} />
 
       {/* Protected Routes inside Layout */}
       <Route element={<Layout><ProtectedRoute children={null} /></Layout>}>
@@ -49,6 +52,7 @@ function AppRoutes() {
       <Route path="/reports" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner']}><Layout><ReportsPage /></Layout></ProtectedRoute>} />
       <Route path="/expenses" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner']}><Layout><ExpensesPage /></Layout></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner', UserRole.STAFF, 'staff']}><Layout><SettingsPage /></Layout></ProtectedRoute>} />
+      <Route path="/emenu" element={<ProtectedRoute allowedRoles={[UserRole.OWNER, 'owner']}><Layout><EMenuPage /></Layout></ProtectedRoute>} />
 
       {/* Default Redirection */}
       <Route path="/" element={

@@ -8,10 +8,12 @@ import { OrderItem } from './order-item.entity';
 export enum OrderType {
     PICKUP = 'pickup',
     DELIVERY = 'delivery',
+    EMENU = 'emenu',
 }
 
 export enum OrderStatus {
     PENDING = 'pending',
+    EMENU_PENDING = 'emenu_pending',
     PREPARING = 'preparing',
     READY = 'ready',
     COMPLETED = 'completed',
@@ -135,4 +137,7 @@ export class Order {
         from: (value: string) => parseFloat(value)
     } })
     tax_rate: number;
+    
+    @Column({ type: 'text', nullable: true })
+    tags: string;
 }

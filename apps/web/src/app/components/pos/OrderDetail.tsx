@@ -63,6 +63,11 @@ export function OrderDetail({ order, onPreviewReceipt }: OrderDetailProps) {
                         <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-50 text-slate-600 border border-slate-100">
                             {formatPaymentMethod(order.payment_method || 'credit')}
                         </span>
+                        {order.tags && (
+                            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-600 text-white shadow-lg shadow-indigo-100">
+                                {order.tags}
+                            </span>
+                        )}
                     </div>
                 </div>
 

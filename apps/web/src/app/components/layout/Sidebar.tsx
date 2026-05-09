@@ -11,7 +11,8 @@ import {
   ChevronRight,
   LogOut,
   History,
-  X
+  X,
+  Store as StoreIcon
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/app/store/auth-store';
@@ -97,6 +98,13 @@ const navItems: NavItem[] = [
     icon: <TrendingDown className="size-5" />,
     roles: [UserRole.OWNER],
     path: '/expenses',
+  },
+  {
+    id: 'emenu',
+    label: 'Emanu',
+    icon: <StoreIcon className="size-5" />,
+    roles: [UserRole.OWNER],
+    path: '/emenu',
   },
   {
     id: 'settings',

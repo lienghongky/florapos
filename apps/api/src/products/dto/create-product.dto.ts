@@ -239,6 +239,7 @@ export class CreateProductDto {
     @IsBoolean()
     is_active?: boolean;
 
+
     @ApiProperty({ type: [String], required: false, description: 'Searchable tags for the product' })
     @IsOptional()
     @IsArray()

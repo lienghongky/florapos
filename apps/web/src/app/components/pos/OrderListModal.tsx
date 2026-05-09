@@ -135,9 +135,10 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
         });
     };
 
-    const getStatusColor = (status: OrderStatus) => {
+    const getStatusColor = (status: OrderStatus | string) => {
         switch (status) {
             case 'pending': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+            case 'emenu_pending': return 'bg-purple-100 text-purple-700 border-purple-200';
             case 'preparing': return 'bg-blue-100 text-blue-700 border-blue-200';
             case 'completed': return 'bg-green-100 text-green-700 border-green-200';
             case 'cancelled': return 'bg-red-100 text-red-700 border-red-200';
@@ -145,9 +146,10 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
         }
     };
 
-    const getStatusIcon = (status: OrderStatus) => {
+    const getStatusIcon = (status: OrderStatus | string) => {
         switch (status) {
             case 'pending': return Clock;
+            case 'emenu_pending': return Clock;
             case 'preparing': return Loader2;
             case 'completed': return CheckCircle;
             case 'cancelled': return XCircle;
@@ -330,6 +332,7 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
                             >
                                 <option value="active">Active Orders</option>
                                 <option value="all">All Status</option>
+                                <option value="emenu_pending">E-Menu Pending</option>
                                 <option value="pending">Pending</option>
                                 <option value="preparing">Preparing</option>
                                 <option value="completed">Completed</option>
@@ -441,6 +444,7 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
                                                 onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
                                                 className={`h-8 rounded-lg border px-1 md:px-2 text-[9px] md:text-[10px] font-black uppercase tracking-wider outline-none transition-all max-w-[90px] md:max-w-[120px] ${getStatusColor(order.status)}`}
                                             >
+                                                {order.status === 'emenu_pending' && <option value="emenu_pending">E-Menu Req</option>}
                                                 <option value="pending">Pending</option>
                                                 <option value="preparing">Preparing</option>
                                                 <option value="completed">Completed</option>
