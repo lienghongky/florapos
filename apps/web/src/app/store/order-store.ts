@@ -7,6 +7,7 @@ import { useInventoryStore } from './inventory-store';
 
 interface OrderState {
   orders: Order[];
+  totalOrders: number;
   isOrdersLoading: boolean;
   stats: any | null;
   recentOrders: Order[];
@@ -20,6 +21,7 @@ interface OrderState {
 
 export const useOrderStore = create<OrderState>((set, get) => ({
   orders: [],
+  totalOrders: 0,
   isOrdersLoading: false,
   stats: null,
   recentOrders: [],
@@ -32,14 +34,16 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     try {
       let fetchedOrders;
       if (typeof filters === 'object') {
-        const { status, startDate, endDate, search } = filters;
-        fetchedOrders = await ordersService.getOrders(token, selectedStore.id, status, startDate, endDate, search);
+        const { status, startDate, endDate, search, page, limit } = filters;
+        fetchedOrders = await ordersService.getOrders(token, selectedStore.id, status, startDate, endDate, search, page, limit);
       } else {
         fetchedOrders = await ordersService.getOrders(token, { ...filters, store_id: selectedStore.id });
       }
       
       const items = (fetchedOrders && fetchedOrders.items) ? fetchedOrders.items : (fetchedOrders || []);
-      set({ orders: items });
+      const count = (fetchedOrders && typeof fetchedOrders.count === 'number') ? fetchedOrders.count : items.length;
+      
+      set({ orders: items, totalOrders: count });
     } catch (e) {
       console.error("Failed to fetch orders", e);
     } finally {

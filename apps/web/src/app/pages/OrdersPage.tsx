@@ -26,7 +26,7 @@ const parsePrice = (val: any): number => {
 };
 
 export function OrdersPage() {
-  const { orders, refreshOrders, updateOrderStatus, isOrdersLoading } = useOrderStore();
+  const { orders, totalOrders, refreshOrders, updateOrderStatus, isOrdersLoading } = useOrderStore();
   const { selectedStore } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -55,7 +55,7 @@ export function OrdersPage() {
   // Initial load
   useEffect(() => {
     handleRefresh();
-  }, [dateFilter, selectedStatus, currentPage, itemsPerPage]);
+  }, [dateFilter, selectedStatus, currentPage, itemsPerPage, searchQuery]);
 
   const handleRefresh = async () => {
     let startDate: string | undefined;
@@ -79,6 +79,7 @@ export function OrdersPage() {
       status: selectedStatus === 'all' ? undefined : selectedStatus,
       startDate,
       endDate: dateFilter === 'all' ? undefined : endDate,
+      search: searchQuery || undefined,
       page: currentPage,
       limit: itemsPerPage
     });
@@ -166,14 +167,8 @@ export function OrdersPage() {
     setShareMessage(order.notes || '');
   };
 
-  const filteredOrders = useMemo(() => {
-    return (orders || []).filter((order: Order) => 
-      order.order_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.staff_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.staff_name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [orders, searchQuery]);
+  const filteredOrders = orders || [];
+  const totalPages = Math.ceil(totalOrders / itemsPerPage);
 
   const getStatusConfig = (status: OrderStatus) => {
     switch (status) {
@@ -223,7 +218,10 @@ export function OrdersPage() {
             type="text"
             placeholder="Search by Order #, ID, or Staff..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPageNum(1);
+            }}
             className="h-12 w-full rounded-2xl border border-border bg-white pl-11 pr-4 text-sm font-medium outline-none ring-brand-primary/10 transition-all focus:ring-4"
           />
         </div>
@@ -238,7 +236,10 @@ export function OrdersPage() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setDateFilter(tab.id as any)}
+              onClick={() => {
+                setDateFilter(tab.id as any);
+                setCurrentPageNum(1);
+              }}
               className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all ${
                 dateFilter === tab.id 
                   ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' 
@@ -255,7 +256,10 @@ export function OrdersPage() {
           <Filter className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <select
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
+            onChange={(e) => {
+              setSelectedStatus(e.target.value);
+              setCurrentPageNum(1);
+            }}
             className="h-12 w-full appearance-none rounded-2xl border border-border bg-white pl-11 pr-10 text-sm font-bold outline-none ring-brand-primary/10 transition-all focus:ring-4"
           >
             <option value="all">All Statuses</option>
@@ -456,11 +460,12 @@ export function OrdersPage() {
               <ChevronDown className="size-5 rotate-90" />
             </button>
             <div className="flex items-center gap-1 px-4">
-              <span className="text-sm font-bold text-slate-900">Page {currentPage}</span>
+              <span className="text-sm font-bold text-slate-900">Page {currentPage} of {Math.max(1, totalPages)}</span>
+              <span className="text-xs text-muted-foreground ml-2">({totalOrders} total)</span>
             </div>
             <button
               onClick={() => setCurrentPageNum(prev => prev + 1)}
-              disabled={orders.length < itemsPerPage}
+              disabled={currentPage >= totalPages}
               className="flex size-10 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground transition-all hover:bg-muted disabled:opacity-30 active:scale-95"
             >
               <ChevronDown className="size-5 -rotate-90" />

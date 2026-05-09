@@ -40,6 +40,8 @@ export function ReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
+  const [metricsOrders, setMetricsOrders] = useState<Order[]>([]);
+
   const [weeklyTrend, setWeeklyTrend] = useState<{ date: string, sales: number, dayName: string }[]>(() => {
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return dayNames.map(name => ({ date: '', sales: 0, dayName: name }));
@@ -82,7 +84,6 @@ export function ReportsPage() {
           itemsPerPage
         );
 
-        // Handle paginated vs non-paginated response
         if (response && response.items) {
           setOrders(response.items);
           setTotalItems(response.count);
@@ -103,6 +104,41 @@ export function ReportsPage() {
 
     return () => clearTimeout(timer);
   }, [startDate, endDate, activeTab, searchQuery, selectedStore?.id, currentPage, itemsPerPage]);
+
+  // Separate effect to fetch ALL orders for metrics (summary cards, charts)
+  useEffect(() => {
+    if (!selectedStore) return;
+
+    const fetchMetricsData = async () => {
+      try {
+        const token = localStorage.getItem('auth_token') || '';
+        const status = (activeTab === 'sales' || activeTab === 'financial' || activeTab === 'invoices' || activeTab === 'staff')
+          ? 'completed'
+          : undefined;
+
+        const response = await ordersService.getOrders(
+          token,
+          selectedStore.id,
+          status,
+          startDate,
+          endDate,
+          (activeTab === 'history' || activeTab === 'invoices') ? searchQuery : undefined,
+          1,
+          5000 // High limit for metrics
+        );
+
+        if (response && response.items) {
+          setMetricsOrders(response.items);
+        } else {
+          setMetricsOrders(response || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch metrics data", err);
+      }
+    };
+
+    fetchMetricsData();
+  }, [startDate, endDate, activeTab, searchQuery, selectedStore?.id]);
 
   // Fetch Weekly Trend specifically for Monday-Sunday
   useEffect(() => {
@@ -159,10 +195,9 @@ export function ReportsPage() {
     fetchWeeklyTrend();
   }, [selectedStore?.id]);
 
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [startDate, endDate, activeTab, searchQuery]);
+  }, [startDate, endDate, activeTab, searchQuery, itemsPerPage]);
 
   // Filter Orders based on Status (sync with current Tab)
   // We trust the backend for date-range and search-term filtering
@@ -171,14 +206,22 @@ export function ReportsPage() {
       ? 'completed'
       : undefined;
 
-    return (orders || []).filter((order: Order) => {
+    const searchLower = searchQuery.toLowerCase().trim();
+
+    return (metricsOrders || []).filter((order: Order) => {
       // Status Check (Must match what the tab expects)
       const matchesStatus = !activeStatus || order.status === activeStatus;
-      return matchesStatus;
-    });
-  }, [orders, activeTab]);
+      if (!matchesStatus) return false;
 
-  // Derived Metrics (based on filtered orders)
+      // Search Check
+      if (!searchLower) return true;
+      const orderNum = (order.order_number || '').toLowerCase();
+      const shortId = order.id.slice(-6).toLowerCase();
+      return orderNum.includes(searchLower) || shortId.includes(searchLower);
+    });
+  }, [metricsOrders, activeTab, searchQuery]);
+
+  // Derived Metrics (based on metricsOrders filtered)
   const totalSales = filteredOrders.reduce((acc: number, order: Order) => acc + parsePrice(order.grand_total), 0);
   const totalTransactions = filteredOrders.length;
   const averageOrderValue = totalTransactions > 0 ? totalSales / totalTransactions : 0;
@@ -682,18 +725,10 @@ export function ReportsPage() {
                 </thead>
                 <tbody>
                   {(() => {
-                    const searchLower = searchQuery.toLowerCase().trim();
-                    const finalOrders = filteredOrders.filter((o: Order) => {
-                      if (!searchLower) return true;
-                      const orderNum = (o.order_number || '').toLowerCase();
-                      const shortId = o.id.slice(-6).toLowerCase();
-                      return orderNum.includes(searchLower) || shortId.includes(searchLower);
-                    });
-
-                    if (finalOrders.length === 0 && !isRefreshing) {
+                    if (orders.length === 0 && !isRefreshing) {
                       return (
                         <tr>
-                          <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                          <td colSpan={8} className="py-12 text-center text-muted-foreground">
                             <div className="flex flex-col items-center gap-2">
                               <Search className="size-8 opacity-20" />
                               <p>{searchQuery ? `No matches for "${searchQuery}"` : 'No transactions found'}</p>
@@ -704,7 +739,7 @@ export function ReportsPage() {
                       );
                     }
 
-                    return finalOrders.map((order: Order) => (
+                    return orders.map((order: Order) => (
                       <tr key={order.id} className={`border-b border-border last:border-0 hover:bg-muted/50 transition-colors ${selectedOrderIds.includes(order.id) ? 'bg-primary/5' : ''}`}>
                         <td className="py-3 px-4">
                           <input
@@ -751,7 +786,10 @@ export function ReportsPage() {
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Show</span>
                   <select
                     value={itemsPerPage}
-                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
                     className="bg-white border border-border rounded-lg px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20"
                   >
                     <option value={10}>10</option>
