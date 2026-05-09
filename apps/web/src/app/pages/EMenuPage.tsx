@@ -172,52 +172,52 @@ export function EMenuPage() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto w-full px-4 py-4 md:px-8 md:py-6">
+    <div className="max-w-[1400px] mx-auto w-full">
       {/* Unified Editor Container */}
-      <div className="bg-white rounded-[2rem] border border-slate-200 shadow-2xl shadow-slate-200/40 overflow-hidden flex flex-col md:flex-row h-[calc(100vh-8rem)]">
+      <div className="bg-white rounded-[2rem] border border-slate-200 shadow-2xl shadow-slate-200/40 overflow-hidden flex flex-col md:flex-row h-[calc(100vh-4rem)] md:h-[calc(100vh-8rem)]">
 
         {/* Unified Sidebar */}
-        <aside className="w-full md:w-72 bg-slate-50/80 border-r border-slate-200 flex flex-col shrink-0 overflow-y-auto">
-          <div className="p-8 border-b border-slate-200/60">
-            <div className="flex items-center gap-3 mb-6">
+        <aside className="w-full md:w-72 bg-slate-50/80 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shrink-0">
+          <div className="p-6 md:p-8 border-b border-slate-200/60">
+            <div className="flex items-center gap-3 mb-4 md:mb-6">
               <div className="size-10 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-lg shadow-brand-primary/30">
                 <Layout className="size-6" />
               </div>
               <div>
-                <h1 className="font-bold text-slate-900 leading-tight">Emanu Editor</h1>
+                <h1 className="font-bold text-slate-900 leading-tight">E-menu Editor</h1>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Build Mode</span>
               </div>
             </div>
 
-            <nav className="space-y-1.5">
+            <nav className="flex md:flex-col gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
               <button
                 onClick={() => setActiveTab('editor')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'editor' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
+                className={`flex-1 md:w-full flex items-center justify-center md:justify-start gap-2.5 px-4 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all shrink-0 ${activeTab === 'editor' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
                   }`}
               >
-                <Package className="size-5" />
+                <Package className="size-4 md:size-5" />
                 Menu Items
               </button>
               <button
                 onClick={() => setActiveTab('branding')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'branding' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
+                className={`flex-1 md:w-full flex items-center justify-center md:justify-start gap-2.5 px-4 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all shrink-0 ${activeTab === 'branding' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
                   }`}
               >
-                <Palette className="size-5" />
+                <Palette className="size-4 md:size-5" />
                 Styling
               </button>
               <button
                 onClick={() => setActiveTab('publish')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'publish' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
+                className={`flex-1 md:w-full flex items-center justify-center md:justify-start gap-2.5 px-4 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all shrink-0 ${activeTab === 'publish' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
                   }`}
               >
-                <Globe className="size-5" />
-                Publish & QR
+                <Globe className="size-4 md:size-5" />
+                Publish
               </button>
             </nav>
           </div>
 
-          <div className="p-8 flex-1 flex flex-col">
+          <div className="hidden md:flex p-8 flex-1 flex-col overflow-y-auto">
             <div className="space-y-8">
               {/* Unified Status & Preview Card */}
               <div className={`rounded-2xl p-6 transition-all border ${settings?.is_enabled
@@ -298,7 +298,7 @@ export function EMenuPage() {
 
         {/* Unified Content Panel */}
         <main className="flex-1 overflow-y-auto bg-white">
-          <header className="px-10 py-8 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+          <header className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-30 gap-4">
             <div>
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                 {activeTab === 'editor' && "Menu Builder"}
@@ -313,7 +313,7 @@ export function EMenuPage() {
             </div>
 
             {activeTab === 'editor' && (
-              <div className="relative w-72">
+              <div className="relative w-full lg:w-72">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                 <input
                   type="text"
@@ -326,7 +326,7 @@ export function EMenuPage() {
             )}
           </header>
 
-          <div className="p-10">
+          <div className="p-4 sm:p-6 md:p-10">
             {activeTab === 'editor' && (
               <div className="space-y-12 max-w-5xl">
                 {Object.entries(categorizedProducts).map(([category, items]) => (
@@ -434,7 +434,7 @@ export function EMenuPage() {
                             <div key={section.plan} className="space-y-8">
                               <div className="flex flex-col gap-2">
                                 <div className="flex items-center gap-3">
-                                  <h4 className="text-lg font-black text-slate-900">{section.title}</h4>
+                                  <h4 className="text-sm font-black text-slate-900">{section.title}</h4>
                                   <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest ${section.badge}`}>
                                     {section.plan}
                                   </span>
@@ -465,7 +465,7 @@ export function EMenuPage() {
                                         }
                                         updateSettings(selectedStore.id, { template_id: template.metadata.id });
                                       }}
-                                      className={`group relative rounded-[2.5rem] border-2 overflow-hidden cursor-pointer transition-all ${settings.template_id === template.metadata.id || (!settings.template_id && template.metadata.id === 'default')
+                                      className={`group relative rounded-xl border-2 overflow-hidden cursor-pointer transition-all ${settings.template_id === template.metadata.id || (!settings.template_id && template.metadata.id === 'default')
                                         ? 'border-brand-primary shadow-2xl shadow-brand-primary/20 scale-[1.02]'
                                         : 'border-slate-100 hover:border-slate-200'
                                         } ${isLocked ? 'grayscale-[0.5] opacity-80' : ''}`}
@@ -528,33 +528,33 @@ export function EMenuPage() {
                 </div>
 
                 {/* Main Link Section */}
-                <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-10">
-                  <div className="flex flex-col lg:flex-row gap-10 items-start">
+                <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm space-y-8 md:space-y-10">
+                  <div className="flex flex-col xl:flex-row gap-10 items-start">
                     <div className="flex-1 space-y-6">
                       <div className="space-y-2">
                         <label className="block text-sm font-black text-slate-800 uppercase tracking-widest">Store E-Menu Link</label>
                         <p className="text-xs font-bold text-slate-400">This is your general menu link, perfect for Instagram bio or website.</p>
                       </div>
-                      <div className="flex gap-2 p-1.5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
+                      <div className="flex flex-col sm:flex-row gap-2 p-1.5 bg-slate-50 rounded-2xl md:rounded-[1.5rem] border border-slate-100">
                         <input
                           type="text"
                           readOnly
                           value={`${window.location.origin}/menu/${selectedStore.id}`}
-                          className="flex-1 px-5 py-3 bg-transparent text-slate-600 text-sm font-bold focus:outline-none"
+                          className="flex-1 px-4 md:px-5 py-2.5 md:py-3 bg-transparent text-slate-600 text-xs md:text-sm font-bold focus:outline-none"
                         />
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(`${window.location.origin}/menu/${selectedStore.id}`);
                             toast.success('Main URL copied');
                           }}
-                          className="px-6 bg-white border border-slate-200 text-slate-900 font-black text-sm rounded-[1.15rem] shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2 active:scale-95"
+                          className="px-6 py-2.5 sm:py-0 bg-white border border-slate-200 text-slate-900 font-black text-xs md:text-sm rounded-xl md:rounded-[1.15rem] shadow-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2 active:scale-95"
                         >
-                          <Copy className="size-4" /> Copy
+                          <Copy className="size-3.5 md:size-4" /> Copy
                         </button>
                       </div>
                     </div>
 
-                    <div className="w-full lg:w-64 bg-slate-50 p-8 rounded-[3rem] border border-slate-100 flex flex-col items-center shadow-inner relative overflow-hidden group/gen">
+                    <div className="w-full lg:w-64 bg-slate-50 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 flex flex-col items-center shadow-inner relative overflow-hidden group/gen">
                       <div className="absolute inset-0 bg-brand-primary/5 opacity-0 group-hover/gen:opacity-100 transition-opacity duration-500" />
                       <div className="relative z-10 bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/60 mb-6 group-hover/gen:scale-105 transition-transform duration-500 border border-slate-50 flex flex-col items-center">
                         <QRCodeSVG
@@ -591,20 +591,20 @@ export function EMenuPage() {
 
                 {/* Table Management Section */}
                 <div className="space-y-8">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col justify-between gap-4">
                     <div>
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">Table & Area QR Codes</h3>
+                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">Table & Tags QR Codes</h3>
                       <p className="text-slate-400 text-sm font-medium mt-1">Generate unique codes for every table. Orders will be tagged automatically.</p>
                     </div>
 
-                    <div className="flex justify-between gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
+                    <div className="flex w-full sm:w-auto justify-between gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
                       <input
                         type="text"
                         placeholder="Table name (e.g. T-01)"
                         value={newTag}
                         onChange={(e) => setNewTag(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
-                        className="w-48 px-4 py-2 text-sm bg-transparent border-none outline-none font-bold text-slate-600"
+                        className="flex-1 sm:w-48 px-4 py-2 text-sm bg-transparent border-none outline-none font-bold text-slate-600"
                       />
                       <button
                         onClick={handleAddTag}
@@ -615,14 +615,14 @@ export function EMenuPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2  gap-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
                     {(settings?.qr_tags || []).map((tag) => {
                       const encodedTag = btoa(tag);
                       const tagUrl = `${window.location.origin}/menu/${selectedStore.id}?tag=${encodeURIComponent(encodedTag)}`;
                       return (
                         <div
                           key={tag}
-                          className="group bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 transition-all duration-500 flex flex-col items-center text-center relative overflow-hidden"
+                          className="group bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-brand-primary/10 transition-all duration-500 flex flex-col items-center text-center relative overflow-hidden"
                         >
                           {/* Decorative Background Element */}
                           <div className="absolute -top-10 -right-10 size-32 bg-brand-primary/5 rounded-full blur-3xl group-hover:bg-brand-primary/10 transition-colors" />

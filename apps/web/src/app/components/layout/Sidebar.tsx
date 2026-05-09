@@ -101,7 +101,7 @@ const navItems: NavItem[] = [
   },
   {
     id: 'emenu',
-    label: 'Emanu',
+    label: 'E-Menu',
     icon: <StoreIcon className="size-5" />,
     roles: [UserRole.OWNER],
     path: '/emenu',
@@ -127,7 +127,7 @@ export function Sidebar() {
 
   if (!user) return null;
 
-  const filteredItems = navItems.filter(item => 
+  const filteredItems = navItems.filter(item =>
     item.roles.some(role => role.toLowerCase() === user.role.toLowerCase())
   );
 
@@ -215,11 +215,10 @@ export function Sidebar() {
               </div>
             </div>
             {user?.subscription && (
-              <div className={`absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border border-white z-10 ${
-                (user.subscription.plan?.name === 'Elite' || (user.subscription as any).plan_name === 'Elite') ? 'bg-indigo-600' : 
-                (user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Pro') ? 'bg-brand-primary' : 
-                'bg-slate-600'
-              }`} />
+              <div className={`absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border border-white z-10 ${(user.subscription.plan?.name === 'Elite' || (user.subscription as any).plan_name === 'Elite') ? 'bg-indigo-600' :
+                  (user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Pro') ? 'bg-brand-primary' :
+                    'bg-slate-600'
+                }`} />
             )}
           </div>
           {!isSidebarCollapsed && (
@@ -305,11 +304,10 @@ export function Sidebar() {
                   </div>
                 </div>
                 {user?.subscription && (
-                  <div className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border border-white z-10 ${
-                    (user.subscription.plan?.name === 'Elite' || (user.subscription as any).plan_name === 'Elite') ? 'bg-indigo-600' : 
-                    (user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Pro') ? 'bg-brand-primary' : 
-                    'bg-slate-600'
-                  }`} />
+                  <div className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border border-white z-10 ${(user.subscription.plan?.name === 'Elite' || (user.subscription as any).plan_name === 'Elite') ? 'bg-indigo-600' :
+                      (user.subscription.plan?.name === 'Pro' || (user.subscription as any).plan_name === 'Pro') ? 'bg-brand-primary' :
+                        'bg-slate-600'
+                    }`} />
                 )}
               </div>
               <div className="overflow-hidden flex-1">
