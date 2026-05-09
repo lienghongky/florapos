@@ -9,6 +9,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 
 # Install dependencies
+RUN pnpm config set only-built-dependencies "bcrypt,@nestjs/core,@scarf/scarf"
 RUN pnpm install --frozen-lockfile
 
 # Copy source
@@ -23,6 +24,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
+RUN pnpm config set only-built-dependencies "bcrypt,@nestjs/core,@scarf/scarf"
 RUN pnpm install --frozen-lockfile --prod
 
 # Copy dist
