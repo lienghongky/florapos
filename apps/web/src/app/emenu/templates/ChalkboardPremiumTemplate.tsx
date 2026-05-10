@@ -32,74 +32,69 @@ export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
          <div className="fixed inset-4 border border-[#F5F2ED]/20 pointer-events-none z-50 hidden md:block rounded-sm" />
          <div className="fixed inset-6 border border-[#F5F2ED]/10 pointer-events-none z-50 hidden md:block rounded-sm" />
 
-         {/* Elegant Header */}
-         <header className={`fixed top-0 inset-x-0 z-40 px-6 py-10 flex flex-col items-center transition-all duration-700 ${
-            isScrolled ? 'bg-[#1A1817]/95 backdrop-blur-md py-4 border-b border-[#F5F2ED]/10' : 'bg-transparent'
+         {/* Elegant Header with Unified Navigation */}
+         <header className={`fixed top-0 inset-x-0 z-40 px-6 transition-all duration-700 ${
+            isScrolled ? 'bg-[#1A1817]/95 backdrop-blur-md py-6 border-b border-[#F5F2ED]/10' : 'bg-transparent py-12'
          }`}>
-            <div className="text-center relative">
-               {!isScrolled && (
-                  <div className="mb-4 text-[10px] uppercase tracking-[0.4em] text-[#F5F2ED]/60 flex items-center justify-center gap-4">
-                     <div className="h-px w-8 bg-[#F5F2ED]/20" />
-                     EST. 2024
-                     <div className="h-px w-8 bg-[#F5F2ED]/20" />
-                  </div>
-               )}
-               
-               <div className="relative inline-block px-12 py-4">
-                  {/* Wreath Ornaments */}
+            <div className="max-w-7xl mx-auto w-full flex flex-col items-center">
+               <div className="text-center relative">
                   {!isScrolled && (
-                     <>
-                        <div className="absolute -left-4 top-1/2 -translate-y-1/2 text-3xl opacity-40">🌿</div>
-                        <div className="absolute -right-4 top-1/2 -translate-y-1/2 text-3xl opacity-40 scale-x-[-1]">🌿</div>
-                     </>
+                     <div className="mb-4 text-[10px] uppercase tracking-[0.4em] text-[#F5F2ED]/60 flex items-center justify-center gap-4">
+                        <div className="h-px w-8 bg-[#F5F2ED]/20" />
+                        EST. 2024
+                        <div className="h-px w-8 bg-[#F5F2ED]/20" />
+                     </div>
                   )}
-                  <h1 className="text-4xl md:text-5xl font-serif italic tracking-tight mb-2">
-                     {store.name}
-                  </h1>
-                  <p className="text-[11px] uppercase tracking-[0.5em] text-[#F5F2ED]/80 font-bold">Premium Menu</p>
+                  
+                  <div className="relative inline-block px-12 py-2">
+                     {/* Wreath Ornaments */}
+                     {!isScrolled && (
+                        <>
+                           <div className="absolute -left-4 top-1/2 -translate-y-1/2 text-3xl opacity-40">🌿</div>
+                           <div className="absolute -right-4 top-1/2 -translate-y-1/2 text-3xl opacity-40 scale-x-[-1]">🌿</div>
+                        </>
+                     )}
+                     <h1 className={`${isScrolled ? 'text-2xl' : 'text-4xl md:text-5xl'} font-serif italic tracking-tight mb-1 transition-all duration-500`}>
+                        {store.name}
+                     </h1>
+                     {!isScrolled && <p className="text-[11px] uppercase tracking-[0.5em] text-[#F5F2ED]/80 font-bold">Premium Menu</p>}
+                  </div>
                </div>
 
-               {!isScrolled && tags && (
-                  <div className="mt-6 inline-flex items-center gap-3 px-6 py-2 border border-[#F5F2ED]/20 rounded-full text-[10px] uppercase tracking-widest bg-white/5 backdrop-blur-sm">
-                     <span className="text-[#F5F2ED]/40">Reservation / Table</span>
-                     <span className="font-black">{tags}</span>
+               {/* Integrated Navigation */}
+               <nav className={`mt-8 w-full transition-all duration-500 ${isScrolled ? 'mt-4' : 'mt-10'}`}>
+                  <div className="flex items-center justify-center gap-10 px-8 overflow-x-auto no-scrollbar">
+                     {categories.map(cat => (
+                        <button
+                           key={cat}
+                           onClick={() => {
+                              setActiveCategory(cat);
+                              const el = document.getElementById(`category-${cat}`);
+                              if (el) {
+                                 const offset = 220; // Adjusted for unified header
+                                 const bodyRect = document.body.getBoundingClientRect().top;
+                                 const elementRect = el.getBoundingClientRect().top;
+                                 const elementPosition = elementRect - bodyRect;
+                                 const offsetPosition = elementPosition - offset;
+                                 window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                              }
+                           }}
+                           className={`whitespace-nowrap text-[12px] font-bold uppercase tracking-[0.25em] transition-all relative py-2 ${
+                              activeCategory === cat ? 'text-[#F5F2ED]' : 'text-[#F5F2ED]/40 hover:text-[#F5F2ED]'
+                           }`}
+                        >
+                           {cat}
+                           {activeCategory === cat && (
+                              <motion.div layoutId="premium-nav" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#F5F2ED]" />
+                           )}
+                        </button>
+                     ))}
                   </div>
-               )}
+               </nav>
             </div>
          </header>
 
-         <div className="h-64" />
-
-         {/* Category Navigation */}
-         <nav className="sticky top-[100px] z-30 bg-[#1A1817]/90 backdrop-blur-md py-6 border-y border-[#F5F2ED]/10">
-            <div className="flex items-center justify-center gap-10 px-8 overflow-x-auto no-scrollbar">
-               {categories.map(cat => (
-                  <button
-                     key={cat}
-                     onClick={() => {
-                        setActiveCategory(cat);
-                        const el = document.getElementById(`category-${cat}`);
-                        if (el) {
-                           const offset = 180;
-                           const bodyRect = document.body.getBoundingClientRect().top;
-                           const elementRect = el.getBoundingClientRect().top;
-                           const elementPosition = elementRect - bodyRect;
-                           const offsetPosition = elementPosition - offset;
-                           window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-                        }
-                     }}
-                     className={`whitespace-nowrap text-[12px] font-bold uppercase tracking-[0.25em] transition-all relative py-2 ${
-                        activeCategory === cat ? 'text-[#F5F2ED]' : 'text-[#F5F2ED]/40 hover:text-[#F5F2ED]'
-                     }`}
-                  >
-                     {cat}
-                     {activeCategory === cat && (
-                        <motion.div layoutId="premium-nav" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#F5F2ED]" />
-                     )}
-                  </button>
-               ))}
-            </div>
-         </nav>
+         <div className="h-80" />
 
          <main className="max-w-6xl mx-auto px-6 py-20 space-y-32">
             {Object.entries(categorizedProducts).map(([category, items]) => (

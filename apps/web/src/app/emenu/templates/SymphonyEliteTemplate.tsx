@@ -137,7 +137,7 @@ export const SymphonyEliteTemplate: React.FC<EMenuTemplateProps> = ({
          </section>
 
          {/* Elegant Category Navigation (Sticky) */}
-         <nav className="sticky top-[80px] z-40 bg-[#050505]/90 backdrop-blur-xl py-8 border-b border-white/5 overflow-hidden">
+         <nav className="sticky top-0 z-40 bg-[#050505]/90 backdrop-blur-xl py-8 border-b border-white/5 overflow-hidden">
             <div className="flex items-center justify-center gap-12 px-8 overflow-x-auto no-scrollbar">
                {categories.map(cat => (
                   <button

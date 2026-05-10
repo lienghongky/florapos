@@ -46,8 +46,8 @@ export function PublicEMenuPage() {
         try {
           const parsed = JSON.parse(saved);
           const now = Date.now();
-          // Filter 24h logic
-          const valid = parsed.filter((o: any) => now - o.timestamp < 24 * 60 * 60 * 1000);
+          // Filter 5h logic
+          const valid = parsed.filter((o: any) => now - o.timestamp < 5 * 60 * 60 * 1000);
           setRecentOrders(valid);
           localStorage.setItem(`emenu_orders_${storeId}`, JSON.stringify(valid));
         } catch (e) {

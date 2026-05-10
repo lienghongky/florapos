@@ -72,7 +72,7 @@ export const RoyalBlueTemplate: React.FC<EMenuTemplateProps> = ({
       </div>
 
       {/* Sticky Khmer Nav */}
-      <div className="sticky top-[72px] z-30 border-b border-[#C5A059]/20 bg-[#0A1221]/90 backdrop-blur-xl py-6">
+      <div className="sticky top-0 z-30 border-b border-[#C5A059]/20 bg-[#0A1221]/90 backdrop-blur-xl py-6">
         <div className="flex items-center justify-center gap-10 px-6 overflow-x-auto no-scrollbar">
           {categories.map(cat => (
             <button

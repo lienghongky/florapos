@@ -48,7 +48,7 @@ export const RoyalWhiteTemplate: React.FC<EMenuTemplateProps> = ({
       </div>
 
       {/* Ornate Sticky Nav */}
-      <div className="sticky top-[72px] z-30 border-y border-[#F3EAD3] py-4 bg-[#FFFEFA]/90 backdrop-blur-xl">
+      <div className="sticky top-0 z-30 border-y border-[#F3EAD3] py-4 bg-[#FFFEFA]/90 backdrop-blur-xl">
         <div className="flex items-center justify-center gap-8 px-6 overflow-x-auto no-scrollbar">
           {categories.map(cat => (
             <button

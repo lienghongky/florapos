@@ -61,7 +61,7 @@ export const MarbleLuxuryTemplate: React.FC<EMenuTemplateProps> = ({
          <div className="h-40" />
 
          {/* Floating Category Nav */}
-         <nav className="sticky top-[100px] z-40 py-6">
+         <nav className="sticky top-[64px] z-40 py-6">
             <div className="flex items-center justify-center gap-4 px-8 overflow-x-auto no-scrollbar">
                {categories.map(cat => (
                   <button

@@ -53,7 +53,7 @@ export const AntiquePaperTemplate: React.FC<EMenuTemplateProps> = ({
          <div className="h-48" />
 
          {/* Classic Category Navigation */}
-         <nav className="sticky top-[90px] z-30 bg-[#FAF9F6]/90 backdrop-blur-md py-4 border-y border-[#E8E6E1]">
+         <nav className="sticky top-0 z-30 bg-[#FAF9F6]/90 backdrop-blur-md py-4 border-y border-[#E8E6E1]">
             <div className="flex items-center justify-center gap-8 px-6 overflow-x-auto no-scrollbar">
                {categories.map(cat => (
                   <button

@@ -66,7 +66,7 @@ export const ClassicTemplate: React.FC<EMenuTemplateProps> = ({
       <div className="h-12" />
 
       {/* Sticky Categories */}
-      <div className="sticky top-[72px] z-30 border-b py-4 backdrop-blur-xl bg-white/80 border-slate-100">
+      <div className="sticky top-0 z-30 border-b py-4 backdrop-blur-xl bg-white/80 border-slate-100">
         <div className="flex items-center gap-3 px-6 overflow-x-auto no-scrollbar">
           {categories.map(cat => (
             <button

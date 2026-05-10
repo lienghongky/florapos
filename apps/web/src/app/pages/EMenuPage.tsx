@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useEmenuStore } from '@/app/store/emenu-store';
 import { useAuthStore } from '@/app/store/auth-store';
 import { useProductStore } from '@/app/store/product-store';
@@ -36,6 +37,7 @@ import { toast } from 'sonner';
 import { getAllTemplates } from '@/app/emenu/templates';
 
 export function EMenuPage() {
+  const navigate = useNavigate();
   const { selectedStore, user } = useAuthStore();
   const {
     settings,
@@ -171,6 +173,17 @@ export function EMenuPage() {
   };
 
   const handleToggleOrdering = (checked: boolean) => {
+    const userPlan = user?.subscription?.plan?.name?.toUpperCase() || 'STARTER';
+    if (checked && userPlan === 'STARTER') {
+      toast.error('Gated Feature', {
+        description: 'Online ordering is only available on Pro and Elite plans.',
+        action: {
+          label: 'Upgrade',
+          onClick: () => navigate('/settings?tab=subscription')
+        }
+      });
+      return;
+    }
     updateSettings(selectedStore.id, { allow_ordering: checked });
   };
 
@@ -559,16 +572,16 @@ export function EMenuPage() {
                     <div className="pt-8 border-t border-slate-200">
                       <div className="flex items-center justify-between mb-6">
                         <label className="block text-sm font-black text-slate-800 uppercase tracking-widest">Select Menu Template</label>
-                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">2 Templates Free</span>
+                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">3 Templates Starter</span>
                       </div>
 
                       <div className="space-y-16">
                         {[
-                          { plan: 'FREE', title: 'Starter Templates', badge: 'bg-emerald-50 text-emerald-600', description: 'Available for all stores to get started.' },
+                          { plan: 'STARTER', title: 'Starter Templates', badge: 'bg-emerald-50 text-emerald-600', description: 'Available for all stores to get started.' },
                           { plan: 'PRO', title: 'Pro Templates', badge: 'bg-brand-primary/10 text-brand-primary', description: 'Advanced professional designs for growing brands.' },
                           { plan: 'ELITE', title: 'Elite Templates', badge: 'bg-purple-100 text-purple-600', description: 'Exclusive high-end immersive experiences.' }
                         ].map(section => {
-                          const sectionTemplates = getAllTemplates().filter(t => (t.metadata.requiredPlan || 'FREE') === section.plan);
+                          const sectionTemplates = getAllTemplates().filter(t => (t.metadata.requiredPlan || 'STARTER') === section.plan);
                           if (sectionTemplates.length === 0 && section.plan !== 'ELITE') return null;
 
                           return (
@@ -585,10 +598,10 @@ export function EMenuPage() {
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {sectionTemplates.map(template => {
-                                  const userPlan = user?.subscription?.plan?.name?.toUpperCase() || 'FREE';
-                                  const requiredPlan = template.metadata.requiredPlan || 'FREE';
-
-                                  const plans = ['FREE', 'PRO', 'ELITE'];
+                                  const userPlan = user?.subscription?.plan?.name?.toUpperCase() || 'STARTER';
+                                  const requiredPlan = template.metadata.requiredPlan || 'STARTER';
+                                  
+                                  const plans = ['STARTER', 'PRO', 'ELITE'];
                                   const userPlanIndex = plans.indexOf(userPlan);
                                   const requiredPlanIndex = plans.indexOf(requiredPlan);
                                   const isLocked = userPlanIndex < requiredPlanIndex;

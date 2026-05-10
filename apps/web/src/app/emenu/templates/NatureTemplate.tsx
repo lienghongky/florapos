@@ -66,7 +66,7 @@ export const NatureTemplate: React.FC<EMenuTemplateProps> = ({
       <div className="h-12" />
 
       {/* Organic Sticky Nav */}
-      <div className="sticky top-[72px] z-30 py-6 backdrop-blur-xl bg-[#FDF9F3]/80">
+      <div className="sticky top-0 z-30 py-6 backdrop-blur-xl bg-[#FDF9F3]/80">
         <div className="flex items-center gap-4 px-8 overflow-x-auto no-scrollbar">
           {categories.map(cat => (
             <button

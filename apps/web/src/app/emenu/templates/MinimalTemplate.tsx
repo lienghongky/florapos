@@ -46,7 +46,7 @@ export const MinimalTemplate: React.FC<EMenuTemplateProps> = ({
          <div className="h-32" />
 
          {/* Elegant Category Nav */}
-         <nav className="sticky top-[80px] z-30 bg-[#FDFCFB]/80 backdrop-blur-xl py-6 overflow-hidden">
+         <nav className="sticky top-[64px] z-30 bg-[#FDFCFB]/80 backdrop-blur-xl py-6 overflow-hidden">
             <div className="flex items-center justify-center gap-10 px-8 overflow-x-auto no-scrollbar">
                {categories.map(cat => (
                   <button

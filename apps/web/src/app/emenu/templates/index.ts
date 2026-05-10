@@ -20,7 +20,7 @@ export const TEMPLATE_REGISTRY: Record<string, EMenuTemplateRegistry> = {
       description: 'Clean, light design with focus on typography.',
       previewImage: '/templates/classic.png',
       isFree: true,
-      requiredPlan: 'FREE'
+      requiredPlan: 'STARTER'
     },
     component: ClassicTemplate
   },
@@ -31,7 +31,7 @@ export const TEMPLATE_REGISTRY: Record<string, EMenuTemplateRegistry> = {
       description: 'Minimalist physical menu style with textured paper.',
       previewImage: '/templates/antique.png',
       isFree: true,
-      requiredPlan: 'FREE'
+      requiredPlan: 'STARTER'
     },
     component: AntiquePaperTemplate
   },
@@ -42,7 +42,7 @@ export const TEMPLATE_REGISTRY: Record<string, EMenuTemplateRegistry> = {
       description: 'Sleek dark mode with high-impact photography.',
       previewImage: '/templates/modern.png',
       isFree: true,
-      requiredPlan: 'FREE'
+      requiredPlan: 'STARTER'
     },
     component: ModernTemplate
   },

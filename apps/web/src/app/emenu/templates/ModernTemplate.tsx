@@ -74,7 +74,7 @@ export const ModernTemplate: React.FC<EMenuTemplateProps> = ({
       <div className="h-16" />
 
       {/* Sticky Category Navigator */}
-      <div className="sticky top-[72px] z-30 border-b py-4 backdrop-blur-xl bg-slate-950/80 border-white/5">
+      <div className="sticky top-0 z-30 border-b py-4 backdrop-blur-xl bg-slate-950/80 border-white/5">
         <div className="flex items-center gap-3 px-6 overflow-x-auto no-scrollbar">
           {categories.map(cat => (
             <button
