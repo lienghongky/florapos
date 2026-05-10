@@ -30,58 +30,62 @@ export const AntiquePaperTemplate: React.FC<EMenuTemplateProps> = ({
 
          {/* Physical Border Effect removed per request */}
 
-         {/* Header */}
-         <header className={`fixed top-0 inset-x-0 z-40 px-6 py-8 flex flex-col items-center transition-all duration-700 ${
-            isScrolled ? 'bg-[#FAF9F6]/95 backdrop-blur-md py-4 border-b border-[#E8E6E1]' : 'bg-transparent'
+         {/* Header with Unified Navigation */}
+         <header className={`fixed top-0 inset-x-0 z-40 px-6 transition-all duration-700 ${
+            isScrolled ? 'bg-[#FAF9F6]/95 backdrop-blur-md py-6 border-b border-[#E8E6E1]' : 'bg-transparent py-12'
          }`}>
-            <div className="text-center">
-               <h1 className="text-3xl md:text-4xl font-light tracking-[0.2em] uppercase mb-2">{store.name}</h1>
-               {!isScrolled && (
-                  <div className="flex flex-col items-center">
-                     <div className="w-16 h-px bg-[#D1CFCA] my-4" />
-                     <p className="text-[10px] uppercase tracking-[0.4em] text-[#8C8A85]">Est. 2024 • Culinary Excellence</p>
-                     {tags && (
-                        <div className="mt-4 px-4 py-1 bg-[#2C2C2C] text-[#FAF9F6] text-[9px] uppercase tracking-[0.3em] font-sans">
-                           Table {tags}
-                        </div>
-                     )}
+            <div className="max-w-7xl mx-auto w-full flex flex-col items-center">
+               <div className="text-center">
+                  <h1 className={`${isScrolled ? 'text-2xl' : 'text-3xl md:text-4xl'} font-light tracking-[0.2em] uppercase transition-all duration-500`}>
+                     {store.name}
+                  </h1>
+                  {!isScrolled && (
+                     <div className="flex flex-col items-center">
+                        <div className="w-16 h-px bg-[#D1CFCA] my-4" />
+                        <p className="text-[10px] uppercase tracking-[0.4em] text-[#8C8A85]">Est. 2024 • Culinary Excellence</p>
+                        {tags && (
+                           <div className="mt-4 px-4 py-1 bg-[#2C2C2C] text-[#FAF9F6] text-[9px] uppercase tracking-[0.3em] font-sans">
+                              Table {tags}
+                           </div>
+                        )}
+                     </div>
+                  )}
+               </div>
+
+               {/* Integrated Navigation */}
+               <nav className={`mt-10 w-full transition-all duration-500 ${isScrolled ? 'mt-4' : 'mt-10'}`}>
+                  <div className="flex items-center justify-center gap-8 px-6 overflow-x-auto no-scrollbar">
+                     {categories.map(cat => (
+                        <button
+                           key={cat}
+                           onClick={() => {
+                              setActiveCategory(cat);
+                              const el = document.getElementById(`category-${cat}`);
+                              if (el) {
+                                 const offset = 220; // Adjusted for unified header
+                                 const bodyRect = document.body.getBoundingClientRect().top;
+                                 const elementRect = el.getBoundingClientRect().top;
+                                 const elementPosition = elementRect - bodyRect;
+                                 const offsetPosition = elementPosition - offset;
+                                 window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                              }
+                           }}
+                           className={`whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.2em] transition-all relative py-1 ${
+                              activeCategory === cat ? 'text-[#2C2C2C]' : 'text-[#AFAEA9] hover:text-[#2C2C2C]'
+                           }`}
+                        >
+                           {cat}
+                           {activeCategory === cat && (
+                              <motion.div layoutId="antique-nav" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#2C2C2C]" />
+                           )}
+                        </button>
+                     ))}
                   </div>
-               )}
+               </nav>
             </div>
          </header>
 
-         <div className="h-48" />
-
-         {/* Classic Category Navigation */}
-         <nav className="sticky top-0 z-30 bg-[#FAF9F6]/90 backdrop-blur-md py-4 border-y border-[#E8E6E1]">
-            <div className="flex items-center justify-center gap-8 px-6 overflow-x-auto no-scrollbar">
-               {categories.map(cat => (
-                  <button
-                     key={cat}
-                     onClick={() => {
-                        setActiveCategory(cat);
-                        const el = document.getElementById(`category-${cat}`);
-                        if (el) {
-                           const offset = 160;
-                           const bodyRect = document.body.getBoundingClientRect().top;
-                           const elementRect = el.getBoundingClientRect().top;
-                           const elementPosition = elementRect - bodyRect;
-                           const offsetPosition = elementPosition - offset;
-                           window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-                        }
-                     }}
-                     className={`whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.2em] transition-all relative py-1 ${
-                        activeCategory === cat ? 'text-[#2C2C2C]' : 'text-[#AFAEA9] hover:text-[#2C2C2C]'
-                     }`}
-                  >
-                     {cat}
-                     {activeCategory === cat && (
-                        <motion.div layoutId="antique-nav" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#2C2C2C]" />
-                     )}
-                  </button>
-               ))}
-            </div>
-         </nav>
+         <div className="h-80" />
 
          <main className="max-w-2xl mx-auto px-6 py-16 space-y-24 relative">
             {Object.entries(categorizedProducts).map(([category, items]) => (
