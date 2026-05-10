@@ -78,32 +78,164 @@ export function EMenuPage() {
     toast.success(`Tag "${tag}" removed`);
   };
 
-  const downloadQR = (id: string, fileName: string) => {
+  const downloadQR = (id: string, fileName: string, tagName?: string) => {
     const svg = document.getElementById(id);
-    if (!svg) return;
+    if (!svg || !selectedStore) return;
 
     const svgData = new XMLSerializer().serializeToString(svg);
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
     const img = new Image();
 
     img.onload = () => {
-      // Increase resolution for better print quality
-      canvas.width = img.width * 2;
-      canvas.height = img.height * 2;
-      if (ctx) {
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.scale(2, 2);
-        ctx.drawImage(img, 0, 0);
+      // High resolution for print (1200 x 1800)
+      const W = 1200;
+      const H = 1800;
+      canvas.width = W;
+      canvas.height = H;
 
-        const pngFile = canvas.toDataURL("image/png");
-        const downloadLink = document.createElement("a");
-        downloadLink.download = `${fileName}.png`;
-        downloadLink.href = `${pngFile}`;
-        downloadLink.click();
-        toast.success(`Downloading ${fileName}.png`);
+      // 1. Background
+      ctx.fillStyle = "#10B981"; // FloraPOS Emerald
+      ctx.fillRect(0, 0, W, H);
+
+      // 2. Decorative Blobs (White)
+      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      
+      // Top Left Blob
+      ctx.beginPath();
+      ctx.arc(0, 0, 450, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(250, 50, 350, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Bottom Right Blob
+      ctx.beginPath();
+      ctx.arc(W, H, 550, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(W - 200, H - 100, 400, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Header "SCAN ME"
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      
+      // White shadow/stroke effect for impact
+      ctx.font = "900 180px system-ui, -apple-system, sans-serif";
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 24;
+      ctx.lineJoin = "round";
+      ctx.strokeText("SCAN ME", W / 2, 350);
+      
+      ctx.fillStyle = "#0f172a"; // Deep Slate
+      ctx.fillText("SCAN ME", W / 2, 350);
+
+      // 4. Vertical Text "SCAN & ORDER NOW"
+      ctx.font = "900 45px system-ui, -apple-system, sans-serif";
+      ctx.fillStyle = "rgba(15, 23, 42, 0.7)";
+      
+      // Left side
+      ctx.save();
+      ctx.translate(120, H / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText("SCAN & ORDER NOW", 0, 0);
+      ctx.restore();
+      
+      // Right side
+      ctx.save();
+      ctx.translate(W - 120, H / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillText("SCAN & ORDER NOW", 0, 0);
+      ctx.restore();
+
+      // 5. QR Code Container (White Square)
+      const qrSize = 740;
+      const qrX = (W - qrSize) / 2;
+      const qrY = (H - qrSize) / 2 - 50; // Move up slightly
+      
+      // Shadow for QR box
+      ctx.shadowColor = "rgba(0,0,0,0.15)";
+      ctx.shadowBlur = 60;
+      ctx.shadowOffsetY = 30;
+      
+      ctx.fillStyle = "white";
+      const radius = 60;
+      ctx.beginPath();
+      ctx.roundRect(qrX, qrY, qrSize, qrSize, radius);
+      ctx.fill();
+      
+      ctx.shadowColor = "transparent"; // Reset shadow
+
+      // 6. Draw the QR Code
+      const padding = 70;
+      ctx.drawImage(img, qrX + padding, qrY + padding, qrSize - padding * 2, qrSize - padding * 2);
+
+      // 7. Footer Texts
+      ctx.fillStyle = "#0f172a";
+      
+      let footerY = qrY + qrSize + 140;
+      
+      // If tagName is provided, show it with a smaller, perfectly centered border frame
+      if (tagName) {
+        ctx.font = "900 60px system-ui, -apple-system, sans-serif";
+        const textMetrics = ctx.measureText(tagName);
+        const textWidth = textMetrics.width;
+        const h = 100;
+        const w = Math.max(textWidth + 70, 180);
+        const x = (W - w) / 2;
+        const y = footerY - h / 2; // Perfect vertical alignment
+        
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 25);
+        ctx.stroke();
+
+        ctx.fillText(tagName, W / 2, footerY);
+        footerY += 130; // Further reduced vertical space
       }
+
+      ctx.font = "800 48px system-ui, -apple-system, sans-serif";
+      ctx.fillText("SCAN THE QR CODE TO SEE THE MENU", W / 2, footerY);
+      
+      ctx.font = "600 40px system-ui, -apple-system, sans-serif";
+      ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
+      ctx.fillText(`Welcome to ${selectedStore.name}`, W / 2, footerY + 80);
+
+      // 8. Minimal Contact & SNS Info
+      if (settings) {
+        const contacts: { label: string, value: string }[] = [];
+        if (settings.phone_numbers?.[0]) contacts.push({ label: "TEL", value: settings.phone_numbers[0] });
+        
+        const sns = settings.social_links;
+        if (sns?.instagram) contacts.push({ label: "IG", value: `@${sns.instagram.split('/').pop()}` });
+        if (sns?.facebook) contacts.push({ label: "FB", value: `${sns.facebook.split('/').pop()}` });
+        if (sns?.website) contacts.push({ label: "WEB", value: sns.website.replace(/^https?:\/\//, '') });
+
+        if (contacts.length > 0) {
+          ctx.font = "300 24px system-ui, -apple-system, sans-serif";
+          ctx.fillStyle = "rgba(15, 23, 42, 0.5)";
+          
+          const infoString = contacts.map(c => `${c.label}: ${c.value}`).join("   |   ");
+          ctx.fillText(infoString, W / 2, footerY + 140);
+        }
+      }
+
+      // 9. FloraPOS Branding
+      ctx.font = "900 32px system-ui, -apple-system, sans-serif";
+      ctx.fillStyle = "rgba(15, 23, 42, 0.4)";
+      ctx.letterSpacing = "4px";
+      ctx.fillText("POWERED BY FLORAPOS", W / 2, H - 100);
+
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `${fileName}.png`;
+      downloadLink.href = `${pngFile}`;
+      downloadLink.click();
+      toast.success(`Branded QR Card ready!`);
     };
 
     // Convert to UTF-8 aware base64
@@ -859,7 +991,7 @@ export function EMenuPage() {
                               </button>
                             </div>
                             <button
-                              onClick={() => downloadQR(`qr-${tag.replace(/\s+/g, '-')}`, `${selectedStore.name}_${tag.replace(/\s+/g, '_')}_QR`)}
+                              onClick={() => downloadQR(`qr-${tag.replace(/\s+/g, '-')}`, `${selectedStore.name}_${tag.replace(/\s+/g, '_')}_QR`, tag)}
                               className="w-full py-3 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[10px] font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 active:scale-95"
                             >
                               <Download className="size-3.5" /> Download QR
