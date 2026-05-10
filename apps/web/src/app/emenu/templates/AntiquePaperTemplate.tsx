@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ShoppingBag, ChevronRight, Info, Minus, Plus } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
+import { SocialLinks } from './components/SocialLinks';
 
 export const AntiquePaperTemplate: React.FC<EMenuTemplateProps> = ({
    store,
@@ -24,13 +25,10 @@ export const AntiquePaperTemplate: React.FC<EMenuTemplateProps> = ({
 
    return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#2C2C2C] font-serif relative overflow-x-hidden">
-         {/* Paper Texture Overlay */}
+         {/* ... Texture and Header ... */}
          <div className="fixed inset-0 pointer-events-none opacity-[0.03] mix-blend-multiply" 
               style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/paper-fibers.png")` }} />
 
-         {/* Physical Border Effect removed per request */}
-
-         {/* Header with Unified Navigation */}
          <header className={`fixed top-0 inset-x-0 z-40 px-6 transition-all duration-700 ${
             isScrolled ? 'bg-[#FAF9F6]/95 backdrop-blur-md py-6 border-b border-[#E8E6E1]' : 'bg-transparent py-12'
          }`}>
@@ -76,7 +74,11 @@ export const AntiquePaperTemplate: React.FC<EMenuTemplateProps> = ({
                         >
                            {cat}
                            {activeCategory === cat && (
-                              <motion.div layoutId="antique-nav" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#2C2C2C]" />
+                              <motion.div 
+                                 initial={{ scaleX: 0, opacity: 0 }}
+                                 animate={{ scaleX: 1, opacity: 1 }}
+                                 className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#2C2C2C] origin-left" 
+                              />
                            )}
                         </button>
                      ))}
@@ -178,6 +180,9 @@ export const AntiquePaperTemplate: React.FC<EMenuTemplateProps> = ({
                      {store.address || 'Handcrafted Culinary Experience'}
                   </p>
                </div>
+               
+               <SocialLinks settings={settings} className="flex items-center gap-6 text-[#2C2C2C]/40" iconClassName="size-5 hover:text-[#2C2C2C] transition-colors" />
+
                <div className="w-12 h-px bg-[#E8E6E1]" />
                <p className="text-[9px] uppercase tracking-[0.5em] text-[#AFAEA9]">
                   Thank you for dining with us

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ShoppingBag, ChevronRight, Info, Heart, Flame, Star, Instagram, Twitter, Facebook, Mail } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Info, Heart, Flame, Star, Mail } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
+import { SocialLinks } from './components/SocialLinks';
 
 export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
    store,
@@ -24,15 +25,13 @@ export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
 
    return (
       <div className="min-h-screen bg-[#1A1817] text-[#F5F2ED] font-sans selection:bg-[#F5F2ED] selection:text-[#1A1817]">
-         {/* Chalkboard Texture Overlay */}
+         {/* ... Texture and Header ... */}
          <div className="fixed inset-0 pointer-events-none opacity-[0.05]" 
               style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/black-linen.png")` }} />
 
-         {/* Decorative Border Frame */}
          <div className="fixed inset-4 border border-[#F5F2ED]/20 pointer-events-none z-50 hidden md:block rounded-sm" />
          <div className="fixed inset-6 border border-[#F5F2ED]/10 pointer-events-none z-50 hidden md:block rounded-sm" />
 
-         {/* Elegant Header with Unified Navigation */}
          <header className={`fixed top-0 inset-x-0 z-40 px-6 transition-all duration-700 ${
             isScrolled ? 'bg-[#1A1817]/95 backdrop-blur-md py-6 border-b border-[#F5F2ED]/10' : 'bg-transparent py-12'
          }`}>
@@ -47,7 +46,6 @@ export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
                   )}
                   
                   <div className="relative inline-block px-12 py-2">
-                     {/* Wreath Ornaments */}
                      {!isScrolled && (
                         <>
                            <div className="absolute -left-4 top-1/2 -translate-y-1/2 text-3xl opacity-40">🌿</div>
@@ -85,7 +83,11 @@ export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
                         >
                            {cat}
                            {activeCategory === cat && (
-                              <motion.div layoutId="premium-nav" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#F5F2ED]" />
+                              <motion.div 
+                                 initial={{ scaleX: 0, opacity: 0 }}
+                                 animate={{ scaleX: 1, opacity: 1 }}
+                                 className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#F5F2ED] origin-left" 
+                              />
                            )}
                         </button>
                      ))}
@@ -112,7 +114,6 @@ export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
                      </div>
                   </div>
 
-                  {/* 3-Column Grid for Items */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16">
                      {items.map((product) => {
                         const isOutOfStock = product.is_out_of_stock;
@@ -168,7 +169,6 @@ export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
                      })}
                   </div>
 
-                  {/* Section Images - 3 Column Grid at bottom of section */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
                      {items.filter(i => i.image_url).slice(0, 3).map((product, idx) => (
                         <div key={`img-${product.id}`} className="aspect-[4/3] overflow-hidden rounded-sm relative group/img">
@@ -184,17 +184,12 @@ export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
             ))}
          </main>
 
-         {/* Footer with Social Links */}
          <footer className="mt-32 border-t border-[#F5F2ED]/10 bg-black/20 backdrop-blur-sm">
             <div className="max-w-6xl mx-auto px-6 py-20">
                <div className="grid grid-cols-1 md:grid-cols-3 gap-16 items-center text-center">
                   <div className="space-y-4">
                      <p className="text-[10px] uppercase tracking-[0.5em] text-[#F5F2ED]/40">Follow Our Journey</p>
-                     <div className="flex items-center justify-center gap-6">
-                        <Instagram className="size-5 hover:text-white cursor-pointer transition-colors" />
-                        <Twitter className="size-5 hover:text-white cursor-pointer transition-colors" />
-                        <Facebook className="size-5 hover:text-white cursor-pointer transition-colors" />
-                     </div>
+                     <SocialLinks settings={settings} className="flex items-center justify-center gap-6 text-[#F5F2ED]/60" iconClassName="size-5 hover:text-white transition-colors" />
                   </div>
 
                   <div className="flex flex-col items-center gap-4">

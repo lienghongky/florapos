@@ -4,12 +4,16 @@
  */
 export class OrderCreatedEvent {
     store_id: string;
+    store_name?: string;
     order_id: string;
     order_number: string;
     grand_total: number;
     staff_name: string;
     item_count: number;
     payment_method: string;
+    tags?: string;
+    customer_name?: string;
+    customer_phone?: string;
     items: {
         name: string;
         quantity: number;

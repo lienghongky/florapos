@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Store, ShoppingBag, Plus, ChevronRight, Info, MapPin, Clock } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
+import { EMenuFooter } from './components/EMenuFooter';
 
 export const ModernTemplate: React.FC<EMenuTemplateProps> = ({
   store,
@@ -167,6 +168,8 @@ export const ModernTemplate: React.FC<EMenuTemplateProps> = ({
           </section>
         ))}
       </main>
+    
+      <EMenuFooter store={store} settings={settings} />
     </div>
   );
 };

@@ -239,7 +239,7 @@ export class OrdersService {
 
             const finalOrder = await manager.findOne(Order, {
                 where: { id: savedOrder.id },
-                relations: ['items', 'items.addons', 'items.product', 'items.variant', 'staff'],
+                relations: ['items', 'items.addons', 'items.product', 'items.variant', 'staff', 'store'],
             });
 
             return finalOrder as any;
@@ -248,12 +248,16 @@ export class OrdersService {
         // Emit event for Telegram notifications (fire-and-forget, non-blocking)
         this.eventEmitter.emit('order.created', new OrderCreatedEvent({
             store_id: createDto.store_id,
+            store_name: result.store?.name || 'FloraPos Store',
             order_id: result.id,
             order_number: result.order_number,
             grand_total: Number(result.grand_total),
             staff_name: salespersonName,
             item_count: createDto.items.length,
             payment_method: createDto.payment_method || 'N/A',
+            tags: result.tags,
+            customer_name: result.customer_name,
+            customer_phone: result.customer_phone,
             items: result.items.map((item: any) => {
                 const options = [];
                 if (item.variant) options.push(item.variant.name);

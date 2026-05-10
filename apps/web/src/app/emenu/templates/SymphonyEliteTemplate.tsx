@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, ChevronRight, Info, Star, Instagram, Facebook, MapPin, Phone, Clock, ArrowRight, Twitter, Globe } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Info, Star, MapPin, Phone, Clock, ArrowRight } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
+import { SocialLinks } from './components/SocialLinks';
 
 export const SymphonyEliteTemplate: React.FC<EMenuTemplateProps> = ({
+// ... existing props ...
    store,
    settings,
    products,
@@ -31,7 +33,7 @@ export const SymphonyEliteTemplate: React.FC<EMenuTemplateProps> = ({
 
    return (
       <div className="min-h-screen bg-[#050505] text-[#F5F5F5] font-sans selection:bg-[#C5A059] selection:text-black">
-         {/* Minimalist Premium Header */}
+         {/* ... Header and Hero ... */}
          <header className={`fixed top-0 inset-x-0 z-50 px-8 transition-all duration-700 ${
             isScrolled ? 'bg-black/80 backdrop-blur-2xl py-4 border-b border-white/5' : 'bg-transparent py-8'
          }`}>
@@ -159,9 +161,13 @@ export const SymphonyEliteTemplate: React.FC<EMenuTemplateProps> = ({
                      }`}
                   >
                      {cat}
-                     {activeCategory === cat && (
-                        <motion.div layoutId="symphony-nav" className="absolute -bottom-1 left-0 right-0 h-px bg-[#C5A059]" />
-                     )}
+                        {activeCategory === cat && (
+                           <motion.div 
+                              initial={{ scaleX: 0, opacity: 0 }}
+                              animate={{ scaleX: 1, opacity: 1 }}
+                              className="absolute -bottom-1 left-0 right-0 h-px bg-[#C5A059] origin-left" 
+                           />
+                        )}
                   </button>
                ))}
             </div>
@@ -256,29 +262,7 @@ export const SymphonyEliteTemplate: React.FC<EMenuTemplateProps> = ({
                </div>
 
                <div className="pt-24 flex flex-col items-center gap-8">
-                  <div className="flex items-center gap-8 text-white/20">
-                     {settings.social_links?.instagram && (
-                        <a href={settings.social_links.instagram} target="_blank" rel="noopener noreferrer">
-                           <Instagram className="size-5 hover:text-[#C5A059] transition-colors cursor-pointer" />
-                        </a>
-                     )}
-                     {settings.social_links?.facebook && (
-                        <a href={settings.social_links.facebook} target="_blank" rel="noopener noreferrer">
-                           <Facebook className="size-5 hover:text-[#C5A059] transition-colors cursor-pointer" />
-                        </a>
-                     )}
-                     {settings.social_links?.twitter && (
-                        <a href={settings.social_links.twitter} target="_blank" rel="noopener noreferrer">
-                           <Twitter className="size-5 hover:text-[#C5A059] transition-colors cursor-pointer" />
-                        </a>
-                     )}
-                     {settings.social_links?.website && (
-                        <a href={settings.social_links.website} target="_blank" rel="noopener noreferrer">
-                           <Globe className="size-5 hover:text-[#C5A059] transition-colors cursor-pointer" />
-                        </a>
-                     )}
-                     <Star className="size-5 hover:text-[#C5A059] transition-colors cursor-pointer" />
-                  </div>
+                  <SocialLinks settings={settings} className="flex items-center gap-8 text-white/20" iconClassName="size-5 hover:text-[#C5A059] transition-colors" />
                   <p className="text-[10px] uppercase tracking-[0.3em] text-white/10 italic">Crafted with Excellence by FloraPos Elite</p>
                </div>
             </div>

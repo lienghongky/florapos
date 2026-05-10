@@ -61,6 +61,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
   const [note, setNote] = useState('');
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [address, setAddress] = useState('');
+  const [tags, setTags] = useState('');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   // ── Price calculations (pure derivations — no setState during render) ──────
@@ -119,6 +120,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
         delivery_fee: serviceType === 'delivery' ? deliveryFee : undefined,
         customer_name: customerName || undefined,
         customer_phone: customerPhone || undefined,
+        tags: tags || undefined,
         exchange_rate: selectedStore.exchange_rate || 4100,
         tax_rate: (selectedStore?.enable_tax !== false) ? (selectedStore?.tax_rate || 0) : 0,
       };
@@ -130,6 +132,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
       // Reset form
       setCustomerName('');
       setCustomerPhone('');
+      setTags('');
       setShowCheckoutModal(false);
       setNote('');
       setAddress('');
@@ -277,6 +280,16 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                 value={customerPhone}
                 autoComplete="tel"
                 onChange={(e) => setCustomerPhone(e.target.value)}
+                className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
+              />
+            </div>
+            <div className="relative">
+              <ScanLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Table / Tag (e.g. Table 5)"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
                 className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
               />
             </div>

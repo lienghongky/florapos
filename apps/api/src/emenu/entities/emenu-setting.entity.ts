@@ -46,6 +46,7 @@ export class EmenuSetting {
         facebook?: string;
         twitter?: string;
         tiktok?: string;
+        telegram?: string;
         website?: string;
     };
 

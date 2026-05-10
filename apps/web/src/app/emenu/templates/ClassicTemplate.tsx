@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Store, Plus, ChevronRight, MapPin, Clock } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
+import { EMenuFooter } from './components/EMenuFooter';
 
 export const ClassicTemplate: React.FC<EMenuTemplateProps> = ({
   store,
@@ -24,7 +25,7 @@ export const ClassicTemplate: React.FC<EMenuTemplateProps> = ({
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
-      {/* Elegant Header */}
+      {/* ... Hero and categories ... */}
       <div className="relative h-[40vh] min-h-[300px] overflow-hidden">
         {store.banner_image ? (
           <img src={store.banner_image} alt="Banner" className="w-full h-full object-cover opacity-80" />
@@ -156,6 +157,8 @@ export const ClassicTemplate: React.FC<EMenuTemplateProps> = ({
           </section>
         ))}
       </main>
+
+      <EMenuFooter store={store} settings={settings} />
     </div>
   );
 };

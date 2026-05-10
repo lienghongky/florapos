@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ShoppingBag, ChevronRight, Info, Star, Instagram, Facebook, Twitter, Globe, Download, Apple, Play } from 'lucide-react';
+import { ShoppingBag, Star, Download, Apple, Play } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
+import { SocialLinks } from './components/SocialLinks';
 
 export const MarbleLuxuryTemplate: React.FC<EMenuTemplateProps> = ({
    store,
@@ -24,7 +25,7 @@ export const MarbleLuxuryTemplate: React.FC<EMenuTemplateProps> = ({
 
    return (
       <div className="min-h-screen bg-[#0A1A14] text-white selection:bg-emerald-500 selection:text-white">
-         {/* Green Marble Background Texture */}
+         {/* ... Texture and Header ... */}
          <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-[#0A1A14] via-[#0D2B20] to-[#0A1A14]" />
             <div className="absolute inset-0 opacity-20 mix-blend-overlay" 
@@ -213,28 +214,11 @@ export const MarbleLuxuryTemplate: React.FC<EMenuTemplateProps> = ({
                   </p>
                </div>
 
-               <div className="flex flex-wrap justify-center gap-12 text-[11px] font-black uppercase tracking-[0.3em] text-white/30">
-                  {settings.social_links?.instagram && (
-                     <a href={settings.social_links.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors flex items-center gap-3">
-                        <Instagram className="size-4" /> Instagram
-                     </a>
-                  )}
-                  {settings.social_links?.facebook && (
-                     <a href={settings.social_links.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors flex items-center gap-3">
-                        <Facebook className="size-4" /> Facebook
-                     </a>
-                  )}
-                  {settings.social_links?.twitter && (
-                     <a href={settings.social_links.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors flex items-center gap-3">
-                        <Twitter className="size-4" /> Twitter
-                     </a>
-                  )}
-                  {settings.social_links?.website && (
-                     <a href={settings.social_links.website} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors flex items-center gap-3">
-                        <Globe className="size-4" /> Website
-                     </a>
-                  )}
-                  <a href="#" className="hover:text-emerald-400 transition-colors flex items-center gap-3"><Download className="size-4" /> Download App</a>
+               <div className="flex flex-col items-center gap-8">
+                  <SocialLinks settings={settings} className="flex flex-wrap justify-center gap-12 text-[11px] font-black uppercase tracking-[0.3em] text-white/30" iconClassName="size-4 hover:text-emerald-400 transition-colors" />
+                  <div className="flex flex-wrap justify-center gap-12 text-[11px] font-black uppercase tracking-[0.3em] text-white/30">
+                     <a href="#" className="hover:text-emerald-400 transition-colors flex items-center gap-3"><Download className="size-4" /> Download App</a>
+                  </div>
                </div>
 
                <div className="flex items-center gap-8 pt-16 border-t border-white/5 w-full justify-between opacity-30">

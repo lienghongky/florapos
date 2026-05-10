@@ -20,6 +20,7 @@ export interface EmenuSetting {
     facebook?: string;
     twitter?: string;
     tiktok?: string;
+    telegram?: string;
     website?: string;
   };
   phone_numbers: string[];

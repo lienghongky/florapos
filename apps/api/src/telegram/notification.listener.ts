@@ -136,26 +136,46 @@ export class NotificationListener {
 
     private formatOrderNotification(event: OrderCreatedEvent): string {
         const total = Number(event.grand_total).toFixed(2);
+        const storeName = event.store_name || 'Store';
         
         const itemRows = event.items.map((item, index) => {
-            let row = `${index + 1}. <b>${item.name}</b> x ${item.quantity}  ($${Number(item.unit_price).toFixed(2)})`;
+            let row = `${index + 1}. 📦 <b>${item.name}</b>\n   └─ ${item.quantity} x $${Number(item.unit_price).toFixed(2)}`;
             if (item.options && item.options.length > 0) {
-                const optionsList = item.options.map(opt => `   • ${opt}`).join('\n');
+                const optionsList = item.options.map(opt => `      • ${opt}`).join('\n');
                 row += `\n${optionsList}`;
             }
             return row;
         }).join('\n\n');
         
-        return [
-            `🧾 <b>New Order #${event.order_number}</b>`,
+        const lines = [
+            `🏪 <b>${storeName.toUpperCase()}</b>`,
+            `✨ <b>NEW ORDER #${event.order_number}</b>`,
+            `━━━━━━━━━━━━━━━━━━`,
             ``,
             itemRows,
             ``,
-            `💰 Total: <b>$${total}</b>`,
-            `👤 Staff: ${event.staff_name}`,
-            `💳 Payment: ${event.payment_method}`,
-            ``,
-            `<i>— FloraPos Notification</i>`,
-        ].join('\n');
+            `━━━━━━━━━━━━━━━━━━`,
+            `💰 <b>TOTAL: $${total}</b>`,
+            `━━━━━━━━━━━━━━━━━━`,
+            `👤 <b>Staff:</b> ${event.staff_name}`,
+            `💳 <b>Payment:</b> ${event.payment_method}`,
+        ];
+
+        if (event.tags) {
+            lines.push(`📍 <b>Table/Tag:</b> ${event.tags}`);
+        }
+
+        if (event.customer_name) {
+            lines.push(`👤 <b>Customer:</b> ${event.customer_name}`);
+        }
+        
+        if (event.customer_phone) {
+            lines.push(`📞 <b>Phone:</b> ${event.customer_phone}`);
+        }
+
+        lines.push(``);
+        lines.push(`<i>🚀 Powered by FloraPos</i>`);
+
+        return lines.join('\n');
     }
 }

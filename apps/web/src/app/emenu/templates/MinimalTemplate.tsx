@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ShoppingBag, ChevronRight, Info } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
+import { EMenuFooter } from './components/EMenuFooter';
 
 export const MinimalTemplate: React.FC<EMenuTemplateProps> = ({
    store,
@@ -60,7 +61,11 @@ export const MinimalTemplate: React.FC<EMenuTemplateProps> = ({
                   >
                      {cat}
                      {activeCategory === cat && (
-                        <motion.div layoutId="minimal-nav" className="absolute bottom-0 left-0 right-0 h-px bg-[#1A1A1A]" />
+                        <motion.div 
+                           initial={{ scaleX: 0, opacity: 0 }}
+                           animate={{ scaleX: 1, opacity: 1 }}
+                           className="absolute bottom-0 left-0 right-0 h-px bg-[#1A1A1A] origin-left" 
+                        />
                      )}
                   </button>
                ))}
@@ -137,11 +142,7 @@ export const MinimalTemplate: React.FC<EMenuTemplateProps> = ({
             ))}
          </main>
 
-         <footer className="py-20 text-center border-t border-stone-50">
-            <p className="text-[10px] font-sans uppercase tracking-[0.4em] text-stone-300">
-               {store.name} — Luxury Dining Experience
-            </p>
-         </footer>
+         <EMenuFooter store={store} settings={settings} className="py-20 text-center opacity-40 font-serif tracking-widest" />
       </div>
    );
 };

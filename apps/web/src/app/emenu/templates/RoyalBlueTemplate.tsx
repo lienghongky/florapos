@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Store, Plus, ChevronRight, Crown } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
+import { EMenuFooter } from './components/EMenuFooter';
 
 // Simple SVG Kbach Pattern
 const KbachPattern = () => (
@@ -86,7 +87,11 @@ export const RoyalBlueTemplate: React.FC<EMenuTemplateProps> = ({
             >
               {cat}
               {activeCategory === cat && (
-                <motion.div layoutId="royal-nav-blue" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C5A059] shadow-[0_0_10px_#C5A059]" />
+                <motion.div 
+                   initial={{ scaleX: 0, opacity: 0 }}
+                   animate={{ scaleX: 1, opacity: 1 }}
+                   className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C5A059] shadow-[0_0_10px_#C5A059] origin-left" 
+                />
               )}
             </button>
           ))}
@@ -172,16 +177,7 @@ export const RoyalBlueTemplate: React.FC<EMenuTemplateProps> = ({
         ))}
       </main>
 
-      <footer className="py-32 flex flex-col items-center bg-[#080E1A]">
-        <div className="grid grid-cols-3 gap-8 opacity-20 mb-12">
-          <KbachPattern />
-          <Crown className="size-8 text-[#C5A059]" />
-          <KbachPattern />
-        </div>
-        <p className="text-[10px] font-black text-[#5E6A7D] uppercase tracking-[0.8em]">
-          THE ROYAL KHMER EXPERIENCE
-        </p>
-      </footer>
+      <EMenuFooter store={store} settings={settings} className="py-32 flex flex-col items-center bg-[#080E1A]" />
     </div>
   );
 };

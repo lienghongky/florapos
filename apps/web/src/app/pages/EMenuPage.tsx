@@ -30,6 +30,8 @@ import {
   Instagram,
   Facebook,
   Twitter,
+  Music2,
+  Send,
   Phone,
   ShoppingBag
 } from 'lucide-react';
@@ -114,6 +116,8 @@ export function EMenuPage() {
     instagram: '',
     facebook: '',
     twitter: '',
+    tiktok: '',
+    telegram: '',
     website: ''
   });
   const [phoneNumbers, setPhoneNumbers] = useState<string[]>([]);
@@ -124,6 +128,8 @@ export function EMenuPage() {
         instagram: settings.social_links?.instagram || '',
         facebook: settings.social_links?.facebook || '',
         twitter: settings.social_links?.twitter || '',
+        tiktok: settings.social_links?.tiktok || '',
+        telegram: settings.social_links?.telegram || '',
         website: settings.social_links?.website || ''
       });
       setPhoneNumbers(settings.phone_numbers || []);
@@ -506,6 +512,32 @@ export function EMenuPage() {
                               placeholder="https://twitter.com/yourstore"
                               value={socialLinks.twitter}
                               onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
+                              className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-brand-primary/5 focus:border-brand-primary outline-none transition-all font-medium text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">TikTok URL</label>
+                          <div className="relative">
+                            <Music2 className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                            <input 
+                              type="text" 
+                              placeholder="https://tiktok.com/@yourstore"
+                              value={socialLinks.tiktok}
+                              onChange={(e) => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
+                              className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-brand-primary/5 focus:border-brand-primary outline-none transition-all font-medium text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Telegram URL</label>
+                          <div className="relative">
+                            <Send className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                            <input 
+                              type="text" 
+                              placeholder="https://t.me/yourstore"
+                              value={socialLinks.telegram}
+                              onChange={(e) => setSocialLinks({ ...socialLinks, telegram: e.target.value })}
                               className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-brand-primary/5 focus:border-brand-primary outline-none transition-all font-medium text-sm"
                             />
                           </div>

@@ -53,6 +53,7 @@ export class UpdateEmenuSettingDto {
         facebook?: string;
         twitter?: string;
         tiktok?: string;
+        telegram?: string;
         website?: string;
     };
 
