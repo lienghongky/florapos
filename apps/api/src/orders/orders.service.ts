@@ -40,7 +40,7 @@ export class OrdersService {
         if (createDto.order_type !== OrderType.EMENU) {
             await this.storesService.findOne(userId, createDto.store_id);
         }
-        
+
         const user = userId ? await this.userRepository.findOne({ where: { id: userId } }) : null;
         const salespersonName = user ? (user.full_name || user.email) : 'Customer (E-Menu)';
 
@@ -65,19 +65,19 @@ export class OrdersService {
                 const addonsData = [];
                 if (itemDto.addons) {
                     for (const addon of itemDto.addons) {
-                         const addonPrice = Number(addon.price);
-                         itemSubtotal += addonPrice * itemDto.quantity;
-                         addonsData.push({
-                             name_snapshot: addon.name_snapshot,
-                             price: addonPrice,
-                             addon_id: addon.addon_id,
-                             modifier_group_id: addon.modifier_group_id,
-                             modifier_option_id: addon.modifier_option_id,
-                             quantity: 1
-                         });
+                        const addonPrice = Number(addon.price);
+                        itemSubtotal += addonPrice * itemDto.quantity;
+                        addonsData.push({
+                            name_snapshot: addon.name_snapshot,
+                            price: addonPrice,
+                            addon_id: addon.addon_id,
+                            modifier_group_id: addon.modifier_group_id,
+                            modifier_option_id: addon.modifier_option_id,
+                            quantity: 1
+                        });
                     }
                 }
-                
+
                 subtotal += itemSubtotal;
 
                 orderItems.push({
@@ -100,23 +100,23 @@ export class OrdersService {
             const grandTotal = subtotal + taxAmount + deliveryFee - discountAmount;
 
             const { items, ...orderData } = createDto;
-            
+
             // Generate sequential order number with a lock to prevent race conditions
-            const store = await manager.findOne(Store, { 
+            const store = await manager.findOne(Store, {
                 where: { id: createDto.store_id },
                 lock: { mode: 'pessimistic_write' }
             });
-            
+
             const nextNum = store?.invoice_next_number || 1;
             const prefix = store?.invoice_prefix || '';
             let orderNumber = `${prefix}${nextNum.toString().padStart(5, '0')}`;
 
             // Collision check: if the number already exists, append a unique suffix
             // We use a random suffix to ensure uniqueness in the DB while keeping the display version clean
-            const existingOrder = await manager.findOne(Order, { 
-                where: { store_id: createDto.store_id, order_number: orderNumber } 
+            const existingOrder = await manager.findOne(Order, {
+                where: { store_id: createDto.store_id, order_number: orderNumber }
             });
-            
+
             if (existingOrder) {
                 const suffix = Math.random().toString(36).substring(2, 6); // 4-char random string
                 orderNumber = `${orderNumber}$$${suffix}`;
@@ -155,17 +155,17 @@ export class OrdersService {
                 const savedItem = await manager.save(item);
 
                 if (itemData.addonsData.length > 0) {
-                     const addons = itemData.addonsData.map((a: any) => manager.create(OrderItemAddon, {
-                          order_item_id: savedItem.id,
-                          ...a
-                     }));
-                     await manager.save(addons);
+                    const addons = itemData.addonsData.map((a: any) => manager.create(OrderItemAddon, {
+                        order_item_id: savedItem.id,
+                        ...a
+                    }));
+                    await manager.save(addons);
                 }
 
                 // Inventory Deduction Logic
                 const product = itemData.product;
                 const isEmenuPending = order.status === OrderStatus.EMENU_PENDING || order.order_type === OrderType.EMENU;
-                
+
                 if (product.track_inventory && !isEmenuPending) {
                     // Check if it's a composite product or simple
                     if (product.recipe && product.recipe.length > 0) {
@@ -319,13 +319,13 @@ export class OrdersService {
         }
 
         const p = Math.max(1, Number(page) || 1);
-        const l = Math.max(1, Number(limit) || 10);
+        const l = Number(limit) === 0 ? undefined : (Math.max(1, Number(limit) || 10));
 
         const [items, count] = await this.orderRepository.findAndCount({
             where,
             relations: ['items', 'items.addons', 'items.product', 'staff'],
             order: { created_at: 'DESC' },
-            skip: (p - 1) * l,
+            skip: (p - 1) * (l || 1),
             take: l
         });
 
@@ -334,13 +334,13 @@ export class OrdersService {
 
     async getStats(userId: string, storeId: string, startDate?: string, endDate?: string): Promise<any> {
         const where: any = { store_id: storeId, status: OrderStatus.COMPLETED };
-        
+
         const now = new Date();
         const start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), 1);
-        
+
         // Default to end of month for the chart/range if not provided
         const end = endDate ? new Date(endDate) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        
+
         if (startDate) start.setHours(0, 0, 0, 0);
         if (endDate) end.setHours(23, 59, 59, 999);
         else end.setHours(23, 59, 59, 999); // Always end at end of day
@@ -361,7 +361,7 @@ export class OrdersService {
 
         const totalRevenue = currentOrders.reduce((sum, o) => sum + Number(o.grand_total), 0);
         const prevRevenue = previousOrders.reduce((sum, o) => sum + Number(o.grand_total), 0);
-        
+
         const totalOrders = currentOrders.length;
         const prevOrders = previousOrders.length;
 
@@ -371,7 +371,7 @@ export class OrdersService {
         // Daily chart data
         const chartDataMap: Record<string, number> = {};
         const days = Math.floor(duration / (1000 * 60 * 60 * 24)) + 1;
-        
+
         for (let i = 0; i < days; i++) {
             const d = new Date(start.getTime() + (i * 1000 * 60 * 60 * 24));
             const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -391,12 +391,12 @@ export class OrdersService {
         todayStart.setHours(0, 0, 0, 0);
         const todayEnd = new Date();
         todayEnd.setHours(23, 59, 59, 999);
-        
+
         const todayOrdersList = currentOrders.filter(o => {
             const d = new Date(o.created_at);
             return d >= todayStart && d <= todayEnd;
         });
-        
+
         const todayRevenue = todayOrdersList.reduce((sum, o) => sum + Number(o.grand_total), 0);
         const todayOrders = todayOrdersList.length;
 
@@ -454,7 +454,7 @@ export class OrdersService {
 
         const weekdayMap: Record<string, number> = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
         const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        
+
         weekOrders.forEach(o => {
             const dName = weekdayNames[new Date(o.created_at).getDay()];
             if (weekdayMap[dName] !== undefined) weekdayMap[dName] += Number(o.grand_total);
@@ -485,16 +485,16 @@ export class OrdersService {
     }
 
     async getRecent(userId: string, storeId: string, limit: number = 5): Promise<Order[]> {
-         return this.orderRepository.find({
-             where: { store_id: storeId },
-             order: { created_at: 'DESC' },
-             take: limit,
-             relations: ['items', 'items.product']
-         });
+        return this.orderRepository.find({
+            where: { store_id: storeId },
+            order: { created_at: 'DESC' },
+            take: limit,
+            relations: ['items', 'items.product']
+        });
     }
 
     async findOne(userId: string, id: string): Promise<Order> {
-          return this.orderRepository.findOneOrFail({ where: { id }, relations: ['items', 'items.addons', 'items.product']});
+        return this.orderRepository.findOneOrFail({ where: { id }, relations: ['items', 'items.addons', 'items.product'] });
     }
 
     async updateStatus(userId: string, id: string, updateDto: UpdateOrderStatusDto): Promise<Order> {
@@ -510,8 +510,8 @@ export class OrdersService {
             const newStatus = updateDto.status as OrderStatus;
 
             // If changing from EMENU_PENDING to PENDING/PREPARING/COMPLETED, deduct inventory now
-            if (oldStatus === OrderStatus.EMENU_PENDING && 
-               (newStatus === OrderStatus.PENDING || newStatus === OrderStatus.PREPARING || newStatus === OrderStatus.COMPLETED)) {
+            if (oldStatus === OrderStatus.EMENU_PENDING &&
+                (newStatus === OrderStatus.PENDING || newStatus === OrderStatus.PREPARING || newStatus === OrderStatus.COMPLETED)) {
                 for (const item of order.items) {
                     const product = item.product;
                     if (product && product.track_inventory) {
@@ -581,8 +581,8 @@ export class OrdersService {
 
             // Restoration Logic: If status changes TO cancelled FROM PENDING, PREPARING, READY, OR COMPLETED 
             // (but NOT from EMENU_PENDING since it never deducted inventory)
-            if (newStatus === OrderStatus.CANCELLED && 
-               (oldStatus === OrderStatus.PENDING || oldStatus === OrderStatus.PREPARING || oldStatus === OrderStatus.READY || oldStatus === OrderStatus.COMPLETED)) {
+            if (newStatus === OrderStatus.CANCELLED &&
+                (oldStatus === OrderStatus.PENDING || oldStatus === OrderStatus.PREPARING || oldStatus === OrderStatus.READY || oldStatus === OrderStatus.COMPLETED)) {
                 for (const item of order.items) {
                     const product = item.product;
                     if (product && product.track_inventory) {
@@ -654,16 +654,16 @@ export class OrdersService {
     }
 
     async updatePaymentStatus(userId: string, id: string, updateDto: UpdatePaymentStatusDto): Promise<Order> {
-       const order = await this.findOne(userId, id);
-       if (!order) throw new NotFoundException('Order not found');
+        const order = await this.findOne(userId, id);
+        if (!order) throw new NotFoundException('Order not found');
 
-       if (updateDto.payment_method) {
-           order.payment_method = updateDto.payment_method;
-       }
+        if (updateDto.payment_method) {
+            order.payment_method = updateDto.payment_method;
+        }
 
-       // We no longer auto-transition to COMPLETED here.
-       // The staff will manually set the status when the order is physically finished.
+        // We no longer auto-transition to COMPLETED here.
+        // The staff will manually set the status when the order is physically finished.
 
-       return this.orderRepository.save(order);
+        return this.orderRepository.save(order);
     }
 }

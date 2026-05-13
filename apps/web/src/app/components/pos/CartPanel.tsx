@@ -150,13 +150,12 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="flex h-full flex-col rounded-none md:rounded-3xl bg-white p-4 md:p-6 shadow-sm">
+      <div className={`flex h-full flex-col rounded-none md:rounded-3xl bg-white px-4 pb-4 md:px-6 md:pb-6 shadow-sm ${!isMobile ? 'overflow-y-auto scrollbar-hide' : ''}`}>
         {/* Header */}
-        <div className="mb-6">
-          <div className="mb-6 flex items-start justify-between">
+        <div className={`mb-6 ${!isMobile ? 'sticky top-0 bg-white z-10 -mx-4 px-4 pt-4 md:pt-6 pb-2' : ''}`}>
+          <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-bold">New Order</h2>
-              <p className="text-sm text-muted-foreground">#ORDER-2458</p>
             </div>
             <button
               onClick={() => setShowOrderList(true)}
@@ -171,7 +170,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
         <OrderListModal isOpen={showOrderList} onClose={() => setShowOrderList(false)} />
 
         {/* Cart Items */}
-        <div className="flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-hide">
+        <div className={`${isMobile ? 'flex-1 overflow-y-auto pr-2 scrollbar-hide' : ''} space-y-4`}>
           <AnimatePresence mode="popLayout">
             {cart.map(item => {
               const variantPrice = item.selectedVariant ? Number(item.selectedVariant.price_modifier) : 0;
@@ -261,27 +260,29 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
         <div className="mt-6 border-t border-dashed border-border pt-6">
           {/* Customer Details */}
           <div className="mb-6 space-y-3">
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Customer Name"
-                value={customerName}
-                autoComplete="name"
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
-              />
-            </div>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Phone Number"
-                value={customerPhone}
-                autoComplete="tel"
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Customer Name"
+                  value={customerName}
+                  autoComplete="name"
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
+                />
+              </div>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Phone Number"
+                  value={customerPhone}
+                  autoComplete="tel"
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
+                />
+              </div>
             </div>
             <div className="relative">
               <ScanLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

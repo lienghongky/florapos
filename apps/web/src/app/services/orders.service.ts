@@ -17,8 +17,8 @@ export const ordersService = {
     if (startDate) query.append('startDate', startDate);
     if (endDate) query.append('endDate', endDate);
     if (search) query.append('search', search);
-    if (page) query.append('page', page.toString());
-    if (limit) query.append('limit', limit.toString());
+    if (page !== undefined) query.append('page', page.toString());
+    if (limit !== undefined) query.append('limit', limit.toString());
     return request(`/orders?${query.toString()}`, { token });
   },
 

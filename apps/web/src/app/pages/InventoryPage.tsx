@@ -67,9 +67,9 @@ export function InventoryPage() {
   const combinedItems = [
     ...inventoryItems.map(item => {
       // Find a product that corresponds to this inventory item (either by name match or recipe link)
-      const ownerProduct = (products || []).find(p => p.name === item.name) || 
-                          (products || []).find(p => p.recipe?.some((r: any) => r.inventory_item_id === item.id));
-      
+      const ownerProduct = (products || []).find(p => p.name === item.name) ||
+        (products || []).find(p => p.recipe?.some((r: any) => r.inventory_item_id === item.id));
+
       const categoryId = item.category_id || ownerProduct?.category_id;
       const itemTags = (item.tags && item.tags.length > 0) ? item.tags : (ownerProduct?.tags || []);
 
@@ -116,9 +116,9 @@ export function InventoryPage() {
     const tagMatch = (p.tags || []).some((tag: string) => tag.toLowerCase().includes(searchStr));
     const categoryMatch = (p.category || '').toLowerCase().includes(searchStr);
     const matchesSearch = nameMatch || skuMatch || barcodeMatch || tagMatch || categoryMatch;
-    
+
     const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
-    
+
     return matchesSearch && matchesCategory;
   }).sort((a: any, b: any) => {
     const aStock = Number(a.current_stock) || 0;
@@ -160,7 +160,7 @@ export function InventoryPage() {
       const cost = Number(p.average_cost) || Number(p.cost_price) || Number(p.selling_price) || 0;
       const stock = Number(p.current_stock) || 0;
       const value = cost * stock;
-      
+
       let status = '🟢 In Stock';
       if (stock === 0) status = '🔴 Out of Stock';
       else if (!p.isComposite && stock <= (Number(p.min_stock_threshold) || 10)) status = '🟡 Low Stock';
@@ -234,8 +234,8 @@ export function InventoryPage() {
 
   return (
     <AnimatedPage className="space-y-6">
-      <PageHeader 
-        title="Inventory" 
+      <PageHeader
+        title="Inventory"
         subtitle="Manage stock levels and track value"
         action={
           <>
@@ -243,15 +243,15 @@ export function InventoryPage() {
               <Upload className="size-4" />
               Import
             </button>
-            <button 
+            <button
               onClick={() => setShowQuickAdjust(true)}
               className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 active:scale-95"
             >
               <Zap className="size-4" />
               Quick Adjust
             </button>
-            <button 
-              onClick={handleExport} 
+            <button
+              onClick={handleExport}
               className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-green-600/20 transition-all hover:bg-green-700 active:scale-95"
             >
               <Download className="size-4" />
@@ -328,7 +328,7 @@ export function InventoryPage() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="h-10 rounded-lg border border-border bg-muted/30 pl-9 pr-8 text-sm outline-none focus:border-primary/50"
+              className="h-10 rounded-lg border border-border bg-muted/30 pl-8 pr-2 text-sm outline-none focus:border-primary/50"
             >
               <option value="All">All Categories</option>
               {categories.map(cat => (
@@ -341,7 +341,7 @@ export function InventoryPage() {
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
-              className="h-10 rounded-lg border border-border bg-muted/30 pl-9 pr-8 text-sm outline-none focus:border-primary/50"
+              className="h-10 rounded-lg border border-border bg-muted/30 pl-8 pr-2 text-sm outline-none focus:border-primary/50"
             >
               <option value="name-asc">Name (A-Z)</option>
               <option value="name-desc">Name (Z-A)</option>
@@ -443,7 +443,7 @@ export function InventoryPage() {
                           const dep = inventoryItems.find(i => i.id === r.inventory_item_id);
                           return dep ? (
                             <span key={r.inventory_item_id} className="text-xs text-muted-foreground flex items-center gap-1.5 justify-end">
-                              <span className="font-medium text-gray-700">{r.quantity_required}x</span> {dep.name} 
+                              <span className="font-medium text-gray-700">{r.quantity_required}x</span> {dep.name}
                               <span className="text-[10px] opacity-70 bg-muted px-1 rounded">({dep.current_stock})</span>
                             </span>
                           ) : null;
@@ -499,7 +499,7 @@ export function InventoryPage() {
             >
               <ChevronLeft className="size-4" />
             </button>
-            
+
             <div className="flex items-center gap-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
                 // Only show a few page numbers if there are many
@@ -511,11 +511,10 @@ export function InventoryPage() {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`size-9 rounded-lg text-sm font-bold transition-all ${
-                      currentPage === page 
-                        ? 'bg-brand-primary text-white shadow-md' 
-                        : 'border border-border bg-white text-muted-foreground hover:bg-muted'
-                    }`}
+                    className={`size-9 rounded-lg text-sm font-bold transition-all ${currentPage === page
+                      ? 'bg-brand-primary text-white shadow-md'
+                      : 'border border-border bg-white text-muted-foreground hover:bg-muted'
+                      }`}
                   >
                     {page}
                   </button>
@@ -613,9 +612,9 @@ export function InventoryPage() {
 
       {/* History Drawer */}
       {/* Quick Adjust Modal */}
-      <QuickAdjustModal 
-        isOpen={showQuickAdjust} 
-        onClose={() => setShowQuickAdjust(false)} 
+      <QuickAdjustModal
+        isOpen={showQuickAdjust}
+        onClose={() => setShowQuickAdjust(false)}
       />
 
       {/* Delete Confirmation Modal */}

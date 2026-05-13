@@ -102,7 +102,7 @@ export function EMenuPage() {
 
       // 2. Decorative Blobs (White)
       ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      
+
       // Top Left Blob
       ctx.beginPath();
       ctx.arc(0, 0, 450, 0, Math.PI * 2);
@@ -110,7 +110,7 @@ export function EMenuPage() {
       ctx.beginPath();
       ctx.arc(250, 50, 350, 0, Math.PI * 2);
       ctx.fill();
-      
+
       // Bottom Right Blob
       ctx.beginPath();
       ctx.arc(W, H, 550, 0, Math.PI * 2);
@@ -122,28 +122,28 @@ export function EMenuPage() {
       // 3. Header "SCAN ME"
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      
+
       // White shadow/stroke effect for impact
       ctx.font = "900 180px system-ui, -apple-system, sans-serif";
       ctx.strokeStyle = "white";
       ctx.lineWidth = 24;
       ctx.lineJoin = "round";
       ctx.strokeText("SCAN ME", W / 2, 350);
-      
+
       ctx.fillStyle = "#0f172a"; // Deep Slate
       ctx.fillText("SCAN ME", W / 2, 350);
 
       // 4. Vertical Text "SCAN & ORDER NOW"
       ctx.font = "900 45px system-ui, -apple-system, sans-serif";
       ctx.fillStyle = "rgba(15, 23, 42, 0.7)";
-      
+
       // Left side
       ctx.save();
       ctx.translate(120, H / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.fillText("SCAN & ORDER NOW", 0, 0);
       ctx.restore();
-      
+
       // Right side
       ctx.save();
       ctx.translate(W - 120, H / 2);
@@ -155,18 +155,18 @@ export function EMenuPage() {
       const qrSize = 740;
       const qrX = (W - qrSize) / 2;
       const qrY = (H - qrSize) / 2 - 50; // Move up slightly
-      
+
       // Shadow for QR box
       ctx.shadowColor = "rgba(0,0,0,0.15)";
       ctx.shadowBlur = 60;
       ctx.shadowOffsetY = 30;
-      
+
       ctx.fillStyle = "white";
       const radius = 60;
       ctx.beginPath();
       ctx.roundRect(qrX, qrY, qrSize, qrSize, radius);
       ctx.fill();
-      
+
       ctx.shadowColor = "transparent"; // Reset shadow
 
       // 6. Draw the QR Code
@@ -175,9 +175,9 @@ export function EMenuPage() {
 
       // 7. Footer Texts
       ctx.fillStyle = "#0f172a";
-      
+
       let footerY = qrY + qrSize + 140;
-      
+
       // If tagName is provided, show it with a smaller, perfectly centered border frame
       if (tagName) {
         ctx.font = "900 60px system-ui, -apple-system, sans-serif";
@@ -187,7 +187,7 @@ export function EMenuPage() {
         const w = Math.max(textWidth + 70, 180);
         const x = (W - w) / 2;
         const y = footerY - h / 2; // Perfect vertical alignment
-        
+
         ctx.strokeStyle = "#0f172a";
         ctx.lineWidth = 4;
         ctx.beginPath();
@@ -200,7 +200,7 @@ export function EMenuPage() {
 
       ctx.font = "800 48px system-ui, -apple-system, sans-serif";
       ctx.fillText("SCAN THE QR CODE TO SEE THE MENU", W / 2, footerY);
-      
+
       ctx.font = "600 40px system-ui, -apple-system, sans-serif";
       ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
       ctx.fillText(`Welcome to ${selectedStore.name}`, W / 2, footerY + 80);
@@ -209,7 +209,7 @@ export function EMenuPage() {
       if (settings) {
         const contacts: { label: string, value: string }[] = [];
         if (settings.phone_numbers?.[0]) contacts.push({ label: "TEL", value: settings.phone_numbers[0] });
-        
+
         const sns = settings.social_links;
         if (sns?.instagram) contacts.push({ label: "IG", value: `@${sns.instagram.split('/').pop()}` });
         if (sns?.facebook) contacts.push({ label: "FB", value: `${sns.facebook.split('/').pop()}` });
@@ -218,7 +218,7 @@ export function EMenuPage() {
         if (contacts.length > 0) {
           ctx.font = "300 24px system-ui, -apple-system, sans-serif";
           ctx.fillStyle = "rgba(15, 23, 42, 0.5)";
-          
+
           const infoString = contacts.map(c => `${c.label}: ${c.value}`).join("   |   ");
           ctx.fillText(infoString, W / 2, footerY + 140);
         }
@@ -357,25 +357,75 @@ export function EMenuPage() {
   return (
     <div className="max-w-[1400px] mx-auto w-full">
       {/* Unified Editor Container */}
-      <div className="bg-white rounded-[2rem] border border-slate-200 shadow-2xl shadow-slate-200/40 overflow-hidden flex flex-col md:flex-row h-[calc(100vh-4rem)] md:h-[calc(100vh-8rem)]">
+      <div className="bg-white rounded-none md:rounded-[2rem] border-x-0 md:border border-slate-200 shadow-none md:shadow-2xl shadow-slate-200/40 overflow-visible md:overflow-hidden flex flex-col md:flex-row h-auto md:h-[calc(100vh-8rem)]">
 
         {/* Unified Sidebar */}
-        <aside className="w-full md:w-72 bg-slate-50/80 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shrink-0">
-          <div className="p-6 md:p-8 border-b border-slate-200/60">
+        <aside className="w-full md:w-72 bg-slate-50/80 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shrink-0 relative">
+          <div className="p-4 md:p-8 border-b border-slate-200/60">
             <div className="flex items-center gap-3 mb-4 md:mb-6">
               <div className="size-10 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-lg shadow-brand-primary/30">
                 <Layout className="size-6" />
               </div>
               <div>
-                <h1 className="font-bold text-slate-900 leading-tight">E-menu Editor</h1>
+                <h1 className="text-sm font-bold text-slate-900 leading-tight">E-menu Editor</h1>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Build Mode</span>
               </div>
             </div>
 
-            <nav className="flex md:flex-col gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+            {/* Mobile-only Quick Settings */}
+            <div className="md:hidden mb-6 space-y-2">
+              <div className={`rounded-xl p-3 border flex items-center justify-between transition-all ${settings?.is_enabled ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex items-center gap-2">
+                  <div className={`size-1.5 rounded-full ${settings?.is_enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                  <span className={`text-[9px] font-black uppercase tracking-widest ${settings?.is_enabled ? 'text-emerald-600' : 'text-slate-400'}`}>Live</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={!!settings?.is_enabled} onChange={(e) => handleToggleEmenu(e.target.checked)} className="sr-only peer" />
+                  <div className="w-8 h-4 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className={`rounded-xl p-3 border flex items-center justify-between transition-all ${settings?.show_prices ? 'bg-brand-primary/5 border-brand-primary/10' : 'bg-slate-50 border-slate-200'}`}>
+                  <span className={`text-[9px] font-black uppercase tracking-widest ${settings?.show_prices ? 'text-brand-primary' : 'text-slate-400'}`}>Prices</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={!!settings?.show_prices} onChange={(e) => handleTogglePrices(e.target.checked)} className="sr-only peer" />
+                    <div className="w-7 h-3.5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-brand-primary"></div>
+                  </label>
+                </div>
+                <div className={`rounded-xl p-3 border flex items-center justify-between transition-all ${settings?.allow_ordering ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-200'}`}>
+                  <span className={`text-[9px] font-black uppercase tracking-widest ${settings?.allow_ordering ? 'text-indigo-600' : 'text-slate-400'}`}>Ordering</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={!!settings?.allow_ordering} onChange={(e) => handleToggleOrdering(e.target.checked)} className="sr-only peer" />
+                    <div className="w-7 h-3.5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+              </div>
+
+              {settings?.allow_ordering && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className={`rounded-xl p-2.5 border flex items-center justify-between transition-all ${settings?.require_customer_name ? 'bg-indigo-50/50 border-indigo-100/50' : 'bg-white border-slate-100'}`}>
+                    <span className="text-[8px] font-black uppercase text-slate-400">Name</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={!!settings?.require_customer_name} onChange={(e) => handleToggleRequireName(e.target.checked)} className="sr-only peer" />
+                      <div className="w-6 h-3 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-indigo-500"></div>
+                    </label>
+                  </div>
+                  <div className={`rounded-xl p-2.5 border flex items-center justify-between transition-all ${settings?.require_customer_phone ? 'bg-indigo-50/50 border-indigo-100/50' : 'bg-white border-slate-100'}`}>
+                    <span className="text-[8px] font-black uppercase text-slate-400">Phone</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={!!settings?.require_customer_phone} onChange={(e) => handleToggleRequirePhone(e.target.checked)} className="sr-only peer" />
+                      <div className="w-6 h-3 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-indigo-500"></div>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <nav className="flex md:flex-col gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-hide sticky top-16  backdrop-blur-md md:static z-20 py-2 md:py-0 border-b border-slate-200/50 md:border-none">
               <button
                 onClick={() => setActiveTab('editor')}
-                className={`flex-1 md:w-full flex items-center justify-center md:justify-start gap-2.5 px-4 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all shrink-0 ${activeTab === 'editor' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
+                className={`flex-1 md:w-full flex items-center justify-center md:justify-start gap-2 px-3 py-2 md:px-4 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all shrink-0 ${activeTab === 'editor' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
                   }`}
               >
                 <Package className="size-4 md:size-5" />
@@ -383,7 +433,7 @@ export function EMenuPage() {
               </button>
               <button
                 onClick={() => setActiveTab('branding')}
-                className={`flex-1 md:w-full flex items-center justify-center md:justify-start gap-2.5 px-4 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all shrink-0 ${activeTab === 'branding' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
+                className={`flex-1 md:w-full flex items-center justify-center md:justify-start gap-2 px-3 py-2 md:px-4 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all shrink-0 ${activeTab === 'branding' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
                   }`}
               >
                 <Palette className="size-4 md:size-5" />
@@ -391,7 +441,7 @@ export function EMenuPage() {
               </button>
               <button
                 onClick={() => setActiveTab('publish')}
-                className={`flex-1 md:w-full flex items-center justify-center md:justify-start gap-2.5 px-4 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all shrink-0 ${activeTab === 'publish' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
+                className={`flex-1 md:w-full flex items-center justify-center md:justify-start gap-2 px-3 py-2 md:px-4 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all shrink-0 ${activeTab === 'publish' ? 'bg-white text-brand-primary shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/30'
                   }`}
               >
                 <Globe className="size-4 md:size-5" />
@@ -481,14 +531,14 @@ export function EMenuPage() {
 
         {/* Unified Content Panel */}
         <main className="flex-1 overflow-y-auto bg-white">
-          <header className="px-6 md:px-10 py-6 md:py-8 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-30 gap-4">
+          <header className="px-4 md:px-10 py-4 md:py-8 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md gap-4">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-sm md:text-2xl font-black text-slate-900 tracking-tight">
                 {activeTab === 'editor' && "Menu Builder"}
                 {activeTab === 'branding' && "Visual Styling"}
                 {activeTab === 'publish' && "Publish & Distribution"}
               </h2>
-              <p className="text-slate-400 text-sm font-medium mt-1">
+              <p className="text-slate-400 text-xs font-medium mt-1">
                 {activeTab === 'editor' && "Select and organize items for your digital menu."}
                 {activeTab === 'branding' && "Customize the aesthetic to match your brand."}
                 {activeTab === 'publish' && "Generate QR codes and access links."}
@@ -509,7 +559,7 @@ export function EMenuPage() {
             )}
           </header>
 
-          <div className="p-4 sm:p-6 md:p-10">
+          <div className="p-3 sm:p-6 md:p-10">
             {activeTab === 'editor' && (
               <div className="space-y-12 max-w-5xl">
                 {Object.entries(categorizedProducts).map(([category, items]) => (
@@ -601,7 +651,7 @@ export function EMenuPage() {
                     <div className="pt-8 border-t border-slate-200">
                       <div className="flex items-center justify-between mb-6">
                         <label className="block text-sm font-black text-slate-800 uppercase tracking-widest">Social Media & Contact</label>
-                        <button 
+                        <button
                           onClick={handleSaveContact}
                           className="px-6 py-2 bg-slate-900 text-white font-black text-xs rounded-xl shadow-lg hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2"
                         >
@@ -613,8 +663,8 @@ export function EMenuPage() {
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Instagram URL</label>
                           <div className="relative">
                             <Instagram className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               placeholder="https://instagram.com/yourstore"
                               value={socialLinks.instagram}
                               onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
@@ -626,8 +676,8 @@ export function EMenuPage() {
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Facebook URL</label>
                           <div className="relative">
                             <Facebook className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               placeholder="https://facebook.com/yourstore"
                               value={socialLinks.facebook}
                               onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
@@ -639,8 +689,8 @@ export function EMenuPage() {
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Twitter (X) URL</label>
                           <div className="relative">
                             <Twitter className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               placeholder="https://twitter.com/yourstore"
                               value={socialLinks.twitter}
                               onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
@@ -652,8 +702,8 @@ export function EMenuPage() {
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">TikTok URL</label>
                           <div className="relative">
                             <Music2 className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               placeholder="https://tiktok.com/@yourstore"
                               value={socialLinks.tiktok}
                               onChange={(e) => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
@@ -665,8 +715,8 @@ export function EMenuPage() {
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Telegram URL</label>
                           <div className="relative">
                             <Send className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               placeholder="https://t.me/yourstore"
                               value={socialLinks.telegram}
                               onChange={(e) => setSocialLinks({ ...socialLinks, telegram: e.target.value })}
@@ -678,8 +728,8 @@ export function EMenuPage() {
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Website URL</label>
                           <div className="relative">
                             <Globe className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               placeholder="https://yourwebsite.com"
                               value={socialLinks.website}
                               onChange={(e) => setSocialLinks({ ...socialLinks, website: e.target.value })}
@@ -692,7 +742,7 @@ export function EMenuPage() {
                       <div className="pt-6 border-t border-slate-200">
                         <div className="flex items-center justify-between mb-4">
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Telephone List</label>
-                          <button 
+                          <button
                             onClick={() => setPhoneNumbers([...phoneNumbers, ''])}
                             className="text-[10px] font-black text-brand-primary hover:underline flex items-center gap-1"
                           >
@@ -704,8 +754,8 @@ export function EMenuPage() {
                             <div key={idx} className="flex gap-2">
                               <div className="relative flex-1">
                                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                                <input 
-                                  type="text" 
+                                <input
+                                  type="text"
                                   value={phone}
                                   onChange={(e) => {
                                     const newPhones = [...phoneNumbers];
@@ -716,7 +766,7 @@ export function EMenuPage() {
                                   className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl font-medium text-sm"
                                 />
                               </div>
-                              <button 
+                              <button
                                 onClick={() => setPhoneNumbers(phoneNumbers.filter((_, i) => i !== idx))}
                                 className="size-12 bg-white border border-slate-200 text-slate-400 hover:text-red-500 rounded-2xl flex items-center justify-center transition-colors"
                               >
@@ -764,7 +814,7 @@ export function EMenuPage() {
                                 {sectionTemplates.map(template => {
                                   const userPlan = user?.subscription?.plan?.name?.toUpperCase() || 'STARTER';
                                   const requiredPlan = template.metadata.requiredPlan || 'STARTER';
-                                  
+
                                   const plans = ['STARTER', 'PRO', 'ELITE'];
                                   const userPlanIndex = plans.indexOf(userPlan);
                                   const requiredPlanIndex = plans.indexOf(requiredPlan);

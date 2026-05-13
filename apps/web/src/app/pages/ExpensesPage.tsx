@@ -100,7 +100,7 @@ export function ExpensesPage() {
         await Promise.all([
             refreshTransactions(filters),
             refreshExpenseCategories(),
-            refreshOrders({ ...filters, status: 'completed' })
+            refreshOrders({ ...filters, status: 'completed', limit: 0 })
         ]);
     };
 
