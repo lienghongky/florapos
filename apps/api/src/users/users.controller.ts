@@ -28,7 +28,7 @@ export class UsersController {
         const creator = req.user;
         
         // Security: Only owners can create users
-        if (creator.role !== 'owner' || creator.role !== DtoRole.OWNER) {
+        if (creator.role !== 'owner' && creator.role !== DtoRole.OWNER) {
             throw new ForbiddenException('Only owners can manage staff accounts');
         }
 
