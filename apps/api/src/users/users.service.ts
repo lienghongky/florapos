@@ -145,6 +145,10 @@ export class UsersService {
             user.full_name = updateUserDto.full_name;
         }
 
+        if (updateUserDto.language !== undefined) {
+            user.language = updateUserDto.language;
+        }
+
         return this.usersRepository.save(user);
     }
 

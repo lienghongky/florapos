@@ -83,7 +83,7 @@ import { EmenuModule } from './emenu/emenu.module';
   ],
 })
 export class AppModule implements OnModuleInit {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService) { }
 
   async onModuleInit() {
     await this.appService.seedMasterAccount();

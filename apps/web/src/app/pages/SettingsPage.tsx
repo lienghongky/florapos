@@ -13,7 +13,7 @@ import { PageHeader } from '@/app/components/ui/page-header';
 import { Badge } from '@/app/components/ui/badge';
 
 export function SettingsPage() {
-  const { user, selectedStore } = useAuthStore();
+  const { user, selectedStore, updateUserLanguage } = useAuthStore();
   const { users, createStaff, deleteStaff, updateStaff, toggleActiveStaff, refreshUsers } = useStaffStore();
 
   // Initial load
@@ -25,8 +25,14 @@ export function SettingsPage() {
     lowStock: true,
     dailyReport: false,
   });
-  const [language, setLanguage] = useState('en');
+  const [language, setLanguage] = useState(() => user?.language || localStorage.getItem('app_language') || 'en');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  useEffect(() => {
+    if (user?.language) {
+      setLanguage(user.language);
+    }
+  }, [user?.language]);
 
   // User Management state
   const [isAddingStaff, setIsAddingStaff] = useState(false);
@@ -419,7 +425,15 @@ export function SettingsPage() {
                 ].map(lang => (
                   <div
                     key={lang.id}
-                    onClick={() => setLanguage(lang.id)}
+                    onClick={async () => {
+                      setLanguage(lang.id);
+                      try {
+                        await updateUserLanguage(lang.id);
+                        toast.success("Language preference updated");
+                      } catch {
+                        toast.error("Failed to save language preference");
+                      }
+                    }}
                     className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col gap-1 ${language === lang.id ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100 bg-slate-50 hover:bg-white hover:border-slate-200'
                       }`}
                   >

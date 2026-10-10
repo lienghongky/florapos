@@ -26,6 +26,9 @@ export class User {
     @Column({ default: false })
     is_active: boolean;
 
+    @Column({ type: 'varchar', length: 10, default: 'en' })
+    language: string;
+
     @Column({ type: 'varchar', nullable: true })
     activation_token: string | null;
 

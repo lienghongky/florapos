@@ -23,4 +23,9 @@ export class UpdateUserDto {
     @IsEnum(UserRole)
     @IsOptional()
     role?: UserRole;
+
+    @ApiProperty({ example: 'en', required: false })
+    @IsString()
+    @IsOptional()
+    language?: string;
 }

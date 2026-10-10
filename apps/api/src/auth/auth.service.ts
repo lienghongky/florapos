@@ -84,6 +84,10 @@ export class AuthService {
         return this.usersService.changePassword(userId, oldPass, newPass);
     }
 
+    async updateProfile(userId: string, updateDto: any) {
+        return this.usersService.update(userId, updateDto);
+    }
+
     async getUserProfile(userId: string) {
         // We need to fetch with relations to get store_roles
         // Reuse findByEmail logic or update findOne to include relations, 

@@ -21,6 +21,7 @@ interface AuthState {
   uploadStoreBanner: (storeId: string, file: File) => Promise<void>;
   uploadStoreLogo: (storeId: string, file: File) => Promise<void>;
   changePassword: (oldPass: string, newPass: string) => Promise<void>;
+  updateUserLanguage: (language: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -137,6 +138,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       token,
       body: JSON.stringify({ old_password: oldPass, new_password: newPass })
     });
+  },
+
+  updateUserLanguage: async (language: string) => {
+    const { token, user } = get();
+    localStorage.setItem('app_language', language);
+    if (!token || !user) return;
+    try {
+      const updatedUser = await request<User>('/auth/profile', {
+        method: 'PATCH',
+        token,
+        body: JSON.stringify({ language })
+      });
+      set({ user: { ...user, language: updatedUser.language || language } });
+    } catch (e) {
+      console.error('Failed to save language setting to database', e);
+    }
   },
 
   initAuth: async () => {

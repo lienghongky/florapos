@@ -13,6 +13,7 @@ export interface User {
     role: UserRole;
     avatar?: string;
     is_active: boolean;
+    language?: string;
     subscription?: Subscription;
 }
 

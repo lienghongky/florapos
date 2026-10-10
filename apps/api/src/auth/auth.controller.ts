@@ -1,8 +1,9 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Request, Query } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Patch, Request, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { UpdateUserDto } from '../users/dto/update-user.dto';
 
 /**
  * Controller for authentication and user registration.
@@ -31,6 +32,16 @@ export class AuthController {
         // req.user contains { userId, email, role } from JwtStrategy
         const user = await this.authService.getUserProfile(req.user.userId);
         return user;
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Patch('profile')
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Update current user profile' })
+    @ApiResponse({ status: 200, description: 'Return updated user profile' })
+    async updateProfile(@Request() req: any, @Body() body: UpdateUserDto) {
+        await this.authService.updateProfile(req.user.userId, body);
+        return this.authService.getUserProfile(req.user.userId);
     }
 
     @Post('register')
