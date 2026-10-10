@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  # ── Nginx Proxy Manager (SSL & Domain Proxy) ──────────────────────────
+  proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'     # Public HTTP
+      - '443:443'   # Public HTTPS
+      - '81:81'     # Nginx Proxy Manager Web Admin UI
+    volumes:
+      - npm_data_prod:/data
+      - letsencrypt_data_prod:/etc/letsencrypt
+    networks:
+      - saas-pos-net
+
   # ── PostgreSQL Database ──────────────────────────────────────────────────
   postgres:
     image: postgres:15-alpine
@@ -67,6 +81,8 @@ services:
 volumes:
   postgres_data_prod:
   uploads_data_prod:
+  npm_data_prod:
+  letsencrypt_data_prod:
 
 networks:
   saas-pos-net:

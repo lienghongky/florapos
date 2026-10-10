@@ -4,10 +4,12 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
-import { Upload, Store as StoreIcon, Save, Image as ImageIcon } from 'lucide-react';
+import { Upload, Store as StoreIcon, Save, Image as ImageIcon, Printer, Settings, Zap, Bluetooth } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { OrderReceipt } from '@/app/components/orders/OrderReceipt';
+import { usePrinterStore } from '@/app/store/printer-store';
+import { PrinterSettingsModal } from '@/app/components/orders/PrinterSettingsModal';
 
 export function StoreProfileSection() {
   const { user, selectedStore, updateStoreInfo, uploadStoreBanner, uploadStoreLogo } = useAuthStore();
@@ -27,6 +29,8 @@ export function StoreProfileSection() {
   const [exchangeRate, setExchangeRate] = useState(1);
   const [enableTax, setEnableTax] = useState(true);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [showPrinterModal, setShowPrinterModal] = useState(false);
+  const { printMode, paperSize, bluetoothDeviceName, isBluetoothConnected, testPrint } = usePrinterStore();
   
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
@@ -360,6 +364,7 @@ export function StoreProfileSection() {
           <div className="rounded-xl border border-border bg-slate-50 p-4 flex justify-center items-start overflow-hidden">
              <div className="w-full scale-90 origin-top transform-gpu">
                 <OrderReceipt 
+                  showActions={false}
                   storeOverride={{
                     name, address, phone_number: phone, tax_id: taxId, website, receipt_footer_text: receiptFooter, invoice_prefix: invoicePrefix, logo_url: logoPreview, exchange_rate: exchangeRate, enable_tax: enableTax
                   }} 
@@ -386,8 +391,58 @@ export function StoreProfileSection() {
                 />
              </div>
           </div>
+          {/* Receipt & Printer Hardware Controls */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+                  <Printer className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">Receipt Printer Hardware</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    {printMode === 'bluetooth'
+                      ? (isBluetoothConnected ? `Bluetooth: ${bluetoothDeviceName || 'Connected'}` : 'Direct Bluetooth (Not Paired)')
+                      : 'System Print Mode'}
+                  </p>
+                </div>
+              </div>
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                printMode === 'bluetooth' && isBluetoothConnected ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'
+              }`}>
+                {paperSize}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPrinterModal(true)}
+                className="w-full flex items-center justify-center gap-2 h-11 rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50 transition-all"
+              >
+                <Settings className="size-4 text-slate-600" />
+                Printer Settings
+              </Button>
+
+              <Button
+                type="button"
+                onClick={testPrint}
+                className="w-full flex items-center justify-center gap-2 h-11 rounded-xl text-xs font-bold bg-slate-900 hover:bg-brand-primary text-white transition-all shadow-md shadow-slate-900/10"
+              >
+                <Zap className="size-4" />
+                Print Test
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Printer Settings Modal */}
+      <PrinterSettingsModal
+        isOpen={showPrinterModal}
+        onClose={() => setShowPrinterModal(false)}
+      />
     </div>
   );
 }

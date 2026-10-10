@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search, Filter, Calendar, ShoppingBag, ChevronDown,
-  ChevronRight, RefreshCw, Printer, Clock,
+  ChevronRight, RefreshCw, Printer, Clock, Download,
   CheckCircle, XCircle, Package, ArrowUpRight, X,
   Instagram, Loader2, Sparkles
 } from 'lucide-react';
@@ -13,6 +13,7 @@ import { AnimatedPage, AnimatedModal } from '@/app/components/motion/AnimatedPag
 import { OrderReceipt } from '@/app/components/orders/OrderReceipt';
 import { OrderShareCard } from '@/app/components/orders/OrderShareCard';
 import { OrderDetail } from '@/app/components/pos/OrderDetail';
+import { printReceipt, downloadReceiptPdf } from '@/app/utils/receipt-actions';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import { domToCanvas } from 'modern-screenshot';
@@ -91,54 +92,17 @@ export function OrdersPage() {
   };
 
   const handlePrintSingle = async (order: Order) => {
-    const toastId = toast.loading(`Generating receipt...`);
+    setBatchOrder(order);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await printReceipt(order, selectedStore, { targetElement: batchRef.current });
+    setBatchOrder(null);
+  };
 
-    try {
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      setBatchOrder(order);
-
-      // Wait for render
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      if (batchRef.current) {
-        const canvas = await domToCanvas(batchRef.current, {
-          scale: 2,
-          backgroundColor: '#ffffff'
-        });
-
-        const imgData = canvas.toDataURL('image/png');
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-        // Generate blob and print
-        const pdfBlob = pdf.output('blob');
-        const blobUrl = URL.createObjectURL(pdfBlob);
-
-        const printWindow = window.open(blobUrl);
-        if (printWindow) {
-          printWindow.onload = () => {
-            printWindow.print();
-          };
-        } else {
-          pdf.save(`receipt-${order.order_number?.toLowerCase() || order.id.slice(-6)}.pdf`);
-        }
-      }
-
-      setBatchOrder(null);
-      toast.success(`Receipt ready`, { id: toastId });
-    } catch (error) {
-      console.error('Print Error:', error);
-      toast.error('Failed to generate receipt', { id: toastId });
-      setBatchOrder(null);
-    }
+  const handleDownloadSingle = async (order: Order) => {
+    setBatchOrder(order);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await downloadReceiptPdf(order, batchRef.current);
+    setBatchOrder(null);
   };
 
   const handleDownloadShareCard = async () => {
@@ -430,20 +394,27 @@ export function OrdersPage() {
 
                           <div className="rounded-3xl bg-white p-6 shadow-sm border border-border">
                             <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">Quick Actions</h4>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-3 gap-2">
                               <button
                                 onClick={() => handlePrintSingle(order)}
-                                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border p-4 transition-all hover:bg-muted group"
+                                className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border p-3 transition-all hover:bg-muted group text-center"
                               >
-                                <Printer className="size-6 text-brand-primary group-hover:scale-110 transition-transform" />
-                                <span className="text-xs font-bold">Print Invoice</span>
+                                <Printer className="size-5 text-brand-primary group-hover:scale-110 transition-transform" />
+                                <span className="text-[11px] font-bold">Print</span>
+                              </button>
+                              <button
+                                onClick={() => handleDownloadSingle(order)}
+                                className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border p-3 transition-all hover:bg-muted group text-center"
+                              >
+                                <Download className="size-5 text-blue-600 group-hover:scale-110 transition-transform" />
+                                <span className="text-[11px] font-bold">Download</span>
                               </button>
                               <button
                                 onClick={() => openShareModal(order)}
-                                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border p-4 transition-all hover:bg-muted group"
+                                className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border p-3 transition-all hover:bg-muted group text-center"
                               >
-                                <ArrowUpRight className="size-6 text-green-600 group-hover:scale-110 transition-transform" />
-                                <span className="text-xs font-bold">Share Order</span>
+                                <ArrowUpRight className="size-5 text-green-600 group-hover:scale-110 transition-transform" />
+                                <span className="text-[11px] font-bold">Share</span>
                               </button>
                             </div>
                           </div>

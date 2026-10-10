@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface AnimatedPageProps {
   children: ReactNode;
@@ -31,6 +32,12 @@ export function AnimatedModal({
   onClose?: () => void;
   position?: 'center' | 'bottom';
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && onClose) {
@@ -44,7 +51,9 @@ export function AnimatedModal({
     }
   }, [isOpen, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -52,21 +61,22 @@ export function AnimatedModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className={`fixed inset-0 z-50 flex ${position === 'center' ? 'items-center' : 'items-end lg:items-center'} justify-center bg-black/50 p-0 lg:p-4 overflow-y-auto`}
+          className={`fixed inset-0 z-[99999] flex ${position === 'center' ? 'items-center' : 'items-end lg:items-center'} justify-center bg-black/60 p-4 overflow-y-auto backdrop-blur-sm pointer-events-auto`}
           onClick={onClose}
         >
           <motion.div
-            initial={position === 'center' ? { scale: 0.95, opacity: 0 } : { y: '100%', opacity: 0 }}
-            animate={position === 'center' ? { scale: 1, opacity: 1 } : { y: 0, opacity: 1 }}
-            exit={position === 'center' ? { scale: 0.95, opacity: 0 } : { y: '100%', opacity: 0 }}
+            initial={position === 'center' ? { scale: 0.95, opacity: 0, y: 10 } : { y: '100%', opacity: 0 }}
+            animate={position === 'center' ? { scale: 1, opacity: 1, y: 0 } : { y: 0, opacity: 1 }}
+            exit={position === 'center' ? { scale: 0.95, opacity: 0, y: 10 } : { y: '100%', opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="relative"
+            className="relative max-w-full"
             onClick={(e) => e.stopPropagation()}
           >
             {children}
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
     X, Search, Filter, Calendar, Clock, ChevronDown,
-    ChevronRight, Printer, RefreshCw, ShoppingBag,
+    ChevronRight, Printer, RefreshCw, ShoppingBag, Download,
     CreditCard, Banknote, ScanLine, Wallet,
     CheckCircle, User, Loader2, Package, XCircle, Delete, Sparkles, Instagram
 } from 'lucide-react';
@@ -13,6 +13,7 @@ import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { toast } from 'sonner';
 import { OrderDetail } from './OrderDetail';
 import { OrderReceipt } from '../orders/OrderReceipt';
+import { printReceipt, downloadReceiptPdf } from '@/app/utils/receipt-actions';
 import { useReactToPrint } from 'react-to-print';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { OrderShareCard } from '../orders/OrderShareCard';
@@ -169,11 +170,12 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
         return method.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     };
 
-    const handlePrintSingle = (order: Order) => {
-        setPrintingOrders([order]);
-        setTimeout(() => {
-            window.print();
-        }, 300);
+    const handlePrintSingle = async (order: Order) => {
+        await printReceipt(order, selectedStore);
+    };
+
+    const handleDownloadSingle = async (order: Order) => {
+        await downloadReceiptPdf(order);
     };
 
     const handlePrintAll = async () => {
@@ -436,6 +438,14 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
                                                 title="Print Order"
                                             >
                                                 <Printer className="size-4" />
+                                            </button>
+
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDownloadSingle(order); }}
+                                                className="flex size-8 items-center justify-center rounded-lg bg-muted hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                                title="Download PDF Receipt"
+                                            >
+                                                <Download className="size-4" />
                                             </button>
 
                                             <select
