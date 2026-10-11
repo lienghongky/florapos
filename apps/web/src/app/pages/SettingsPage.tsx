@@ -39,7 +39,7 @@ export function SettingsPage() {
     setIsSaving(true);
     try {
       await createStaff(newStaff);
-      toast.success("Staff member added successfully");
+      toast.success(t('settings.staffAdded'));
       setIsAddingStaff(false);
       setNewStaff({ full_name: '', email: '', password: '', role: 'STAFF' });
     } catch (error: any) {
@@ -50,10 +50,10 @@ export function SettingsPage() {
   };
 
   const handleDeleteStaff = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete ${name}?`)) {
+    if (confirm(t('settings.confirmDeleteStaff', { name }))) {
       try {
         await deleteStaff(id);
-        toast.success("Staff member deleted");
+        toast.success(t('settings.staffDeleted'));
       } catch (error: any) {
         toast.error(error.message || "Failed to delete staff");
       }
@@ -92,14 +92,14 @@ export function SettingsPage() {
                 )}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">{user?.full_name || 'Owner Profile'}</h2>
+                <h2 className="text-xl font-bold text-slate-900">{user?.full_name || t('settings.ownerProfile')}</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant="outline" className="text-[10px] uppercase tracking-wider py-0 px-2 h-5 font-bold border-slate-200 text-slate-500">
                     {user?.role}
                   </Badge>
                   {user?.subscription?.status === 'trialing' && (
                     <Badge variant="secondary" className="text-[10px] uppercase tracking-wider py-0 px-2 h-5 font-bold bg-blue-50 text-blue-600 border-none">
-                      Trialing
+                      {t('settings.trialing')}
                     </Badge>
                   )}
                 </div>
@@ -127,7 +127,7 @@ export function SettingsPage() {
                    ? 'text-white/70' : 'text-slate-400'
                 }`}>
                   <Crown size={10} className="fill-current" />
-                  Membership
+                  {t('settings.membership')}
                 </div>
 
                 <div className="flex items-center justify-between w-full gap-2 relative z-10">
@@ -150,9 +150,9 @@ export function SettingsPage() {
                 }`}>
                   <Calendar size={10} />
                   {user.subscription.status === 'active' ? (
-                    <>Next billing: {new Date(user.subscription.current_period_end || '').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                    <>{t('settings.nextBilling')}: {new Date(user.subscription.current_period_end || '').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</>
                   ) : (
-                    <>Expires: {new Date(user.subscription.trial_end_at || '').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                    <>{t('settings.expires')}: {new Date(user.subscription.trial_end_at || '').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</>
                   )}
                 </div>
               </motion.div>
@@ -161,7 +161,7 @@ export function SettingsPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1">Full Name</label>
+                <label className="text-sm font-bold text-slate-700 ml-1">{t('settings.fullName')}</label>
                 <input
                   type="text"
                   defaultValue={user?.full_name || ''}
@@ -169,7 +169,7 @@ export function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1">Email <span className="text-[10px] font-normal text-slate-400 font-mono">(Read-only)</span></label>
+                <label className="text-sm font-bold text-slate-700 ml-1">{t('settings.email')} <span className="text-[10px] font-normal text-slate-400 font-mono">({t('settings.readOnly')})</span></label>
                 <input
                   type="email"
                   value={user?.email || ''}
@@ -179,13 +179,13 @@ export function SettingsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 ml-1">Role</label>
+              <label className="text-sm font-bold text-slate-700 ml-1">{t('settings.role')}</label>
               <div className="flex items-center gap-3">
                 <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-white shadow-lg">
                   <Shield className="size-4" />
                   <span className="text-xs font-black uppercase tracking-widest">{user?.role}</span>
                 </div>
-                <p className="text-xs text-slate-400">Permissions are managed by the administrator.</p>
+                <p className="text-xs text-slate-400">{t('settings.rolePermissionsDesc')}</p>
               </div>
             </div>
             <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
@@ -194,14 +194,14 @@ export function SettingsPage() {
                 whileTap={{ scale: 0.98 }}
                 className="w-full sm:w-auto rounded-2xl bg-brand-primary px-8 py-3.5 font-bold text-white shadow-xl shadow-brand-primary/20 transition-all hover:bg-brand-primary/90"
               >
-                Save Profile
+                {t('settings.saveProfile')}
               </motion.button>
               <button
                 onClick={() => setIsChangingPassword(true)}
                 className="w-full sm:w-auto rounded-2xl border border-slate-200 bg-white px-8 py-3.5 font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
               >
                 <Shield className="size-4" />
-                Change Password
+                {t('settings.changePassword')}
               </button>
             </div>
           </div>
@@ -247,8 +247,8 @@ export function SettingsPage() {
                   <UserPlus className="size-6" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">User Management</h2>
-                  <p className="text-sm text-slate-500">Manage staff members and access levels</p>
+                  <h2 className="text-xl font-bold text-slate-900">{t('settings.userManagement')}</h2>
+                  <p className="text-sm text-slate-500">{t('settings.userManagementDesc')}</p>
                 </div>
               </div>
               <button
@@ -256,7 +256,7 @@ export function SettingsPage() {
                 className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-brand-primary transition-all"
               >
                 <UserPlus className="size-4" />
-                Add Staff
+                {t('settings.addStaff')}
               </button>
             </div>
 
@@ -268,7 +268,7 @@ export function SettingsPage() {
                       {staffUser.full_name?.charAt(0) || 'U'}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-800 text-sm md:text-base">{staffUser.full_name || 'Unnamed Staff'}</p>
+                      <p className="font-bold text-slate-800 text-sm md:text-base">{staffUser.full_name || t('settings.unnamedStaff')}</p>
                       <p className="text-[10px] md:text-xs text-slate-500">{staffUser.email}</p>
                     </div>
                   </div>
@@ -283,7 +283,7 @@ export function SettingsPage() {
                           onClick={async () => {
                             try {
                               await toggleActiveStaff(staffUser.id);
-                              toast.success(`User ${staffUser.is_active ? 'deactivated' : 'activated'} successfully`);
+                              toast.success(t('settings.userStatusUpdated'));
                             } catch (error: any) {
                               toast.error(error.message || "Failed to update user status");
                             }
@@ -297,7 +297,7 @@ export function SettingsPage() {
                           />
                         </motion.button>
                         <span className="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">
-                          {staffUser.is_active ? 'Active' : 'Inactive'}
+                          {staffUser.is_active ? t('common.active') : t('common.inactive')}
                         </span>
                       </div>
                       <button
@@ -313,7 +313,7 @@ export function SettingsPage() {
 
               {users.filter(u => u.id !== user.id).length === 0 && (
                 <div className="text-center py-8 text-slate-400 text-sm italic">
-                  No other staff members found.
+                  {t('settings.noStaffFound')}
                 </div>
               )}
             </div>
@@ -330,7 +330,7 @@ export function SettingsPage() {
                     className="w-full max-w-md bg-white rounded-t-[2.5rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl mt-auto sm:my-auto"
                   >
                     <div className="flex items-center justify-between mb-8">
-                      <h3 className="text-2xl font-black text-slate-900">New Staff Member</h3>
+                      <h3 className="text-2xl font-black text-slate-900">{t('settings.newStaffMember')}</h3>
                       <button onClick={() => setIsAddingStaff(false)} className="p-2 hover:bg-slate-100 rounded-full">
                         <X className="size-6 text-slate-400" />
                       </button>
@@ -338,7 +338,7 @@ export function SettingsPage() {
 
                     <form onSubmit={handleCreateStaff} className="space-y-6">
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-1">Full Name</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">{t('settings.fullName')}</label>
                         <input
                           required
                           type="text"
@@ -349,7 +349,7 @@ export function SettingsPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-1">Email</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">{t('settings.email')}</label>
                         <input
                           required
                           type="email"
@@ -360,7 +360,7 @@ export function SettingsPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-1">Initial Password</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">{t('settings.initialPassword')}</label>
                         <input
                           required
                           type="password"
@@ -371,9 +371,9 @@ export function SettingsPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700 ml-1">Permissions Level</label>
+                        <label className="text-sm font-bold text-slate-700 ml-1">{t('settings.permissionsLevel')}</label>
                         <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500 font-bold">
-                          Standard Staff
+                          {t('settings.standardStaff')}
                         </div>
                         <input type="hidden" value="STAFF" />
                       </div>
@@ -383,7 +383,7 @@ export function SettingsPage() {
                         type="submit"
                         className="w-full rounded-2xl bg-slate-900 py-4 font-black text-white shadow-xl hover:bg-brand-primary transition-all disabled:opacity-50"
                       >
-                        {isSaving ? 'Creating...' : 'Create Account'}
+                        {isSaving ? t('settings.creating') : t('settings.createAccount')}
                       </button>
                     </form>
                   </motion.div>
@@ -455,15 +455,15 @@ export function SettingsPage() {
               <Bell className="size-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Smart Notifications</h2>
-              <p className="text-sm text-slate-500">Configure how you want to be notified</p>
+              <h2 className="text-xl font-bold text-slate-900">{t('settings.smartNotifications')}</h2>
+              <p className="text-sm text-slate-500">{t('settings.notificationsDesc')}</p>
             </div>
           </div>
           <div className="space-y-4">
             {[
-              { key: 'email' as const, label: 'Email Notifications', description: 'Receive email updates about critical orders' },
-              { key: 'lowStock' as const, label: 'Low Stock Alerts', description: 'Real-time alerts when inventory is critical' },
-              { key: 'dailyReport' as const, label: 'Daily Reports', description: 'Automated end-of-day sales summary' },
+              { key: 'email' as const, label: t('settings.emailNotifications'), description: t('settings.emailNotificationsDesc') },
+              { key: 'lowStock' as const, label: t('settings.lowStockAlerts'), description: t('settings.lowStockAlertsDesc') },
+              { key: 'dailyReport' as const, label: t('settings.dailyReports'), description: t('settings.dailyReportsDesc') },
             ].map(item => (
               <div key={item.key} className="flex items-center justify-between p-4 rounded-2xl border border-slate-50 bg-slate-50/30">
                 <div>

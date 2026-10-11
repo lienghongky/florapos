@@ -24,7 +24,7 @@ interface OrderShareCardProps {
     customMessage?: string;
 }
 
-export const OrderShareCard: React.FC<OrderShareCardProps> = ({ order, storeName = "FloraPOS Boutique", customMessage }) => {
+export const OrderShareCard: React.FC<OrderShareCardProps> = ({ order, storeName = "Ottor POS", customMessage }) => {
     const mainItem = order.items[0];
     const message = customMessage || order.notes || "Wishing you a day as beautiful and bright as these flowers.";
     

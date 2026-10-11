@@ -207,7 +207,7 @@ export const usePrinterStore = create<PrinterState>()(
                 builder.align('center');
                 builder.bold(true);
                 builder.textSize(2, 2);
-                builder.textLine("FLORAPOS TEST");
+                builder.textLine("OTTOR POS TEST");
                 builder.textSize(1, 1);
                 builder.bold(false);
                 builder.lineFeed(1);
@@ -245,7 +245,7 @@ export const usePrinterStore = create<PrinterState>()(
             },
         }),
         {
-            name: 'florapos-printer-settings',
+            name: 'ottorpos-printer-settings',
             partialize: (state) => ({
                 printMode: state.printMode,
                 paperSize: state.paperSize,

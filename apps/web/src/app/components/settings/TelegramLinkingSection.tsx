@@ -5,9 +5,11 @@ import { useAuthStore } from '@/app/store/auth-store';
 import { telegramService, TelegramStatus, TelegramLinkResponse } from '@/app/services/telegram.service';
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
+import { useTranslation } from '@/app/i18n';
 
 export function TelegramLinkingSection() {
   const { token, user } = useAuthStore();
+  const { t } = useTranslation();
   const [status, setStatus] = useState<TelegramStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -97,15 +99,15 @@ export function TelegramLinkingSection() {
             <Send className="size-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Telegram Notifications</h3>
-            <p className="text-sm text-slate-500">Get real-time order alerts and daily summaries</p>
+            <h3 className="text-lg font-bold text-slate-900">{t('settings.telegramTitle')}</h3>
+            <p className="text-sm text-slate-500">{t('settings.telegramSubtitle')}</p>
           </div>
         </div>
 
         {status?.linked && !hasTelegramFeature && (
           <div className="flex items-center gap-2 rounded-full bg-red-50 px-4 py-2 text-red-600 border border-red-100">
             <X className="size-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">Upgrade Required</span>
+            <span className="text-xs font-bold uppercase tracking-wider">{t('settings.upgradeRequired')}</span>
           </div>
         )}
 
@@ -113,12 +115,12 @@ export function TelegramLinkingSection() {
           status.is_active ? (
             <div className="flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-green-600 border border-green-100">
               <Check className="size-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">Linked as @{status.username || 'User'}</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{t('settings.linkedAs', { username: status.username || 'User' })}</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-orange-600 border border-orange-100">
               <X className="size-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">Account Suspended</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{t('settings.accountSuspended')}</span>
             </div>
           )
         )}
@@ -128,13 +130,13 @@ export function TelegramLinkingSection() {
             <div className="flex items-center gap-2 rounded-full bg-red-50 px-4 py-2 text-red-600 border border-red-100">
               <X className="size-4" />
               <span className="text-xs font-bold uppercase tracking-wider">
-                {!hasTelegramFeature ? 'Upgrade Required' : 'Feature Disabled'}
+                {!hasTelegramFeature ? t('settings.upgradeRequired') : t('settings.featureDisabled')}
               </span>
             </div>
           ) : (
             <div className="flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-slate-500 border border-slate-100">
               <X className="size-4" />
-              <span className="text-xs font-bold uppercase tracking-wider">Not Connected</span>
+              <span className="text-xs font-bold uppercase tracking-wider">{t('settings.notConnected')}</span>
             </div>
           )
         )}
@@ -146,16 +148,15 @@ export function TelegramLinkingSection() {
             <div className="size-16 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4 shadow-xl">
               <Crown className="size-8" />
             </div>
-            <h4 className="text-lg font-bold text-slate-900">Upgrade your plan</h4>
+            <h4 className="text-lg font-bold text-slate-900">{t('settings.upgradePlan')}</h4>
             <p className="text-sm text-slate-600 max-w-xs mt-2">
-              Telegram notifications are not included in your current <strong>Starter</strong> plan. 
-              Upgrade to Pro or Elite to re-enable this feature.
+              {t('settings.telegramUpgradeDesc')}
             </p>
             <button 
               onClick={() => (window as any).location.href = '/settings?tab=plan'}
               className="mt-6 rounded-xl bg-brand-primary px-8 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all"
             >
-              View Plans
+              {t('settings.viewPlans')}
             </button>
           </div>
         )}
@@ -168,8 +169,8 @@ export function TelegramLinkingSection() {
                   <BellRing className="size-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Orders</p>
-                  <p className="text-xs font-bold text-slate-700">{status.preferences?.notify_orders ? 'Enabled' : 'Disabled'}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('settings.orders')}</p>
+                  <p className="text-xs font-bold text-slate-700">{status.preferences?.notify_orders ? t('settings.enabled') : t('settings.disabled')}</p>
                 </div>
               </div>
               <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-3">
@@ -177,8 +178,8 @@ export function TelegramLinkingSection() {
                   <Bot className="size-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reports</p>
-                  <p className="text-xs font-bold text-slate-700">{status.preferences?.notify_daily_summary ? 'Enabled' : 'Disabled'}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('settings.reports')}</p>
+                  <p className="text-xs font-bold text-slate-700">{status.preferences?.notify_daily_summary ? t('settings.enabled') : t('settings.disabled')}</p>
                 </div>
               </div>
               <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-3">
@@ -186,8 +187,8 @@ export function TelegramLinkingSection() {
                   <Bot className="size-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bot Access</p>
-                  <p className="text-xs font-bold text-slate-700">Full Menu</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('settings.botAccess')}</p>
+                  <p className="text-xs font-bold text-slate-700">{t('settings.fullMenu')}</p>
                 </div>
               </div>
             </div>
@@ -198,13 +199,13 @@ export function TelegramLinkingSection() {
                 className="w-full sm:w-auto rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white flex items-center justify-center gap-2 hover:bg-brand-primary transition-all"
               >
                 <ExternalLink className="size-4" />
-                Open Telegram Bot
+                {t('settings.openBot')}
               </button>
               <button
                 onClick={handleUnlink}
                 className="w-full sm:w-auto rounded-xl border border-red-100 bg-red-50 px-6 py-3 text-sm font-bold text-red-600 hover:bg-red-100 transition-all"
               >
-                Disconnect Account
+                {t('settings.disconnectAccount')}
               </button>
             </div>
             {!status.is_active && (
@@ -214,7 +215,7 @@ export function TelegramLinkingSection() {
               </div>
             )}
             <p className="text-[10px] text-slate-400 text-center sm:text-left italic">
-              Manage specific notification toggles directly within the Telegram bot using /settings.
+              {t('settings.botSettingsHint')}
             </p>
           </div>
         ) : (
@@ -225,11 +226,11 @@ export function TelegramLinkingSection() {
               </div>
               <div className="max-w-md">
                 <h4 className="font-bold text-slate-900">
-                  {isLinkingEnabled ? 'Connect your account' : 'Linking temporarily disabled'}
+                  {isLinkingEnabled ? t('settings.connectAccount') : t('settings.featureDisabled')}
                 </h4>
                 <p className="text-sm text-slate-500">
                   {isLinkingEnabled 
-                    ? 'Generate a unique invite link to link your Telegram account and start receiving notifications.'
+                    ? t('settings.connectAccountDesc')
                     : 'The administrator has temporarily disabled new Telegram account links. Existing links will continue to function.'}
                 </p>
               </div>
@@ -247,7 +248,7 @@ export function TelegramLinkingSection() {
                   }`}
                 >
                   {isGenerating ? <RefreshCw className="size-5 animate-spin" /> : <LinkIcon className="size-5" />}
-                  {isLinkingEnabled ? 'Generate Invite Link' : 'Linking Disabled'}
+                  {isLinkingEnabled ? t('settings.generateLink') : t('settings.featureDisabled')}
                 </motion.button>
               ) : (
                 <div className="w-full space-y-4">
@@ -260,7 +261,7 @@ export function TelegramLinkingSection() {
                     <button 
                       onClick={() => {
                         navigator.clipboard.writeText(linkData.link);
-                        toast.success('Link copied to clipboard');
+                        toast.success(t('settings.copied'));
                       }}
                       className="p-2 hover:bg-slate-50 rounded-xl text-brand-primary"
                     >
@@ -274,14 +275,14 @@ export function TelegramLinkingSection() {
                       className="w-full sm:w-auto rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white flex items-center justify-center gap-2 hover:bg-brand-primary transition-all shadow-lg"
                     >
                       <ExternalLink className="size-4" />
-                      Open Bot
+                      {t('settings.openBot')}
                     </button>
                     <button
                       onClick={() => setShowQR(true)}
                       className="w-full sm:w-auto rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                     >
                       <QrCode className="size-4" />
-                      Show QR Code
+                      {t('settings.showQrCode')}
                     </button>
                   </div>
                 </div>
@@ -310,8 +311,8 @@ export function TelegramLinkingSection() {
               
               <div className="text-center space-y-6">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900">Scan QR Code</h3>
-                  <p className="text-sm text-slate-500">Scan this code with your phone camera or Telegram to link your account.</p>
+                  <h3 className="text-xl font-black text-slate-900">{t('settings.scanQrCode')}</h3>
+                  <p className="text-sm text-slate-500">{t('settings.scanQrDesc')}</p>
                 </div>
                 
                 <div className="flex justify-center p-6 bg-slate-50 rounded-3xl border border-slate-100">
@@ -341,7 +342,7 @@ export function TelegramLinkingSection() {
                   onClick={() => setShowQR(false)}
                   className="w-full rounded-2xl bg-slate-900 py-4 font-black text-white shadow-xl hover:bg-brand-primary transition-all"
                 >
-                  Done
+                  {t('settings.done')}
                 </button>
               </div>
             </motion.div>

@@ -1,4 +1,4 @@
-import { Flower2, ChevronDown, LogOut, Menu } from 'lucide-react';
+import { ChevronDown, LogOut, Menu } from 'lucide-react';
 import { UserRole } from '@/app/types';
 import { useAuthStore } from '@/app/store/auth-store';
 import { useUIStore } from '@/app/store/ui-store';
@@ -32,10 +32,11 @@ export function TopBar() {
 
           {/* Logo — hidden on desktop when sidebar is expanded (sidebar shows it) */}
           <div className={`flex items-center gap-2 transition-opacity duration-200 ${!isSidebarCollapsed ? 'md:opacity-0 md:pointer-events-none md:w-0 md:overflow-hidden' : ''}`}>
-            <div className="flex size-8 md:size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
-              <Flower2 className="size-4 md:size-6" />
-            </div>
-            {/* <span className="text-base md:text-lg font-semibold hidden sm:block">FloraPos</span> */}
+            <img
+              src="/logo.png"
+              alt="Ottor POS"
+              className="size-8 md:size-10 rounded-xl object-contain shadow-sm shrink-0"
+            />
           </div>
         </div>
 

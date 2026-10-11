@@ -132,7 +132,7 @@ export class EscPosBuilder {
         const paperSize = options.paperSize || '58mm';
         const builder = new EscPosBuilder(paperSize);
 
-        const storeName = store?.name || 'FloraPos';
+        const storeName = store?.name || 'Ottor POS';
         const storeAddress = store?.address;
         const storePhone = store?.phone_number;
         const taxId = store?.tax_id;
@@ -232,7 +232,7 @@ export class EscPosBuilder {
             builder.lineFeed(1);
         }
         builder.textLine(footerText);
-        builder.textLine("Powered by FloraPos");
+        builder.textLine("Powered by Ottor POS");
 
         if (options.openDrawer) {
             builder.openDrawer();

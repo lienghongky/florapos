@@ -263,7 +263,7 @@ export const SymphonyEliteTemplate: React.FC<EMenuTemplateProps> = ({
 
                <div className="pt-24 flex flex-col items-center gap-8">
                   <SocialLinks settings={settings} className="flex items-center gap-8 text-white/20" iconClassName="size-5 hover:text-[#C5A059] transition-colors" />
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-white/10 italic">Crafted with Excellence by FloraPos Elite</p>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-white/10 italic">Crafted with Excellence by Ottor POS Elite</p>
                </div>
             </div>
          </footer>

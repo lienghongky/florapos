@@ -419,7 +419,7 @@ export function PublicEMenuPage() {
               {/* Receipt Footer */}
               <div style={{ textAlign: 'center', marginTop: '30px', fontSize: '10px' }}>
                 <p style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>THANK YOU FOR YOUR VISIT!</p>
-                <p style={{ margin: '0' }}>Powered by FloraPos</p>
+                <p style={{ margin: '0' }}>Powered by Ottor POS</p>
                 <div style={{ marginTop: '15px', border: '1px solid black', padding: '8px', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '1px' }}>
                   Digital Receipt Saved
                 </div>

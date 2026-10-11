@@ -5,7 +5,6 @@ import {
   Warehouse,
   FileText,
   Settings,
-  Flower2,
   TrendingDown,
   ChevronLeft,
   ChevronRight,
@@ -167,9 +166,11 @@ export function Sidebar() {
     >
       {/* Brand */}
       <div className={`flex h-20 shrink-0 items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-6'}`}>
-        <div className="flex size-10 items-center justify-center rounded-xl bg-brand-primary text-white shadow-lg shadow-brand-primary/25 shrink-0">
-          <Flower2 className="size-6" />
-        </div>
+        <img
+          src="/logo.png"
+          alt="Ottor POS"
+          className="size-10 rounded-xl object-contain shadow-md shrink-0 hover:scale-105 transition-transform"
+        />
         {!isSidebarCollapsed && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -177,7 +178,7 @@ export function Sidebar() {
             exit={{ opacity: 0 }}
             className="overflow-hidden whitespace-nowrap"
           >
-            <span className="block text-lg font-bold">FloraPos</span>
+            <span className="block text-lg font-black tracking-tight text-slate-900">Ottor POS</span>
             <span className="text-xs text-muted-foreground">{t('sidebar.brandSubtitle')}</span>
           </motion.div>
         )}
@@ -273,11 +274,13 @@ export function Sidebar() {
         >
           {/* Brand + close button */}
           <div className="flex h-20 shrink-0 items-center gap-3 px-5">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-brand-primary text-white shadow-lg shadow-brand-primary/25 shrink-0">
-              <Flower2 className="size-6" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Ottor POS"
+              className="size-10 rounded-xl object-contain shadow-md shrink-0"
+            />
             <div className="flex-1 overflow-hidden">
-              <span className="block text-lg font-bold">FloraPos</span>
+              <span className="block text-lg font-black tracking-tight text-slate-900">Ottor POS</span>
               <span className="text-xs text-muted-foreground">{t('sidebar.brandSubtitle')}</span>
             </div>
             <button

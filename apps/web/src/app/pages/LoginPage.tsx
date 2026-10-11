@@ -4,7 +4,7 @@ import { UserRole } from '@/app/types';
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Flower2, AlertCircle, Sparkles, Zap, Gem, ArrowRight, ChevronDown, Globe } from 'lucide-react';
+import { QrCode, AlertCircle, Sparkles, Zap, Gem, ArrowRight, ChevronDown, Globe } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { useTranslation } from '@/app/i18n';
 
@@ -75,10 +75,12 @@ export function LoginPage() {
       {/* 1. Branding Bar */}
       <header className="fixed top-0 left-0 right-0 z-50 h-20 bg-white/80 backdrop-blur-md border-b border-slate-50 px-6 lg:px-12 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-lg shadow-brand-primary/20">
-            <Flower2 className="size-5" />
-          </div>
-          <span className="text-xl font-black text-slate-900 tracking-tight">FloraPos</span>
+          <img
+            src="/logo.png"
+            alt="Ottor POS"
+            className="size-11 rounded-2xl object-contain shadow-lg shadow-brand-primary/20 shrink-0 hover:scale-105 transition-transform"
+          />
+          <span className="text-xl font-black text-slate-900 tracking-tight">Ottor POS</span>
         </div>
         <div className="flex items-center gap-4 sm:gap-6">
           {/* Language Selector */}
@@ -272,7 +274,7 @@ export function LoginPage() {
               {
                 title: 'Digital E-Menu',
                 desc: 'Let your customers scan and order from a beautiful, customizable digital menu.',
-                icon: <Flower2 className="size-6 text-emerald-500" />,
+                icon: <QrCode className="size-6 text-emerald-500" />,
               },
             ].map((feature, i) => (
               <motion.div
@@ -359,8 +361,8 @@ export function LoginPage() {
       {/* Footer */}
       <footer className="py-12 bg-white border-t border-slate-50 text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
-          <Flower2 className="size-5 text-slate-300" />
-          <span className="text-sm font-bold text-slate-400">© 2026 FloraPos. All rights reserved.</span>
+          <img src="/logo.png" alt="Ottor POS" className="size-6 object-contain" />
+          <span className="text-sm font-bold text-slate-400">© 2026 Ottor POS. All rights reserved.</span>
         </div>
       </footer>
     </AnimatedPage>

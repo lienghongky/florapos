@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Printer, Bluetooth, Settings, Check, RefreshCw, Scissors, DollarSign, Smartphone, Zap, Wifi, Usb } from 'lucide-react';
 import { usePrinterStore, PrintMode, PaperSize } from '@/app/store/printer-store';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
+import { useTranslation } from '@/app/i18n';
 
 interface PrinterSettingsModalProps {
     isOpen: boolean;
@@ -10,6 +11,7 @@ interface PrinterSettingsModalProps {
 }
 
 export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalProps) {
+    const { t } = useTranslation();
     const {
         printMode,
         paperSize,
@@ -44,8 +46,8 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                             <Printer className="size-6" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-900">Receipt Printer Settings</h3>
-                            <p className="text-xs text-muted-foreground">Configure Bluetooth, Network (IP), USB, & System printers</p>
+                            <h3 className="text-xl font-bold text-slate-900">{t('settings.printerSettingsTitle')}</h3>
+                            <p className="text-xs text-muted-foreground">{t('settings.printerSettingsDesc')}</p>
                         </div>
                     </div>
                     <button
@@ -60,32 +62,32 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                     {/* Print Mode Selector */}
                     <div>
                         <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-3">
-                            Print Mode / Hardware Target
+                            {t('settings.printModeLabel')}
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {[
                                 {
                                     id: 'system',
-                                    title: 'System Browser Print',
-                                    subtitle: 'Default print dialog (AirPrint/PDF)',
+                                    title: t('settings.systemPrint'),
+                                    subtitle: t('settings.systemPrintSub'),
                                     icon: Smartphone,
                                 },
                                 {
                                     id: 'bluetooth',
-                                    title: 'Direct Bluetooth POS',
-                                    subtitle: 'Direct Web Bluetooth pairing',
+                                    title: t('settings.bluetoothPos'),
+                                    subtitle: t('settings.bluetoothPosSub'),
                                     icon: Bluetooth,
                                 },
                                 {
                                     id: 'usb',
-                                    title: 'USB Thermal Printer',
-                                    subtitle: 'Plug-and-Play USB OTG (No IP needed)',
+                                    title: t('settings.usbThermal'),
+                                    subtitle: t('settings.usbThermalSub'),
                                     icon: Usb,
                                 },
                                 {
                                     id: 'network',
-                                    title: 'Network IP Printer',
-                                    subtitle: 'Ethernet/Wi-Fi IP (e.g. 192.168.1.200)',
+                                    title: t('settings.networkIp'),
+                                    subtitle: t('settings.networkIpSub'),
                                     icon: Wifi,
                                 },
                             ].map((mode) => {
@@ -235,7 +237,7 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                     {/* Paper Width Options */}
                     <div>
                         <label className="text-xs font-black uppercase tracking-wider text-muted-foreground block mb-3">
-                            Thermal Paper Width
+                            {t('settings.paperWidth')}
                         </label>
                         <div className="grid grid-cols-2 gap-3">
                             {[
@@ -263,8 +265,8 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                             <div className="flex items-center gap-3">
                                 <Scissors className="size-5 text-slate-500" />
                                 <div>
-                                    <span className="font-bold text-sm text-slate-900 block">Auto-Cut Paper</span>
-                                    <span className="text-xs text-muted-foreground">Send GS V cutter command after printing</span>
+                                    <span className="font-bold text-sm text-slate-900 block">{t('settings.autoCut')}</span>
+                                    <span className="text-xs text-muted-foreground">{t('settings.autoCutDesc')}</span>
                                 </div>
                             </div>
                             <input
@@ -279,8 +281,8 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                             <div className="flex items-center gap-3">
                                 <DollarSign className="size-5 text-slate-500" />
                                 <div>
-                                    <span className="font-bold text-sm text-slate-900 block">Open Cash Drawer</span>
-                                    <span className="text-xs text-muted-foreground">Pulse cash drawer kicker on print (ESC p)</span>
+                                    <span className="font-bold text-sm text-slate-900 block">{t('settings.openCashDrawer')}</span>
+                                    <span className="text-xs text-muted-foreground">{t('settings.openCashDrawerDesc')}</span>
                                 </div>
                             </div>
                             <input
@@ -295,8 +297,8 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                             <div className="flex items-center gap-3">
                                 <Printer className="size-5 text-slate-500" />
                                 <div>
-                                    <span className="font-bold text-sm text-slate-900 block">Auto-Print on Checkout</span>
-                                    <span className="text-xs text-muted-foreground">Automatically print receipt right after completing order</span>
+                                    <span className="font-bold text-sm text-slate-900 block">{t('settings.autoPrintOnCheckout')}</span>
+                                    <span className="text-xs text-muted-foreground">{t('settings.autoPrintDesc')}</span>
                                 </div>
                             </div>
                             <input
@@ -315,13 +317,13 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                         className="flex-1 py-3.5 rounded-xl border border-slate-300 bg-white text-slate-800 font-bold text-xs hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
                     >
                         <Zap className="size-4 text-brand-primary" />
-                        Print Test Receipt
+                        {t('settings.testPrintReceipt')}
                     </button>
                     <button
                         onClick={onClose}
                         className="flex-1 py-3.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10"
                     >
-                        Save & Close
+                        {t('settings.saveAndClose')}
                     </button>
                 </div>
             </div>

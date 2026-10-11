@@ -97,7 +97,7 @@ export function EMenuPage() {
       canvas.height = H;
 
       // 1. Background
-      ctx.fillStyle = "#10B981"; // FloraPOS Emerald
+      ctx.fillStyle = "#10B981"; // Ottor POS Emerald
       ctx.fillRect(0, 0, W, H);
 
       // 2. Decorative Blobs (White)
@@ -224,11 +224,11 @@ export function EMenuPage() {
         }
       }
 
-      // 9. FloraPOS Branding
+      // 9. Ottor POS Branding
       ctx.font = "900 32px system-ui, -apple-system, sans-serif";
       ctx.fillStyle = "rgba(15, 23, 42, 0.4)";
       ctx.letterSpacing = "4px";
-      ctx.fillText("POWERED BY FLORAPOS", W / 2, H - 100);
+      ctx.fillText("POWERED BY OTTOR POS", W / 2, H - 100);
 
       const pngFile = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");

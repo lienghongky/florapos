@@ -3,7 +3,7 @@ import { useAuthStore } from '@/app/store/auth-store';
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Flower2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from '@/app/i18n';
 
 export function RegisterPage() {
@@ -64,8 +64,8 @@ export function RegisterPage() {
                     >
                         <ArrowLeft className="size-6" />
                     </Link>
-                    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-                        <Flower2 className="size-8" />
+                    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-emerald-500/10 p-2 shadow-sm border border-emerald-500/20">
+                        <img src="/logo.png" alt="Ottor POS" className="size-12 object-contain" />
                     </div>
                     <h1 className="text-3xl font-semibold">{t('auth.joinTitle')}</h1>
                     <p className="mt-2 text-sm text-muted-foreground">{t('auth.createAccount')}</p>

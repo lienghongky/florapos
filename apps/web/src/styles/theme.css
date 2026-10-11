@@ -1,25 +1,25 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* FloraPOS Brand Colors */
+  /* Ottor POS Brand Colors */
   --brand-primary: #10B981;
   /* Modern Emerald Green */
   --brand-secondary: #6EE7B7;
   --brand-accent: #ECFDF5;
 
-  /* FloraPOS Neutral Colors */
+  /* Ottor POS Neutral Colors */
   --neutral-background: #F9FAF9;
   --neutral-surface: #FFFFFF;
   --neutral-border: #E4E7E5;
   --neutral-divider: #EEF0EF;
 
-  /* FloraPOS Text Colors */
+  /* Ottor POS Text Colors */
   --text-primary: #1F2933;
   --text-secondary: #5F6C72;
   --text-muted: #9AA4A9;
   --text-inverse: #FFFFFF;
 
-  /* FloraPOS Status Colors */
+  /* Ottor POS Status Colors */
   --status-success: #4CAF7A;
   --status-warning: #F4B740;
   --status-error: #E05A5A;

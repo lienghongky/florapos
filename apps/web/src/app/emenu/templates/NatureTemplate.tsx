@@ -287,7 +287,7 @@ export const NatureTemplate: React.FC<EMenuTemplateProps> = ({
           </div>
 
           <div className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em]">
-            Powered by FloraPos Digital E-Menu
+            Powered by Ottor POS Digital E-Menu
           </div>
         </motion.div>
       </footer>

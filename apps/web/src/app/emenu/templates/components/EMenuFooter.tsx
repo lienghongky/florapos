@@ -26,7 +26,7 @@ export const EMenuFooter: React.FC<EMenuFooterProps> = ({
       </div>
 
       <div className="mt-12 text-[9px] font-black opacity-20 uppercase tracking-[0.4em]">
-        Powered by FloraPos Digital E-Menu
+        Powered by Ottor POS Digital E-Menu
       </div>
     </footer>
   );

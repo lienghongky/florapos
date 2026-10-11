@@ -227,7 +227,7 @@ export const MarbleLuxuryTemplate: React.FC<EMenuTemplateProps> = ({
                      <Apple className="size-5" />
                      <Play className="size-5" />
                   </div>
-                  <p className="text-[10px] uppercase tracking-widest">© 2024 FloraPos Elite</p>
+                  <p className="text-[10px] uppercase tracking-widest">© 2026 Ottor POS Elite</p>
                </div>
             </div>
          </footer>

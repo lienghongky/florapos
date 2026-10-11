@@ -37,7 +37,7 @@ export function OrderReceipt({
     const [showDownloadMenu, setShowDownloadMenu] = useState(false);
 
     const activeStore = storeOverride || selectedStore;
-    const storeName = activeStore?.name || "FloraPos";
+    const storeName = activeStore?.name || "Ottor POS";
     const storeLogo = activeStore?.logo_url 
         ? (activeStore.logo_url.startsWith('blob:') || activeStore.logo_url.startsWith('data:') || activeStore.logo_url.startsWith('/api') 
             ? activeStore.logo_url 
@@ -189,7 +189,7 @@ export function OrderReceipt({
                     <div className="text-center text-[10px] sm:text-[11px] space-y-1">
                         {customNote && <p className="font-bold border-b border-black pb-1 mb-2 italic">Note: {customNote}</p>}
                         <p className="font-bold whitespace-pre-wrap">{footerText}</p>
-                        <p>Powered by FloraPos</p>
+                        <p>Powered by Ottor POS</p>
                     </div>
                     
                     {/* Action Bar: Download vs Print (Hidden in screen capture & print mode) */}

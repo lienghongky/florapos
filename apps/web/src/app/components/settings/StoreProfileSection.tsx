@@ -10,9 +10,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { OrderReceipt } from '@/app/components/orders/OrderReceipt';
 import { usePrinterStore } from '@/app/store/printer-store';
 import { PrinterSettingsModal } from '@/app/components/orders/PrinterSettingsModal';
+import { useTranslation } from '@/app/i18n';
 
 export function StoreProfileSection() {
   const { user, selectedStore, updateStoreInfo, uploadStoreBanner, uploadStoreLogo } = useAuthStore();
+  const { t } = useTranslation();
   
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -133,20 +135,20 @@ export function StoreProfileSection() {
     }
   };
 
-  if (!selectedStore) return <div className="p-8 text-center text-muted-foreground">Select a store to view its profile.</div>;
+  if (!selectedStore) return <div className="p-8 text-center text-muted-foreground">{t('settings.selectStoreToView')}</div>;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Store Profile</h2>
-          <p className="text-sm text-muted-foreground">Manage your store's public identity and contact information.</p>
+          <h2 className="text-2xl font-semibold tracking-tight">{t('settings.storeProfile')}</h2>
+          <p className="text-sm text-muted-foreground">{t('settings.storeProfileDesc')}</p>
         </div>
         <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Saving...' : (
+          {isSaving ? t('settings.saving') : (
             <>
               <Save className="mr-2 size-4" />
-              Save Changes
+              {t('settings.saveChanges')}
             </>
           )}
         </Button>
@@ -157,14 +159,14 @@ export function StoreProfileSection() {
           {/* Images Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2 md:col-span-2">
-            <Label>Store Banner</Label>
+            <Label>{t('settings.storeBanner')}</Label>
             <div className="relative h-48 w-full bg-slate-100 rounded-xl border-2 border-dashed border-slate-200 overflow-hidden group">
               {bannerPreview ? (
                 <img src={bannerPreview} alt="Store Banner" className="w-full h-full object-cover" />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
                   <ImageIcon className="size-10 mb-2 opacity-50" />
-                  <p className="text-sm font-medium">No banner image</p>
+                  <p className="text-sm font-medium">{t('settings.noBanner')}</p>
                 </div>
               )}
               
@@ -175,7 +177,7 @@ export function StoreProfileSection() {
                   disabled={isUploadingBanner}
                 >
                   <Upload className="mr-2 size-4" />
-                  {isUploadingBanner ? 'Uploading...' : 'Upload Banner'}
+                  {isUploadingBanner ? t('common.loading') : t('settings.uploadBanner')}
                 </Button>
               </div>
               <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={handleBannerChange} />
@@ -183,14 +185,14 @@ export function StoreProfileSection() {
           </div>
 
           <div className="space-y-2">
-            <Label>Store Logo (Receipts)</Label>
+            <Label>{t('settings.storeLogo')}</Label>
             <div className="relative h-48 w-full bg-slate-100 rounded-xl border-2 border-dashed border-slate-200 overflow-hidden group">
               {logoPreview ? (
                 <img src={logoPreview} alt="Store Logo" className="w-full h-full object-contain p-4 bg-white" />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
                   <ImageIcon className="size-10 mb-2 opacity-50" />
-                  <p className="text-sm font-medium">No logo uploaded</p>
+                  <p className="text-sm font-medium">{t('settings.noLogo')}</p>
                 </div>
               )}
               
@@ -202,7 +204,7 @@ export function StoreProfileSection() {
                   size="sm"
                 >
                   <Upload className="mr-2 size-4" />
-                  {isUploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                  {isUploadingLogo ? t('common.loading') : t('settings.uploadLogo')}
                 </Button>
               </div>
               <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={handleLogoChange} />
@@ -213,7 +215,7 @@ export function StoreProfileSection() {
         {/* Info Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label>Store Name <span className="text-red-500">*</span></Label>
+            <Label>{t('settings.storeName')} <span className="text-red-500">*</span></Label>
             <div className="relative">
               <StoreIcon className="absolute left-3 top-3 size-4 text-muted-foreground" />
               <Input 
@@ -226,7 +228,7 @@ export function StoreProfileSection() {
           </div>
           
           <div className="space-y-2">
-            <Label>Phone Number</Label>
+            <Label>{t('settings.phoneNumber')}</Label>
             <Input 
               value={phone} 
               onChange={(e) => setPhone(e.target.value)} 
@@ -235,7 +237,7 @@ export function StoreProfileSection() {
           </div>
           
           <div className="space-y-2 md:col-span-2">
-            <Label>Physical Address</Label>
+            <Label>{t('settings.physicalAddress')}</Label>
             <Input 
               value={address} 
               onChange={(e) => setAddress(e.target.value)} 
@@ -244,7 +246,7 @@ export function StoreProfileSection() {
           </div>
 
           <div className="space-y-2">
-            <Label>Website URL</Label>
+            <Label>{t('settings.websiteUrl')}</Label>
             <Input 
               value={website} 
               onChange={(e) => setWebsite(e.target.value)} 
@@ -253,7 +255,7 @@ export function StoreProfileSection() {
           </div>
 
           <div className="space-y-2">
-            <Label>Tax ID / VAT Number</Label>
+            <Label>{t('settings.taxId')}</Label>
             <Input 
               value={taxId} 
               onChange={(e) => setTaxId(e.target.value)} 
@@ -264,8 +266,8 @@ export function StoreProfileSection() {
           <div className="md:col-span-2">
             <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white transition-all">
               <div className="space-y-0.5">
-                <Label className="text-base">Global Tax Setting</Label>
-                <p className="text-xs text-muted-foreground">Manage tax calculation and display on receipts</p>
+                <Label className="text-base">{t('settings.globalTax')}</Label>
+                <p className="text-xs text-muted-foreground">{t('settings.globalTaxDesc')}</p>
               </div>
               <div className="flex items-center gap-4">
                 <AnimatePresence>
@@ -301,7 +303,7 @@ export function StoreProfileSection() {
           </div>
 
           <div className="space-y-2">
-            <Label>Exchange Rate (1 USD = ? KHR)</Label>
+            <Label>{t('settings.exchangeRate')}</Label>
             <div className="relative">
                <Input 
                 type="number"
@@ -312,34 +314,34 @@ export function StoreProfileSection() {
                 className="pr-4"
               />
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">Commonly 4000 or 4100. This rate will be used for KHR conversions.</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{t('settings.exchangeRateDesc')}</p>
           </div>
 
           <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label>Invoice Prefix</Label>
+              <Label>{t('settings.invoicePrefix')}</Label>
               <Input 
                 value={invoicePrefix} 
                 onChange={(e) => setInvoicePrefix(e.target.value)} 
                 placeholder="INV-"
               />
-              <p className="text-[10px] text-muted-foreground mt-1">Added to all generated invoice numbers.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{t('settings.invoicePrefixDesc')}</p>
             </div>
             
             <div className="space-y-2">
-              <Label>Next Invoice Number</Label>
+              <Label>{t('settings.nextInvoiceNumber')}</Label>
               <Input 
                 type="number"
                 value={invoiceNextNumber} 
                 onChange={(e) => setInvoiceNextNumber(Number(e.target.value))} 
                 placeholder="1"
               />
-              <p className="text-[10px] text-muted-foreground mt-1">The very next invoice will use this number.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{t('settings.nextInvoiceNumberDesc')}</p>
             </div>
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label>Custom Receipt Footer</Label>
+            <Label>{t('settings.receiptFooter')}</Label>
             <Input 
               value={receiptFooter} 
               onChange={(e) => setReceiptFooter(e.target.value)} 
@@ -348,7 +350,7 @@ export function StoreProfileSection() {
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label>Store Description</Label>
+            <Label>{t('settings.storeDescription')}</Label>
             <Textarea 
               value={description} 
               onChange={(e) => setDescription(e.target.value)} 
@@ -360,7 +362,7 @@ export function StoreProfileSection() {
         </div>
 
         <div className="xl:col-span-1 space-y-4">
-          <Label>Live Receipt Preview</Label>
+          <Label>{t('settings.liveReceiptPreview')}</Label>
           <div className="rounded-xl border border-border bg-slate-50 p-4 flex justify-center items-start overflow-hidden">
              <div className="w-full scale-90 origin-top transform-gpu">
                 <OrderReceipt 
@@ -399,7 +401,7 @@ export function StoreProfileSection() {
                   <Printer className="size-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900">Receipt Printer Hardware</h3>
+                  <h3 className="font-bold text-sm text-slate-900">{t('settings.printerHardware')}</h3>
                   <p className="text-[11px] text-muted-foreground">
                     {printMode === 'bluetooth'
                       ? (isBluetoothConnected ? `Bluetooth: ${bluetoothDeviceName || 'Connected'}` : 'Direct Bluetooth (Not Paired)')
@@ -422,7 +424,7 @@ export function StoreProfileSection() {
                 className="w-full flex items-center justify-center gap-2 h-11 rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50 transition-all"
               >
                 <Settings className="size-4 text-slate-600" />
-                Printer Settings
+                {t('settings.printerSettings')}
               </Button>
 
               <Button
@@ -431,7 +433,7 @@ export function StoreProfileSection() {
                 className="w-full flex items-center justify-center gap-2 h-11 rounded-xl text-xs font-bold bg-slate-900 hover:bg-brand-primary text-white transition-all shadow-md shadow-slate-900/10"
               >
                 <Zap className="size-4" />
-                Print Test
+                {t('settings.printTest')}
               </Button>
             </div>
           </div>
