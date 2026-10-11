@@ -10,8 +10,10 @@ import { useInventoryStore } from '@/app/store/inventory-store';
 import { InventoryHistoryLog, InventoryActionType } from '@/app/types';
 import { toast } from 'sonner';
 import { formatDate, formatTime } from '@/app/utils/format';
+import { useTranslation } from '@/app/i18n';
 
 export function InventoryHistoryPage() {
+  const { t } = useTranslation();
   const { getGlobalHistory } = useInventoryStore();
   const [history, setHistory] = useState<InventoryHistoryLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,9 +77,9 @@ export function InventoryHistoryPage() {
         <div>
           <h1 className="text-3xl font-semibold flex items-center gap-3">
             <History className="size-8 text-primary" />
-            Inventory History
+            {t('inventoryHistory.title')}
           </h1>
-          <p className="mt-1 text-muted-foreground font-medium">Audit trail of all stock movements across your store</p>
+          <p className="mt-1 text-muted-foreground font-medium">{t('inventoryHistory.subtitle')}</p>
         </div>
         <div className="flex gap-3">
           <button 
@@ -106,7 +108,7 @@ export function InventoryHistoryPage() {
             className="flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 font-medium transition-all hover:bg-muted hover:shadow-sm"
           >
             <Download className="size-4" />
-            Export Audit Log
+            {t('inventoryHistory.exportAuditLog')}
           </button>
         </div>
       </div>
@@ -114,10 +116,10 @@ export function InventoryHistoryPage() {
       {/* Stats Summary */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Total Movements', value: stats.totalMovements, icon: History, color: 'bg-blue-50 text-blue-600' },
-          { label: 'Total Additions', value: `+${stats.additions}`, icon: TrendingUp, color: 'bg-green-50 text-green-600' },
-          { label: 'Total Deductions', value: `-${stats.deductions}`, icon: TrendingDown, color: 'bg-red-50 text-red-600' },
-          { label: 'Sales Deductions', value: stats.salesCount, icon: ShoppingBag, color: 'bg-purple-50 text-purple-600' },
+          { label: t('inventoryHistory.totalMovements'), value: stats.totalMovements, icon: History, color: 'bg-blue-50 text-blue-600' },
+          { label: t('inventoryHistory.totalAdditions'), value: `+${stats.additions}`, icon: TrendingUp, color: 'bg-green-50 text-green-600' },
+          { label: t('inventoryHistory.totalDeductions'), value: `-${stats.deductions}`, icon: TrendingDown, color: 'bg-red-50 text-red-600' },
+          { label: t('inventoryHistory.salesDeductions'), value: stats.salesCount, icon: ShoppingBag, color: 'bg-purple-50 text-purple-600' },
         ].map((stat, i) => (
           <motion.div
             key={i}
@@ -146,7 +148,7 @@ export function InventoryHistoryPage() {
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search by product name, reference, or note..."
+              placeholder={t('inventoryHistory.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-lg border border-border bg-muted/30 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
@@ -161,7 +163,7 @@ export function InventoryHistoryPage() {
                 onChange={(e) => setActionFilter(e.target.value as any)}
                 className="bg-transparent text-sm font-medium outline-none cursor-pointer"
               >
-                <option value="all">All Actions</option>
+                <option value="all">{t('inventoryHistory.allActions')}</option>
                 {Object.entries(actionConfig).map(([key, config]) => (
                   <option key={key} value={key}>{config.label}</option>
                 ))}
@@ -207,13 +209,13 @@ export function InventoryHistoryPage() {
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">Timestamp</th>
-                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">Product / Item</th>
-                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">Action Type</th>
-                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground text-center">Movement</th>
-                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">Stock Change</th>
-                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">Performed By</th>
-                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">Reference</th>
+                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">{t('inventoryHistory.timestamp')}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">{t('inventoryHistory.productItem')}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">{t('inventoryHistory.actionType')}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground text-center">{t('inventoryHistory.movement')}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">{t('inventoryHistory.stockChange')}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">{t('inventoryHistory.performedBy')}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-muted-foreground">{t('inventoryHistory.reference')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -317,7 +319,7 @@ export function InventoryHistoryPage() {
                   <td colSpan={7} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center opacity-40">
                       <History className="size-16 mb-4" />
-                      <p className="text-lg font-medium">No movement history found</p>
+                      <p className="text-lg font-medium">{t('inventoryHistory.noHistoryFound')}</p>
                       <p className="text-sm max-w-[250px] mx-auto mt-2">Adjust your filters or try searching for another term.</p>
                     </div>
                   </td>

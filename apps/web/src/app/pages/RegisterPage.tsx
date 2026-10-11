@@ -4,8 +4,10 @@ import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Flower2 } from 'lucide-react';
+import { useTranslation } from '@/app/i18n';
 
 export function RegisterPage() {
+    const { t } = useTranslation();
     const { register, user } = useAuthStore();
     const navigate = useNavigate();
 
@@ -65,8 +67,8 @@ export function RegisterPage() {
                     <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
                         <Flower2 className="size-8" />
                     </div>
-                    <h1 className="text-3xl font-semibold">Join FloraPos</h1>
-                    <p className="mt-2 text-sm text-muted-foreground">Create your account</p>
+                    <h1 className="text-3xl font-semibold">{t('auth.joinTitle')}</h1>
+                    <p className="mt-2 text-sm text-muted-foreground">{t('auth.createAccount')}</p>
                 </div>
 
                 <motion.div
@@ -86,7 +88,7 @@ export function RegisterPage() {
                                 transition={{ duration: 0.2 }}
                                 className="pointer-events-none absolute left-3 top-3 text-muted-foreground"
                             >
-                                Full Name
+                                {t('auth.fullName')}
                             </motion.label>
                             <motion.input
                                 whileFocus={{ boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.1)' }}
@@ -109,7 +111,7 @@ export function RegisterPage() {
                                 transition={{ duration: 0.2 }}
                                 className="pointer-events-none absolute left-3 top-3 text-muted-foreground"
                             >
-                                Email address
+                                {t('auth.emailAddress')}
                             </motion.label>
                             <motion.input
                                 whileFocus={{ boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.1)' }}
@@ -132,7 +134,7 @@ export function RegisterPage() {
                                 transition={{ duration: 0.2 }}
                                 className="pointer-events-none absolute left-3 top-3 text-muted-foreground"
                             >
-                                Password
+                                {t('auth.password')}
                             </motion.label>
                             <motion.input
                                 whileFocus={{ boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.1)' }}
@@ -156,7 +158,7 @@ export function RegisterPage() {
                                 transition={{ duration: 0.2 }}
                                 className="pointer-events-none absolute left-3 top-3 text-muted-foreground"
                             >
-                                Confirm Password
+                                {t('auth.confirmPassword')}
                             </motion.label>
                             <motion.input
                                 whileFocus={{ boxShadow: '0 0 0 3px rgba(0, 0, 0, 0.1)' }}
@@ -178,14 +180,14 @@ export function RegisterPage() {
                             disabled={isLoading}
                             className="w-full rounded-lg bg-primary py-3 font-medium text-primary-foreground shadow-md disabled:opacity-70"
                         >
-                            {isLoading ? 'Creating Account...' : 'Sign Up'}
+                            {isLoading ? t('auth.creatingAccount') : t('auth.signUp')}
                         </motion.button>
                     </form>
 
                     <div className="mt-6 text-center text-sm text-muted-foreground">
-                        Already have an account?{' '}
+                        {t('auth.alreadyHaveAccount')}{' '}
                         <Link to="/login" className="font-medium text-primary hover:underline">
-                            Sign In
+                            {t('auth.signIn')}
                         </Link>
                     </div>
                 </motion.div>

@@ -13,12 +13,14 @@ import { toast } from 'sonner';
 import { OrderReceipt } from '@/app/components/orders/OrderReceipt';
 import { formatDateTime, parsePrice, toLocalDateString } from '@/app/utils/format';
 import { ordersService } from '@/app/services/orders.service';
+import { useTranslation } from '@/app/i18n';
 
 // parsePrice is now imported from @/app/utils/format
 
 export function ReportsPage() {
   const { user, selectedStore } = useAuthStore();
   const { products } = useProductStore();
+  const { t } = useTranslation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState('sales'); // sales, history, invoices, financial, staff
 
@@ -432,7 +434,7 @@ export function ReportsPage() {
     <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2">
         <Calendar className="size-4 text-muted-foreground" />
-        <span className="text-sm font-medium text-muted-foreground">Range:</span>
+        <span className="text-sm font-medium text-muted-foreground">{t('reports.range')}</span>
       </div>
       <div className="flex items-center gap-2">
         <input
@@ -453,7 +455,7 @@ export function ReportsPage() {
         onClick={handleResetFilters}
         className="text-xs font-semibold text-primary hover:underline"
       >
-        Clear All
+        {t('reports.clearAll')}
       </button>
       <div className="ml-auto flex items-center gap-4">
         {activeTab === 'invoices' && selectedOrderIds.length > 0 && (
@@ -471,8 +473,8 @@ export function ReportsPage() {
         >
           <Download className="size-4" />
           {activeTab === 'invoices'
-            ? `Download ${selectedOrderIds.length > 0 ? 'Selected' : 'All'} Invoices (PDF)`
-            : 'Export CSV'}
+            ? t('reports.downloadInvoices')
+            : t('reports.exportCsv')}
         </button>
       </div>
     </div>
@@ -516,19 +518,19 @@ export function ReportsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Reports & Analytics</h1>
-          <p className="mt-1 text-muted-foreground">Comprehensive insights into your business performance</p>
+          <h1 className="text-3xl font-semibold">{t('reports.title')}</h1>
+          <p className="mt-1 text-muted-foreground">{t('reports.subtitle')}</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex overflow-x-auto rounded-xl border border-border bg-white p-1">
         {[
-          { id: 'sales', label: 'Sales Report', icon: TrendingUp },
-          { id: 'history', label: 'Transaction History', icon: FileText },
-          { id: 'invoices', label: 'Invoice Management', icon: Receipt },
-          { id: 'financial', label: 'Financials', icon: DollarSign, ownerOnly: true },
-          { id: 'staff', label: 'Staff Performance', icon: Users, ownerOnly: true },
+          { id: 'sales', label: t('reports.salesReport'), icon: TrendingUp },
+          { id: 'history', label: t('reports.transactionHistory'), icon: FileText },
+          { id: 'invoices', label: t('reports.invoiceManagement'), icon: Receipt },
+          { id: 'financial', label: t('reports.financials'), icon: DollarSign, ownerOnly: true },
+          { id: 'staff', label: t('reports.staffPerformance'), icon: Users, ownerOnly: true },
         ].map((tab) => {
           // Quick check for owner permission, although simple app doesn't enforce strict auth yet
           if (tab.ownerOnly && user?.role !== UserRole.OWNER) return null;
@@ -574,10 +576,10 @@ export function ReportsPage() {
             {/* Key Metrics */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { label: 'Total Sales', value: `$${totalSales.toFixed(2)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-100' },
-                { label: 'Transactions', value: totalTransactions, icon: Receipt, color: 'text-blue-600', bg: 'bg-blue-100' },
-                { label: 'Avg Order Value', value: `$${averageOrderValue.toFixed(2)}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-100' },
-                { label: 'Discounts', value: `$${totalDiscounts.toFixed(2)}`, icon: Percent, color: 'text-orange-600', bg: 'bg-orange-100' },
+                { label: t('reports.totalSales'), value: `$${totalSales.toFixed(2)}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-100' },
+                { label: t('reports.transactions'), value: totalTransactions, icon: Receipt, color: 'text-blue-600', bg: 'bg-blue-100' },
+                { label: t('reports.avgOrderValue'), value: `$${averageOrderValue.toFixed(2)}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-100' },
+                { label: t('reports.discounts'), value: `$${totalDiscounts.toFixed(2)}`, icon: Percent, color: 'text-orange-600', bg: 'bg-orange-100' },
               ].map((card, i) => (
                 <div key={i} className="rounded-xl border border-border bg-white p-4 shadow-sm">
                   <div className="flex items-center gap-3">
@@ -598,7 +600,7 @@ export function ReportsPage() {
               <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
                 <h3 className="mb-6 font-semibold flex items-center gap-2">
                   <TrendingUp className="size-5 text-primary" />
-                  Sales Trends
+                  {t('reports.salesTrends')}
                 </h3>
                 <div className="flex h-64 items-end justify-between gap-3 px-2">
                   {weeklyTrend.map((s, i) => {
@@ -635,13 +637,13 @@ export function ReportsPage() {
                   })}
                 </div>
                 <div className="mt-10 text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
-                  Weekly Performance (Mon - Sun)
+                  {t('dashboard.weeklyPerformance')}
                 </div>
               </div>
               <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
                 <h3 className="mb-6 font-semibold flex items-center gap-2">
                   <BarChart3 className="size-5 text-primary" />
-                  Top Products
+                  {t('reports.topProducts')}
                 </h3>
                 <div className="space-y-4">
                   {topProductStats.length > 0 ? (
@@ -687,7 +689,7 @@ export function ReportsPage() {
               <Search className="size-4 text-muted-foreground ml-2" />
               <input
                 type="text"
-                placeholder="Search by Invoice ID..."
+                placeholder={t('reports.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
@@ -714,13 +716,13 @@ export function ReportsPage() {
                         }}
                       />
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Invoice ID</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Date</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Staff</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Amount</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Payment</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Status</th>
-                    <th className="text-right py-3 px-4 font-medium text-sm text-muted-foreground">Action</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">{t('orders.orderNumber')}</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">{t('orders.date')}</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">{t('reports.staff')}</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">{t('reports.amount')}</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">{t('orders.payment')}</th>
+                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">{t('orders.status')}</th>
+                    <th className="text-right py-3 px-4 font-medium text-sm text-muted-foreground">{t('reports.action')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -731,8 +733,8 @@ export function ReportsPage() {
                           <td colSpan={8} className="py-12 text-center text-muted-foreground">
                             <div className="flex flex-col items-center gap-2">
                               <Search className="size-8 opacity-20" />
-                              <p>{searchQuery ? `No matches for "${searchQuery}"` : 'No transactions found'}</p>
-                              <button onClick={handleResetFilters} className="text-sm text-primary font-medium hover:underline">Reset filters</button>
+                              <p>{searchQuery ? `No matches for "${searchQuery}"` : t('reports.noTransactionsFound')}</p>
+                              <button onClick={handleResetFilters} className="text-sm text-primary font-medium hover:underline">{t('reports.resetFilters')}</button>
                             </div>
                           </td>
                         </tr>
@@ -771,7 +773,7 @@ export function ReportsPage() {
                             onClick={() => setSelectedOrder(order)}
                             className="text-sm font-medium text-primary hover:underline"
                           >
-                            View
+                            {t('reports.view')}
                           </button>
                         </td>
                       </tr>

@@ -21,6 +21,7 @@ import { useRef } from 'react';
 import { formatDate, formatTime, formatPaymentMethod } from '@/app/utils/format';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { Wallet, CreditCard, Banknote, ScanLine } from 'lucide-react';
+import { useTranslation } from '@/app/i18n';
 
 const parsePrice = (val: any): number => {
   if (val && typeof val === 'object' && 'usd' in val) return Number(val.usd);
@@ -28,6 +29,7 @@ const parsePrice = (val: any): number => {
 };
 
 export function OrdersPage() {
+  const { t } = useTranslation();
   const { orders, totalOrders, refreshOrders, updateOrderStatus, updateOrderPayment, isOrdersLoading } = useOrderStore();
   const { selectedStore } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,8 +165,8 @@ export function OrdersPage() {
   return (
     <AnimatedPage className="space-y-6 pb-20">
       <PageHeader
-        title="Orders Management"
-        subtitle="Track, filter, and manage all your store transactions"
+        title={t('orders.title')}
+        subtitle={t('orders.subtitle')}
         action={
           <>
             <button
@@ -172,7 +174,7 @@ export function OrdersPage() {
               className="flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold shadow-sm transition-all hover:bg-muted active:scale-95"
             >
               <RefreshCw className={`size-4 ${isOrdersLoading ? 'animate-spin' : ''}`} />
-              Refresh
+              {t('common.refresh')}
             </button>
           </>
         }
@@ -186,7 +188,7 @@ export function OrdersPage() {
           <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search by Order #, ID, or Staff..."
+            placeholder={t('orders.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -199,10 +201,10 @@ export function OrdersPage() {
         {/* Date Filter Tabs */}
         <div className="flex items-center gap-1 rounded-2xl border border-border bg-white p-1">
           {[
-            { id: 'today', label: 'Today' },
-            { id: 'yesterday', label: 'Yesterday' },
-            { id: 'week', label: '7D' },
-            { id: 'all', label: 'All' },
+            { id: 'today', label: t('orders.today') },
+            { id: 'yesterday', label: t('orders.yesterday') },
+            { id: 'week', label: t('orders.week7d') },
+            { id: 'all', label: t('orders.all') },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -231,13 +233,13 @@ export function OrdersPage() {
             }}
             className="h-12 w-full appearance-none rounded-2xl border border-border bg-white pl-11 pr-10 text-sm font-bold outline-none ring-brand-primary/10 transition-all focus:ring-4"
           >
-            <option value="all">All Statuses</option>
+            <option value="all">{t('orders.allStatuses')}</option>
             <option value="emenu_pending">E-Menu Pending</option>
-            <option value="pending">Pending</option>
-            <option value="preparing">Preparing</option>
+            <option value="pending">{t('orders.statusPending')}</option>
+            <option value="preparing">{t('orders.statusPreparing')}</option>
 
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="completed">{t('orders.statusCompleted')}</option>
+            <option value="cancelled">{t('orders.statusCancelled')}</option>
           </select>
           <ChevronDown className="absolute right-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         </div>
@@ -269,10 +271,10 @@ export function OrdersPage() {
                   {/* Basic Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
-                      <h3 className="text-lg font-bold tracking-tight">Order #{order.order_number?.toUpperCase() || order.id.slice(-6).toUpperCase()}</h3>
+                      <h3 className="text-lg font-bold tracking-tight">{t('orders.orderNumber')}{order.order_number?.toUpperCase() || order.id.slice(-6).toUpperCase()}</h3>
                       <div className="flex items-center gap-2">
                         <span className="rounded-lg bg-muted px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          {order.order_type || 'Standard'}
+                          {order.order_type || t('orders.standard')}
                         </span>
                         {order.tags && (
                           <span className="rounded-lg bg-indigo-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-white shadow-sm shadow-indigo-100">
@@ -288,7 +290,7 @@ export function OrdersPage() {
                       </div>
                       <div className="hidden sm:flex items-center gap-1.5">
                         <ShoppingBag className="size-3.5" />
-                        {order.items.length} items
+                        {order.items.length} {t('orders.items')}
                       </div>
                       <div className="hidden sm:flex items-center gap-1.5 font-bold text-brand-primary/80">
                         <RefreshCw className="size-3.5" />
@@ -312,11 +314,11 @@ export function OrdersPage() {
                         className="hidden lg:flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-green-600/20 hover:bg-green-700 active:scale-95 transition-all"
                       >
                         <Banknote className="size-4" />
-                        Collect Payment
+                        {t('orders.collectPayment')}
                       </button>
                     )}
                     <div className="text-right">
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Grand Total</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('orders.grandTotal')}</p>
                       <p className="text-2xl font-black text-brand-primary">${parsePrice(order.grand_total).toFixed(2)}</p>
                     </div>
                   </div>
@@ -330,10 +332,10 @@ export function OrdersPage() {
                         className={`rounded-lg border border-border px-3 py-1.5 text-xs font-bold outline-none transition-all focus:ring-2 focus:ring-brand-primary/20 ${statusCfg.color}`}
                       >
                         {order.status === 'emenu_pending' && <option value="emenu_pending">E-Menu Req</option>}
-                        <option value="pending">Mark Pending</option>
-                        <option value="preparing">Mark Preparing</option>
-                        <option value="completed">Mark Completed</option>
-                        <option value="cancelled">Mark Cancelled</option>
+                        <option value="pending">{t('orders.markPending')}</option>
+                        <option value="preparing">{t('orders.markPreparing')}</option>
+                        <option value="completed">{t('orders.markCompleted')}</option>
+                        <option value="cancelled">{t('orders.markCancelled')}</option>
                       </select>
                     </div>
                     <div className={`flex size-10 items-center justify-center rounded-xl bg-muted transition-all group-hover:bg-brand-primary group-hover:text-white ${isExpanded ? 'rotate-90 bg-brand-primary text-white' : ''}`}>
@@ -363,7 +365,7 @@ export function OrdersPage() {
                         {/* Quick Actions Side Panel */}
                         <div className="w-full lg:w-2/5 space-y-6">
                           <div className="rounded-3xl bg-white p-6 shadow-sm border border-border">
-                            <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">Order Management</h4>
+                            <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">{t('orders.orderManagement')}</h4>
                             <div className="space-y-4">
                               {order.payment_method === 'pay_later' && (
                                 <button
@@ -371,50 +373,50 @@ export function OrdersPage() {
                                   className="w-full flex items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-sm font-bold text-white shadow-lg shadow-green-600/20 hover:bg-green-700 transition-all active:scale-95"
                                 >
                                   <Banknote className="size-5" />
-                                  Collect Payment
+                                  {t('orders.collectPayment')}
                                 </button>
                               )}
                               
                               <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Current Status</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{t('orders.currentStatus')}</label>
                                 <select
                                   value={order.status}
                                   onChange={(e) => handleStatusUpdate(order.id, e.target.value as OrderStatus)}
                                   className={`w-full rounded-2xl border border-border px-4 py-3 text-sm font-bold outline-none transition-all focus:ring-4 focus:ring-brand-primary/10 ${statusCfg.color}`}
                                 >
                                   {order.status === 'emenu_pending' && <option value="emenu_pending">E-Menu Request</option>}
-                                  <option value="pending">Mark as Pending</option>
-                                  <option value="preparing">Mark as Preparing</option>
-                                  <option value="completed">Mark as Completed</option>
-                                  <option value="cancelled">Mark as Cancelled</option>
+                                  <option value="pending">{t('orders.markPending')}</option>
+                                  <option value="preparing">{t('orders.markPreparing')}</option>
+                                  <option value="completed">{t('orders.markCompleted')}</option>
+                                  <option value="cancelled">{t('orders.markCancelled')}</option>
                                 </select>
                               </div>
                             </div>
                           </div>
 
                           <div className="rounded-3xl bg-white p-6 shadow-sm border border-border">
-                            <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">Quick Actions</h4>
+                            <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">{t('orders.quickActions')}</h4>
                             <div className="grid grid-cols-3 gap-2">
                               <button
                                 onClick={() => handlePrintSingle(order)}
                                 className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border p-3 transition-all hover:bg-muted group text-center"
                               >
                                 <Printer className="size-5 text-brand-primary group-hover:scale-110 transition-transform" />
-                                <span className="text-[11px] font-bold">Print</span>
+                                <span className="text-[11px] font-bold">{t('orders.print')}</span>
                               </button>
                               <button
                                 onClick={() => handleDownloadSingle(order)}
                                 className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border p-3 transition-all hover:bg-muted group text-center"
                               >
                                 <Download className="size-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                                <span className="text-[11px] font-bold">Download</span>
+                                <span className="text-[11px] font-bold">{t('orders.downloadReceipt')}</span>
                               </button>
                               <button
                                 onClick={() => openShareModal(order)}
                                 className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border p-3 transition-all hover:bg-muted group text-center"
                               >
                                 <ArrowUpRight className="size-5 text-green-600 group-hover:scale-110 transition-transform" />
-                                <span className="text-[11px] font-bold">Share</span>
+                                <span className="text-[11px] font-bold">{t('orders.shareGiftCard')}</span>
                               </button>
                             </div>
                           </div>

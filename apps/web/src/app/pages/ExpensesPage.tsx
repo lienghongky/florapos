@@ -41,8 +41,10 @@ import {
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { toast } from 'sonner';
 import { PageHeader } from '@/app/components/ui/page-header';
+import { useTranslation } from '@/app/i18n';
 
 export function ExpensesPage() {
+    const { t } = useTranslation();
     const { user, selectedStore } = useAuthStore();
     const { orders, refreshOrders } = useOrderStore();
     const {
@@ -456,8 +458,8 @@ export function ExpensesPage() {
     return (
         <AnimatedPage className="space-y-6">
             <PageHeader
-                title="Expense Management"
-                subtitle="Track and manage business expenses"
+                title={t('expenses.title')}
+                subtitle={t('expenses.subtitle')}
                 action={
                     activeTab === 'categories' ? (
                         <button
@@ -465,7 +467,7 @@ export function ExpensesPage() {
                             className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 active:scale-95"
                         >
                             <Plus className="size-5" />
-                            Add Category
+                            {t('expenses.addCategory')}
                         </button>
                     ) : (
                         <div className="flex flex-wrap gap-2">
@@ -475,21 +477,21 @@ export function ExpensesPage() {
                                 className="flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold shadow-sm transition-all hover:bg-muted active:scale-95 disabled:opacity-50"
                             >
                                 <RefreshCw className={`size-4 ${isLoading ? 'animate-spin' : ''}`} />
-                                <span className="hidden sm:inline">Refresh</span>
+                                <span className="hidden sm:inline">{t('expenses.refresh')}</span>
                             </button>
                             <button
                                 onClick={() => setIsAddIncomeModalOpen(true)}
                                 className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-green-600/20 transition-all hover:bg-green-700 active:scale-95"
                             >
                                 <Plus className="size-5" />
-                                Add Income
+                                {t('expenses.addIncome')}
                             </button>
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
                                 className="flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-red-600/20 transition-all hover:bg-red-700 active:scale-95"
                             >
                                 <Plus className="size-5" />
-                                Add Expense
+                                {t('expenses.addExpense')}
                             </button>
                         </div>
                     )
@@ -500,10 +502,10 @@ export function ExpensesPage() {
             {/* Tabs */}
             <div className="grid grid-cols-2 md:flex md:overflow-x-auto rounded-xl border border-border bg-white p-1 gap-1">
                 {[
-                    { id: 'overview', label: 'Overview', icon: PieChart },
-                    { id: 'list', label: 'Expense/Income', icon: List },
-                    { id: 'categories', label: 'Categories', icon: Tags },
-                    { id: 'reports', label: 'P&L Report', icon: FileText },
+                    { id: 'overview', label: t('expenses.tabsOverview'), icon: PieChart },
+                    { id: 'list', label: t('expenses.tabsList'), icon: List },
+                    { id: 'categories', label: t('expenses.tabsCategories'), icon: Tags },
+                    { id: 'reports', label: t('expenses.tabsReports'), icon: FileText },
                 ].map((tab) => {
                     const Icon = tab.icon;
                     return (
@@ -531,9 +533,9 @@ export function ExpensesPage() {
                             {/* Type Toggle */}
                             <div className="flex items-center gap-1 rounded-xl bg-muted/50 p-1">
                                 {[
-                                    { id: 'all', label: 'All' },
-                                    { id: 'expense', label: 'Expense' },
-                                    { id: 'income', label: 'Income' },
+                                    { id: 'all', label: t('expenses.typeAll') },
+                                    { id: 'expense', label: t('expenses.typeExpense') },
+                                    { id: 'income', label: t('expenses.typeIncome') },
                                 ].map((tab) => (
                                     <button
                                         key={tab.id}
@@ -555,7 +557,7 @@ export function ExpensesPage() {
                                 <Search className="absolute left-3 size-4 text-muted-foreground" />
                                 <input
                                     type="text"
-                                    placeholder="Search transactions..."
+                                    placeholder={t('expenses.searchTransactions')}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full h-10 rounded-xl border border-border bg-muted/20 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/10 transition-all"
@@ -592,7 +594,7 @@ export function ExpensesPage() {
                                     onChange={(e) => setCategoryFilter(e.target.value)}
                                     className="h-10 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-primary/10 min-w-[150px]"
                                 >
-                                    <option value="all">All Categories</option>
+                                    <option value="all">{t('expenses.allCategories')}</option>
                                     {expenseCategories.map(cat => (
                                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                                     ))}
@@ -615,12 +617,12 @@ export function ExpensesPage() {
                             <table className="w-full min-w-[800px]">
                                 <thead className="bg-muted/30 border-b border-border">
                                     <tr>
-                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Date</th>
-                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Description</th>
-                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Category</th>
-                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
-                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Amount</th>
-                                        <th className="text-right py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">Actions</th>
+                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">{t('expenses.date')}</th>
+                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">{t('expenses.description')}</th>
+                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">{t('expenses.category')}</th>
+                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">{t('expenses.type')}</th>
+                                        <th className="text-left py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">{t('expenses.amount')}</th>
+                                        <th className="text-right py-4 px-6 font-bold text-xs uppercase tracking-wider text-muted-foreground">{t('expenses.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
@@ -685,7 +687,7 @@ export function ExpensesPage() {
                                                     <div className="p-3 bg-muted rounded-full">
                                                         <DollarSign className="size-6 opacity-40" />
                                                     </div>
-                                                    <p>No {typeFilter !== 'all' ? typeFilter : 'transaction'} records found</p>
+                                                    <p>{t('expenses.noTransactions')}</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -702,10 +704,10 @@ export function ExpensesPage() {
                             <table className="w-full min-w-[500px]">
                                 <thead className="bg-muted/30 border-b border-border">
                                     <tr>
-                                        <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">Category Name</th>
-                                        <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">Type</th>
-                                        <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">Status</th>
-                                        <th className="text-right py-3 px-6 font-medium text-sm text-muted-foreground">Actions</th>
+                                        <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">{t('expenses.categoryName')}</th>
+                                        <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">{t('expenses.type')}</th>
+                                        <th className="text-left py-3 px-6 font-medium text-sm text-muted-foreground">{t('expenses.status')}</th>
+                                        <th className="text-right py-3 px-6 font-medium text-sm text-muted-foreground">{t('expenses.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
@@ -721,14 +723,14 @@ export function ExpensesPage() {
                                                 </span>
                                             </td>
                                             <td className="py-4 px-6 text-sm text-muted-foreground">
-                                                {cat.isDefault ? 'System Default' : 'Custom'}
+                                                {cat.isDefault ? t('expenses.systemDefault') : t('expenses.custom')}
                                             </td>
                                             <td className="py-4 px-6">
                                                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cat.isActive
                                                     ? 'bg-green-100 text-green-800'
                                                     : 'bg-gray-100 text-gray-800'
                                                     }`}>
-                                                    {cat.isActive ? 'Active' : 'Disabled'}
+                                                    {cat.isActive ? t('expenses.active') : t('expenses.disabled')}
                                                 </span>
                                             </td>
                                             <td className="py-4 px-6 text-right">
@@ -756,7 +758,7 @@ export function ExpensesPage() {
                         <div className="flex flex-col lg:flex-row justify-between lg:items-center bg-white border border-border rounded-xl p-4 md:p-6 shadow-sm gap-6">
                             <div className="grid grid-cols-2 lg:flex lg:items-center gap-6 md:gap-8 w-full lg:w-auto">
                                 <div className="space-y-1 col-span-2 lg:col-span-1">
-                                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Opening Balance</label>
+                                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('expenses.openingBalance')}</label>
                                     <div className="flex items-center gap-2">
                                         <span className="text-xl font-bold text-foreground">$</span>
                                         <input
@@ -769,14 +771,14 @@ export function ExpensesPage() {
                                 </div>
                                 <div className="h-10 w-px bg-border hidden lg:block" />
                                 <div className="space-y-1">
-                                    <p className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">Net Movement</p>
+                                    <p className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('expenses.netMovement')}</p>
                                     <p className={`text-xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                         {netProfit >= 0 ? '+' : ''}${netProfit.toFixed(2)}
                                     </p>
                                 </div>
                                 <div className="h-10 w-px bg-border hidden lg:block" />
                                 <div className="space-y-1">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Closing Balance</p>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('expenses.closingBalance')}</p>
                                     <p className="text-xl font-bold text-primary">${(startingBalance + netProfit).toFixed(2)}</p>
                                 </div>
                             </div>

@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { formatDateTime } from '@/app/utils/format';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { Badge } from '@/app/components/ui/badge';
+import { useTranslation } from '@/app/i18n';
 
 /**
  * Owner-facing dashboard — shows KPIs, sales chart, and recent orders.
@@ -20,6 +21,7 @@ import { Badge } from '@/app/components/ui/badge';
 export function DashboardOwnerPage() {
   const { selectedStore } = useAuthStore();
   const { stats, recentOrders, isDashboardLoading, refreshDashboardData } = useOrderStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
     refreshDashboardData();
@@ -70,9 +72,9 @@ export function DashboardOwnerPage() {
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex flex-col justify-center px-5 md:px-8">
-          <h1 className="text-xl md:text-3xl font-bold text-white mb-1 md:mb-2">Welcome back, Owner</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-white mb-1 md:mb-2">{t('dashboard.welcomeBack')}</h1>
           <p className="text-white/90 font-medium text-sm md:text-base max-w-xs md:max-w-md">
-            Here's your store's performance overview.
+            {t('dashboard.performanceOverview')}
           </p>
         </div>
       </div>
@@ -80,13 +82,13 @@ export function DashboardOwnerPage() {
       {/* KPI Cards */}
       <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Today's Orders"
+          title={t('dashboard.todaysOrders')}
           value={today_orders}
           icon={<ShoppingBag className="size-6" />}
           trend={{ value: 0, isPositive: true }}
         />
         <KPICard
-          title="Today's Sales"
+          title={t('dashboard.todaysSales')}
           value={today_revenue}
           prefix="$"
           decimals={2}
@@ -94,7 +96,7 @@ export function DashboardOwnerPage() {
           trend={{ value: 0, isPositive: true }}
         />
         <KPICard
-          title="Monthly Revenue"
+          title={t('dashboard.monthlyRevenue')}
           value={total_revenue}
           prefix="$"
           decimals={2}
@@ -102,7 +104,7 @@ export function DashboardOwnerPage() {
           trend={{ value: Math.abs(revenue_trend), isPositive: revenue_trend >= 0 }}
         />
         <KPICard
-          title="Sales Growth"
+          title={t('dashboard.salesGrowth')}
           value={revenue_trend}
           suffix="%"
           decimals={1}
@@ -119,10 +121,10 @@ export function DashboardOwnerPage() {
         className="rounded-xl border border-border bg-white p-6 shadow-sm"
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold">Sales Trend</h2>
+          <h2 className="text-lg font-semibold">{t('dashboard.salesTrend')}</h2>
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
             <div className="size-2 rounded-full bg-emerald-500" />
-            Monthly Revenue
+            {t('dashboard.monthlyRevenue')}
           </div>
         </div>
         <ResponsiveContainer width="100%" height={350}>
@@ -179,7 +181,7 @@ export function DashboardOwnerPage() {
           className="rounded-xl border border-border bg-white shadow-sm overflow-hidden"
         >
           <div className="border-b border-border p-6 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Top Selling Products</h2>
+            <h2 className="text-lg font-semibold">{t('dashboard.topSellingProducts')}</h2>
             <TrendingUp className="size-5 text-emerald-500" />
           </div>
           <div className="p-0">
@@ -193,7 +195,7 @@ export function DashboardOwnerPage() {
                       </div>
                       <div>
                         <p className="font-semibold text-sm text-slate-800">{product.name}</p>
-                        <p className="text-xs text-slate-400">{product.quantity} units sold</p>
+                        <p className="text-xs text-slate-400">{product.quantity} {t('dashboard.unitsSold')}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -212,7 +214,7 @@ export function DashboardOwnerPage() {
               </div>
             ) : (
               <div className="p-10 text-center text-muted-foreground text-sm italic">
-                No product data available yet
+                {t('dashboard.noData')}
               </div>
             )}
           </div>
@@ -224,7 +226,7 @@ export function DashboardOwnerPage() {
           transition={{ duration: 0.3, delay: 0.25 }}
           className="rounded-xl border border-border bg-white p-6 shadow-sm"
         >
-          <h2 className="mb-6 text-lg font-semibold">Sales by Weekday</h2>
+          <h2 className="mb-6 text-lg font-semibold">{t('dashboard.salesByWeekday')}</h2>
           <div className="h-[300px] w-full">
             {stats.weekday_stats && stats.weekday_stats.length > 0 ? (
               <div className="h-full flex flex-col">
@@ -232,17 +234,17 @@ export function DashboardOwnerPage() {
                   <BarChart data={stats.weekday_stats} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <XAxis 
                       dataKey="name" 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }}
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} 
                       formatter={(val: string) => val.toUpperCase()}
                       dy={10}
                     />
                     <YAxis hide />
                     <Tooltip 
-                      cursor={false}
+                      cursor={false} 
                       formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Sales']}
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} 
                     />
                     <Bar 
                       dataKey="value" 
@@ -255,13 +257,13 @@ export function DashboardOwnerPage() {
                 </ResponsiveContainer>
                 <div className="mt-6 text-center">
                   <span className="text-[10px] font-bold tracking-[0.2em] text-slate-300 uppercase">
-                    Weekly Performance (Mon - Sun)
+                    {t('dashboard.weeklyPerformance')}
                   </span>
                 </div>
               </div>
             ) : (
               <div className="flex h-full items-center justify-center text-muted-foreground text-sm italic">
-                No weekday data available
+                {t('dashboard.noData')}
               </div>
             )}
           </div>
@@ -276,19 +278,19 @@ export function DashboardOwnerPage() {
         className="rounded-xl border border-border bg-white shadow-sm overflow-hidden"
       >
         <div className="border-b border-border p-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Recent Sales</h2>
-          <Badge variant="outline" className="font-normal">Last 10 orders</Badge>
+          <h2 className="text-lg font-semibold">{t('dashboard.recentSales')}</h2>
+          <Badge variant="outline" className="font-normal">{t('dashboard.last10Orders')}</Badge>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-border bg-muted/30">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Order ID</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Date</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Items</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Total</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Payment</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Sales Person</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">{t('orders.orderNumber')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">{t('orders.date')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">{t('orders.items')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">{t('orders.total')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">{t('orders.payment')}</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">{t('dashboard.salesPerson')}</th>
               </tr>
             </thead>
             <tbody>

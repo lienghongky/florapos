@@ -12,6 +12,7 @@ import {
   BarChart, Bar
 } from 'recharts';
 import { Badge } from '@/app/components/ui/badge';
+import { useTranslation } from '@/app/i18n';
 
 /**
  * Staff-facing dashboard — shows today's sales performance
@@ -20,6 +21,7 @@ import { Badge } from '@/app/components/ui/badge';
 export function DashboardSalesPage() {
   const { selectedStore } = useAuthStore();
   const { stats, isDashboardLoading, refreshDashboardData } = useOrderStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
     refreshDashboardData();
@@ -60,7 +62,7 @@ export function DashboardSalesPage() {
             transition={{ delay: 0.2 }}
             className="text-3xl font-bold text-white mb-1"
           >
-            Let's make some sales!
+            {t('dashboard.makeSalesTitle')}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, x: -20 }}
@@ -68,7 +70,7 @@ export function DashboardSalesPage() {
             transition={{ delay: 0.3 }}
             className="text-white/90"
           >
-            Ready to help customers find their perfect arrangement.
+            {t('dashboard.makeSalesDesc')}
           </motion.p>
         </div>
       </div>
@@ -76,14 +78,14 @@ export function DashboardSalesPage() {
       {/* KPI Cards */}
       <div className="grid gap-6 md:grid-cols-2">
         <KPICard
-          title="Today's Sales"
+          title={t('dashboard.todaysSales')}
           value={today_revenue}
           prefix="$"
           decimals={2}
           icon={<DollarSign className="size-6" />}
         />
         <KPICard
-          title="Today's Orders"
+          title={t('dashboard.todaysOrders')}
           value={today_orders}
           icon={<ShoppingBag className="size-6" />}
         />
@@ -96,7 +98,7 @@ export function DashboardSalesPage() {
         transition={{ duration: 0.3, delay: 0.2 }}
         className="rounded-xl border border-border bg-white p-6 shadow-sm"
       >
-        <h2 className="text-lg font-semibold mb-6">Sales Performance</h2>
+        <h2 className="text-lg font-semibold mb-6">{t('dashboard.salesPerformance')}</h2>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chart_data}>
             <defs>
@@ -123,7 +125,7 @@ export function DashboardSalesPage() {
           className="rounded-xl border border-border bg-white shadow-sm overflow-hidden"
         >
           <div className="border-b border-border p-6 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Top Selling Products</h2>
+            <h2 className="text-lg font-semibold">{t('dashboard.topSellingProducts')}</h2>
             <TrendingUp className="size-5 text-emerald-500" />
           </div>
           <div className="divide-y divide-border">
@@ -137,7 +139,7 @@ export function DashboardSalesPage() {
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-slate-900">${Number(product.revenue).toFixed(2)}</p>
-                  <p className="text-[10px] text-slate-400">{product.quantity} sold</p>
+                  <p className="text-[10px] text-slate-400">{product.quantity} {t('dashboard.unitsSold')}</p>
                 </div>
               </div>
             ))}
@@ -150,7 +152,7 @@ export function DashboardSalesPage() {
           transition={{ duration: 0.3, delay: 0.3 }}
           className="rounded-xl border border-border bg-white p-6 shadow-sm"
         >
-          <h2 className="text-lg font-semibold mb-6">Weekly Performance</h2>
+          <h2 className="text-lg font-semibold mb-6">{t('dashboard.weeklyPerformance')}</h2>
           <div className="h-[300px] w-full">
             <div className="h-full flex flex-col">
               <ResponsiveContainer width="100%" height="85%">
@@ -179,7 +181,7 @@ export function DashboardSalesPage() {
               </ResponsiveContainer>
               <div className="mt-6 text-center">
                 <span className="text-[10px] font-bold tracking-[0.2em] text-slate-300 uppercase">
-                  Weekly Performance (Mon - Sun)
+                  {t('dashboard.weeklyPerformance')}
                 </span>
               </div>
             </div>
@@ -197,7 +199,7 @@ export function DashboardSalesPage() {
           to="/pos"
           className="flex items-center gap-3 rounded-2xl bg-brand-primary px-12 py-5 text-xl font-semibold text-white shadow-xl shadow-brand-primary/25 transition-all"
         >
-          Go to Point of Sale
+          {t('dashboard.goToPos')}
           <ArrowRight className="size-6" />
         </Link>
       </motion.div>

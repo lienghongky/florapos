@@ -4,11 +4,13 @@ import { UserRole } from '@/app/types';
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Flower2, AlertCircle, Sparkles, Zap, Gem, ArrowRight, ChevronDown } from 'lucide-react';
+import { Flower2, AlertCircle, Sparkles, Zap, Gem, ArrowRight, ChevronDown, Globe } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
+import { useTranslation } from '@/app/i18n';
 
 export function LoginPage() {
   const { login, user } = useAuthStore();
+  const { t, language, setLanguage } = useTranslation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,15 +80,26 @@ export function LoginPage() {
           </div>
           <span className="text-xl font-black text-slate-900 tracking-tight">FloraPos</span>
         </div>
-        <div className="flex items-center gap-6">
-          <Link to="/features" className="hidden md:block text-sm font-bold text-slate-500 hover:text-brand-primary transition-colors">Features</Link>
-          <Link to="/pricing" className="hidden md:block text-sm font-bold text-slate-500 hover:text-brand-primary transition-colors">Pricing</Link>
+        <div className="flex items-center gap-4 sm:gap-6">
+          {/* Language Selector */}
+          <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700">
+            <Globe className="size-3.5 text-slate-500" />
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as any)}
+              className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
+            >
+              <option value="en">English (EN)</option>
+              <option value="km">ភាសាខ្មែរ (KM)</option>
+              <option value="ko">한국어 (KO)</option>
+            </select>
+          </div>
           <Button 
             onClick={() => navigate('/register')}
             variant="outline" 
             className="h-10 rounded-full border-slate-200 text-slate-900 font-bold px-6"
           >
-            Get Started
+            {t('auth.registerNow')}
           </Button>
         </div>
       </header>
@@ -110,22 +123,20 @@ export function LoginPage() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-50 border border-slate-100 text-[11px] font-black text-slate-400 uppercase tracking-widest">
               <Sparkles className="size-3 text-brand-primary" />
-              The Future of POS
+              {t('auth.futureOfPos')}
             </div>
             <h1 className="text-5xl lg:text-7xl font-black text-slate-900 leading-[1] tracking-tight">
-              Manage your <br />
-              business with <br />
-              <span className="text-brand-primary">pure elegance.</span>
+              {t('auth.heroTitle')}
             </h1>
             <p className="text-lg lg:text-xl text-slate-500 leading-relaxed max-w-lg mx-auto lg:mx-0">
-              FloraPos simplifies your operations, automates your growth, and lets you focus on what matters most—your customers.
+              {t('auth.heroSubtitle')}
             </p>
             <div className="pt-4 flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
               <Button 
                 onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
                 className="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold px-8 shadow-xl shadow-slate-900/10"
               >
-                Explore Features
+                {t('auth.exploreFeatures')}
               </Button>
             </div>
           </motion.div>
@@ -139,8 +150,8 @@ export function LoginPage() {
           >
             <div className="bg-white/70 backdrop-blur-3xl rounded-[48px] shadow-[0_48px_100px_-24px_rgba(0,0,0,0.12)] border border-white p-10 lg:p-14">
               <div className="mb-10 text-center">
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Access Dashboard</h2>
-                <p className="text-slate-400 mt-2 font-medium">Sign in to manage your business operations</p>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">{t('auth.accessDashboard')}</h2>
+                <p className="text-slate-400 mt-2 font-medium">{t('auth.loginSubtitle')}</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -159,7 +170,7 @@ export function LoginPage() {
                 </AnimatePresence>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('auth.emailAddress')}</label>
                   <input
                     type="email"
                     value={email}
@@ -172,8 +183,8 @@ export function LoginPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between ml-1">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Password</label>
-                    <Link to="/forgot-password" title="Forgot Password" className="text-[11px] font-bold text-brand-primary hover:underline uppercase tracking-wider">Reset</Link>
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{t('auth.password')}</label>
+                    <Link to="/forgot-password" title="Forgot Password" className="text-[11px] font-bold text-brand-primary hover:underline uppercase tracking-wider">{t('auth.resetPassword')}</Link>
                   </div>
                   <input
                     type="password"
@@ -193,11 +204,11 @@ export function LoginPage() {
                   {isLoading ? (
                     <div className="flex items-center gap-2">
                       <div className="size-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
-                      <span>Signing in...</span>
+                      <span>{t('auth.signingIn')}</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2">
-                      <span>Enter Dashboard</span>
+                      <span>{t('auth.enterDashboard')}</span>
                       <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
                     </div>
                   )}
@@ -206,7 +217,7 @@ export function LoginPage() {
 
               <div className="mt-10 pt-8 border-t border-slate-50 text-center">
                 <p className="text-sm text-slate-400 font-medium">
-                  Don't have an account? <Link to="/register" title="Register" className="font-bold text-brand-primary hover:underline">Register Now</Link>
+                  {t('auth.dontHaveAccount')} <Link to="/register" title="Register" className="font-bold text-brand-primary hover:underline">{t('auth.registerNow')}</Link>
                 </p>
               </div>
             </div>
@@ -220,7 +231,7 @@ export function LoginPage() {
           className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 cursor-pointer"
           onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
         >
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Explore Plans</span>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('auth.explorePlans')}</span>
           <ChevronDown className="size-4 text-slate-300" />
         </motion.div>
       </section>

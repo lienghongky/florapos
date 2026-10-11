@@ -13,6 +13,7 @@ import { useLocation } from 'react-router-dom';
 
 import { ProductCustomizationModal } from '@/app/components/pos/ProductCustomizationModal';
 import { Product, ProductVariant, Addon, ModifierOption } from '@/app/types';
+import { useTranslation } from '@/app/i18n';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() =>
@@ -27,6 +28,7 @@ function useIsMobile() {
 }
 
 export function POSPage() {
+  const { t } = useTranslation();
   const { products, categories, refreshProducts, refreshProductCategories } = useProductStore();
   const { addToCart, cart, clearCart } = useCartStore();
   const { selectedStore } = useAuthStore();
@@ -149,7 +151,7 @@ export function POSPage() {
               <Search className="absolute left-4 top-1/2 size-4 md:size-5 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder={t('pos.searchPlaceholder')}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="h-11 md:h-12 w-full rounded-2xl border border-slate-200 bg-white/50 pl-11 md:pl-12 pr-4 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-brand-primary/50 focus:bg-white focus:ring-4 focus:ring-brand-primary/5 text-sm md:text-base"
@@ -187,7 +189,7 @@ export function POSPage() {
                   <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
                     {/* Sort Dropdown */}
                     <div className="relative shrink-0">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase tracking-tighter pointer-events-none">SORT:</div>
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase tracking-tighter pointer-events-none">{t('pos.sort')}</div>
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as any)}
@@ -217,7 +219,7 @@ export function POSPage() {
                               : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300'
                           }`}
                         >
-                          {tag === 'All' ? 'All Tags' : `#${tag}`}
+                          {tag === 'All' ? t('pos.allTags') : `#${tag}`}
                         </button>
                       ))}
                     </div>
@@ -231,8 +233,8 @@ export function POSPage() {
           <div className="flex-1 overflow-y-auto pr-1 scrollbar-hide">
             <div className="flex items-center justify-between mb-4 mt-2">
               <h2 className="text-lg md:text-xl font-bold text-slate-900">
-                {selectedCategory === 'All' ? 'Menu' : selectedCategory}
-                <span className="ml-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{filteredProducts.length} Items</span>
+                {selectedCategory === 'All' ? t('sidebar.pos') : selectedCategory}
+                <span className="ml-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{filteredProducts.length} {t('pos.itemsCount')}</span>
               </h2>
             </div>
 
@@ -292,7 +294,7 @@ export function POSPage() {
               className="fixed bottom-6 right-5 z-40 flex items-center gap-2 rounded-full bg-brand-primary px-5 py-3.5 text-white shadow-2xl shadow-brand-primary/40 active:scale-95 transition-all"
             >
               <ShoppingBag className="size-5" />
-              <span className="text-sm font-semibold">View Cart</span>
+              <span className="text-sm font-semibold">{t('pos.viewCart')}</span>
               {cartItemsCount > 0 && (
                 <span className="flex size-5 items-center justify-center rounded-full bg-white text-brand-primary text-[10px] font-bold">
                   {cartItemsCount}

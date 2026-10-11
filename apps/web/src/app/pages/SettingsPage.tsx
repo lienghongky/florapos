@@ -11,10 +11,12 @@ import { ChangePasswordModal } from '@/app/components/settings/ChangePasswordMod
 import { TelegramLinkingSection } from '@/app/components/settings/TelegramLinkingSection';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { Badge } from '@/app/components/ui/badge';
+import { useTranslation, Language } from '@/app/i18n';
 
 export function SettingsPage() {
-  const { user, selectedStore, updateUserLanguage } = useAuthStore();
+  const { user, selectedStore } = useAuthStore();
   const { users, createStaff, deleteStaff, updateStaff, toggleActiveStaff, refreshUsers } = useStaffStore();
+  const { t, language, changeLanguage } = useTranslation();
 
   // Initial load
   useEffect(() => {
@@ -25,14 +27,7 @@ export function SettingsPage() {
     lowStock: true,
     dailyReport: false,
   });
-  const [language, setLanguage] = useState(() => user?.language || localStorage.getItem('app_language') || 'en');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  useEffect(() => {
-    if (user?.language) {
-      setLanguage(user.language);
-    }
-  }, [user?.language]);
 
   // User Management state
   const [isAddingStaff, setIsAddingStaff] = useState(false);
@@ -68,8 +63,8 @@ export function SettingsPage() {
   return (
     <AnimatedPage className="space-y-6">
       <PageHeader 
-        title="Settings" 
-        subtitle="Manage your account and preferences"
+        title={t('settings.title')} 
+        subtitle={t('settings.subtitle')} 
       />
 
       <div className="mx-auto max-w-5xl space-y-8">
@@ -410,25 +405,24 @@ export function SettingsPage() {
               <Globe className="size-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Language & Localization</h2>
-              <p className="text-sm text-slate-500">Customize the interface language</p>
+              <h2 className="text-xl font-bold text-slate-900">{t('settings.systemLanguage')}</h2>
+              <p className="text-sm text-slate-500">{t('settings.languageDesc')}</p>
             </div>
           </div>
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 ml-1">System Language</label>
+              <label className="text-sm font-bold text-slate-700 ml-1">{t('settings.systemLanguage')}</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
-                  { id: 'en', label: 'English', sub: 'Default' },
-                  { id: 'km', label: 'Khmer', sub: 'Local' },
-                  { id: 'ko', label: 'Korean', sub: 'Regional' }
+                  { id: 'en' as const, label: 'English', sub: 'Default' },
+                  { id: 'km' as const, label: 'ខ្មែរ (Khmer)', sub: 'Local' },
+                  { id: 'ko' as const, label: '한국어 (Korean)', sub: 'Regional' }
                 ].map(lang => (
                   <div
                     key={lang.id}
                     onClick={async () => {
-                      setLanguage(lang.id);
                       try {
-                        await updateUserLanguage(lang.id);
+                        await changeLanguage(lang.id);
                         toast.success("Language preference updated");
                       } catch {
                         toast.error("Failed to save language preference");

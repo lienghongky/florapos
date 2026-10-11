@@ -2,12 +2,14 @@ import { Flower2, ChevronDown, LogOut, Menu } from 'lucide-react';
 import { UserRole } from '@/app/types';
 import { useAuthStore } from '@/app/store/auth-store';
 import { useUIStore } from '@/app/store/ui-store';
+import { useTranslation } from '@/app/i18n';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 
 export function TopBar() {
   const { user, logout, stores, selectedStore, setSelectedStore } = useAuthStore();
   const { isSidebarCollapsed, toggleMobileSidebar } = useUIStore();
+  const { t } = useTranslation();
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
@@ -50,15 +52,15 @@ export function TopBar() {
                 className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-border bg-white px-3 md:px-4 py-2 transition-shadow hover:shadow-md"
               >
                 <div className="flex flex-col items-start leading-none">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Active Store</span>
-                  <span className="text-xs md:text-sm font-black text-slate-700 max-w-[100px] md:max-w-none truncate line-clamp-1">{selectedStore?.name || 'Loading...'}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{t('topbar.activeStore')}</span>
+                  <span className="text-xs md:text-sm font-black text-slate-700 max-w-[100px] md:max-w-none truncate line-clamp-1">{selectedStore?.name || t('topbar.loadingStore')}</span>
                 </div>
                 <ChevronDown className="size-3.5 md:size-4 shrink-0 text-slate-400" />
               </motion.button>
             ) : (
               <div className="flex flex-col items-center justify-center px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Current Location</span>
-                <span className="text-sm font-black text-slate-600">{selectedStore?.name || 'Loading...'}</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{t('topbar.currentLocation')}</span>
+                <span className="text-sm font-black text-slate-600">{selectedStore?.name || t('topbar.loadingStore')}</span>
               </div>
             )}
 
@@ -145,7 +147,7 @@ export function TopBar() {
                     className="flex w-full items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted"
                   >
                     <LogOut className="size-4" />
-                    <span>Logout</span>
+                    <span>{t('topbar.logout')}</span>
                   </button>
                 </motion.div>
               </>

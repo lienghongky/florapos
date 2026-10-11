@@ -11,6 +11,7 @@ import { AnimatedModal } from '../motion/AnimatedPage';
 import { toast } from 'sonner';
 import { OrderListModal } from './OrderListModal';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+import { useTranslation } from '@/app/i18n';
 
 /** Fallback flower images keyed by product name substring. */
 const FLOWER_IMAGE_MAP: Record<string, string> = {
@@ -36,6 +37,7 @@ function getFlowerImage(name: string): string {
 }
 
 export function CartPanel({ onClose }: { onClose?: () => void }) {
+  const { t } = useTranslation();
   const { cart, removeFromCart, updateCartQuantity, clearCart } = useCartStore();
   const { checkoutOrder } = useOrderStore();
   const { selectedStore } = useAuthStore();
@@ -155,7 +157,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
         <div className={`mb-6 ${!isMobile ? 'sticky top-0 bg-white z-10 -mx-4 px-4 pt-4 md:pt-6 pb-2' : ''}`}>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-2xl font-bold">New Order</h2>
+              <h2 className="text-2xl font-bold">{t('pos.newOrder')}</h2>
             </div>
             <button
               onClick={() => setShowOrderList(true)}
@@ -251,7 +253,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
           {cart.length === 0 && (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <ShoppingBag className="mb-4 size-16 text-muted-foreground/20" />
-              <p className="text-muted-foreground">No items ordered yet</p>
+              <p className="text-muted-foreground">{t('pos.noItemsOrdered')}</p>
             </div>
           )}
         </div>
@@ -265,7 +267,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                 <User className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Customer Name"
+                  placeholder={t('pos.customerName')}
                   value={customerName}
                   autoComplete="name"
                   onChange={(e) => setCustomerName(e.target.value)}
@@ -276,7 +278,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                 <Phone className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Phone Number"
+                  placeholder={t('pos.phoneNumber')}
                   value={customerPhone}
                   autoComplete="tel"
                   onChange={(e) => setCustomerPhone(e.target.value)}
@@ -288,7 +290,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
               <ScanLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Table / Tag (e.g. Table 5)"
+                placeholder={t('pos.tableOrTag')}
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
                 className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
@@ -300,8 +302,8 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
           <div className="mb-6">
             <div className="flex rounded-xl bg-muted p-1">
               {([
-                { id: 'pickup', label: 'Pick Up' },
-                { id: 'delivery', label: 'Delivery' },
+                { id: 'pickup', label: t('pos.pickUp') },
+                { id: 'delivery', label: t('pos.delivery') },
               ] as const).map(type => (
                 <button
                   key={type.id}
@@ -332,7 +334,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                     <MapPin className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <input
                       type="text"
-                      placeholder="Enter delivery address..."
+                      placeholder={t('pos.deliveryAddress')}
                       value={address}
                       autoComplete="shipping street-address"
                       onChange={(e) => setAddress(e.target.value)}
@@ -343,7 +345,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                     <Truck className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <input
                       type="number"
-                      placeholder="Delivery Fee ($)"
+                      placeholder={t('pos.deliveryFee')}
                       value={deliveryFee || ''}
                       onChange={(e) => setDeliveryFee(parseFloat(e.target.value) || 0)}
                       className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
@@ -362,23 +364,23 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                 className="flex items-center gap-2 text-sm font-medium text-brand-primary hover:text-brand-primary/80"
               >
                 <StickyNote className="size-4" />
-                Add Note
+                {t('pos.addNote')}
               </button>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-muted-foreground">Order Note</label>
+                  <label className="text-xs font-semibold text-muted-foreground">{t('pos.orderNote')}</label>
                   <button
                     onClick={() => setShowNoteInput(false)}
                     className="text-xs text-brand-primary hover:underline"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </div>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="Add special instructions..."
+                  placeholder={t('pos.specialInstructions')}
                   className="w-full h-20 resize-none rounded-xl border border-border bg-muted/30 p-3 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
                 />
               </div>
@@ -388,23 +390,23 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
           {/* Price Summary */}
           <div className="space-y-3 mb-6">
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Sub Total</span>
+              <span>{t('pos.subtotal')}</span>
               <span className="font-medium text-foreground">${subTotal.toFixed(2)}</span>
             </div>
             {selectedStore?.enable_tax !== false && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Tax ({selectedStore?.tax_rate || 0}%)</span>
+                <span>{t('pos.tax')} ({selectedStore?.tax_rate || 0}%)</span>
                 <span className="font-medium text-foreground">${tax.toFixed(2)}</span>
               </div>
             )}
             {serviceType === 'delivery' && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Delivery Fee</span>
+                <span>{t('pos.delivery')}</span>
                 <span className="font-medium text-foreground">${deliveryFee.toFixed(2)}</span>
               </div>
             )}
             <div className="flex items-center justify-between border-t border-border pt-3">
-              <span className="text-lg font-bold">Total Amount</span>
+              <span className="text-lg font-bold">{t('pos.totalAmount')}</span>
               <div className="text-right">
                 <div className="text-xl font-bold text-foreground">${total.toFixed(2)}</div>
                 <div className="text-[10px] font-bold text-muted-foreground">{(total * (selectedStore?.exchange_rate || 4100)).toLocaleString()}៛</div>
@@ -419,7 +421,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
             disabled={cart.length === 0}
             className="w-full rounded-xl bg-brand-primary py-4 text-lg font-semibold text-white shadow-lg shadow-brand-primary/25 disabled:opacity-50"
           >
-            Place Order
+            {t('pos.placeOrder')}
           </motion.button>
         </div>
       </div>
@@ -440,19 +442,19 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                 <div className="mx-auto mb-3 md:mb-4 flex size-12 md:size-14 items-center justify-center rounded-full bg-green-100 text-green-600">
                   <Wallet className="size-6 md:size-8" />
                 </div>
-                <h2 className="text-xl md:text-2xl font-bold text-slate-900">Select Payment</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-900">{t('pos.selectPayment')}</h2>
                 <div className="text-slate-500 text-sm font-medium mt-1">
-                  Total Amount: <span className="text-slate-900 font-bold">${total.toFixed(2)}</span>
+                  {t('pos.totalAmount')}: <span className="text-slate-900 font-bold">${total.toFixed(2)}</span>
                   <span className="ml-2 text-[10px] md:text-xs opacity-70">/ {(total * (selectedStore?.exchange_rate || 4100)).toLocaleString()}៛</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8 px-2 md:px-4">
                 {([
-                  { id: 'cash', label: 'Cash', icon: Banknote },
-                  { id: 'credit', label: 'Credit Card', icon: CreditCard },
-                  { id: 'pay_later', label: 'Pay Later', icon: Clock },
-                  { id: 'qr', label: 'QR Code', icon: ScanLine },
+                  { id: 'cash', label: t('pos.cash'), icon: Banknote },
+                  { id: 'credit', label: t('pos.card'), icon: CreditCard },
+                  { id: 'pay_later', label: t('pos.payLater'), icon: Clock },
+                  { id: 'qr', label: t('pos.qr'), icon: ScanLine },
                 ] as const).map((method) => (
                   <button
                     key={method.id}
@@ -482,10 +484,10 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                   className="w-full rounded-xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/25 disabled:opacity-50 hover:bg-brand-primary/90 transition-all active:scale-95"
                 >
                   {isProcessing
-                    ? 'Processing...'
+                    ? t('pos.processing')
                     : !paymentMethod
-                      ? 'Select Payment Method'
-                      : (paymentMethod === 'pay_later' ? 'Confirm & Pay Later' : 'Complete Transaction')}
+                      ? t('pos.selectPayment')
+                      : (paymentMethod === 'pay_later' ? t('pos.confirmAndPayLater') : t('pos.completeTransaction'))}
                 </button>
               </div>
             </>
@@ -500,26 +502,26 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                   }}
                   className="text-sm font-bold text-slate-400 hover:text-slate-900 flex items-center gap-1"
                 >
-                  &larr; Back
+                  &larr; {t('common.back')}
                 </button>
-                <h3 className="font-black uppercase tracking-widest text-xs text-slate-900">Cash Payment</h3>
+                <h3 className="font-black uppercase tracking-widest text-xs text-slate-900">{t('pos.cashPayment')}</h3>
                 <div className="w-12" />
               </div>
 
               <div className="mb-4 md:mb-6 md:rounded-[2rem] bg-slate-50 p-4 md:p-6 space-y-2 md:space-y-3 border-y md:border border-slate-100">
                 <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400">
-                  <span>Total Due</span>
+                  <span>{t('pos.totalDue')}</span>
                   <div className="text-right">
                     <div className="text-slate-900 font-bold">${total.toFixed(2)}</div>
                     <div className="text-[10px] text-muted-foreground">{(total * (selectedStore?.exchange_rate || 4100)).toLocaleString()}៛</div>
                   </div>
                 </div>
                 <div className="flex justify-between items-end border-b border-slate-200 pb-2 md:pb-3">
-                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400">Received</span>
+                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400">{t('pos.received')}</span>
                   <span className="text-2xl md:text-3xl font-black text-brand-primary">${receivedAmount || '0'}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-widest pt-1">
-                  <span className="text-slate-400">Change</span>
+                  <span className="text-slate-400">{t('pos.change')}</span>
                   <div className="text-right">
                     <div className="text-green-600 font-black text-xl md:text-2xl">
                       ${Math.max(0, (parseFloat(receivedAmount || '0') - total)).toFixed(2)}
@@ -568,14 +570,14 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                   onClick={() => setReceivedAmount('')}
                   className="flex-1 h-12 md:h-14 rounded-xl md:rounded-2xl border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition-all uppercase tracking-widest text-[10px] md:text-xs"
                 >
-                  Clear
+                  {t('pos.clear')}
                 </button>
                 <button
                   onClick={handleCheckout}
                   disabled={isProcessing || parseFloat(receivedAmount || '0') < total}
                   className="flex-[2] h-12 md:h-14 rounded-xl md:rounded-2xl bg-brand-primary text-white font-bold shadow-lg shadow-brand-primary/25 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-[10px] md:text-xs"
                 >
-                  {isProcessing ? 'Processing...' : 'Confirm'}
+                  {isProcessing ? t('pos.processing') : t('common.confirm')}
                 </button>
               </div>
             </>

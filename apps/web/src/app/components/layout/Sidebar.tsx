@@ -17,6 +17,7 @@ import {
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/app/store/auth-store';
 import { useUIStore } from '@/app/store/ui-store';
+import { useTranslation, TranslationKey } from '@/app/i18n';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserRole } from '@/app/types';
 
@@ -117,6 +118,7 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const { user, logout } = useAuthStore();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     isSidebarCollapsed,
@@ -126,6 +128,25 @@ export function Sidebar() {
   } = useUIStore();
 
   if (!user) return null;
+
+  const getNavLabel = (id: string, defaultLabel: string): string => {
+    const keyMap: Record<string, TranslationKey> = {
+      dashboard: 'sidebar.dashboard',
+      'dashboard-sales': 'sidebar.dashboardSales',
+      'dashboard-master': 'sidebar.dashboardMaster',
+      pos: 'sidebar.pos',
+      orders: 'sidebar.orders',
+      products: 'sidebar.products',
+      inventory: 'sidebar.inventory',
+      'inventory-history': 'sidebar.inventoryHistory',
+      reports: 'sidebar.reports',
+      expenses: 'sidebar.expenses',
+      emenu: 'sidebar.emenu',
+      settings: 'sidebar.settings',
+    };
+    const key = keyMap[id];
+    return key ? t(key) : defaultLabel;
+  };
 
   const filteredItems = navItems.filter(item =>
     item.roles.some(role => role.toLowerCase() === user.role.toLowerCase())
@@ -157,7 +178,7 @@ export function Sidebar() {
             className="overflow-hidden whitespace-nowrap"
           >
             <span className="block text-lg font-bold">FloraPos</span>
-            <span className="text-xs text-muted-foreground">Smarter POS</span>
+            <span className="text-xs text-muted-foreground">{t('sidebar.brandSubtitle')}</span>
           </motion.div>
         )}
       </div>
@@ -165,12 +186,13 @@ export function Sidebar() {
       {/* Menu */}
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto scrollbar-hide">
         {filteredItems.map(item => {
+          const itemLabel = getNavLabel(item.id, item.label);
           return (
             <NavLink
               key={item.id}
               to={item.path}
               onClick={() => setMobileSidebarOpen(false)}
-              title={isSidebarCollapsed ? item.label : undefined}
+              title={isSidebarCollapsed ? itemLabel : undefined}
               className={({ isActive }) => `group relative flex items-center rounded-xl transition-all duration-200 
                 ${isSidebarCollapsed ? 'w-10 h-10 justify-center mx-auto' : 'w-full px-4 py-3 gap-3 text-left'}
                 ${isActive
@@ -182,7 +204,7 @@ export function Sidebar() {
                 <>
                   <div className="shrink-0">{item.icon}</div>
                   {!isSidebarCollapsed && (
-                    <span className="text-sm font-medium whitespace-nowrap overflow-hidden">{item.label}</span>
+                    <span className="text-sm font-medium whitespace-nowrap overflow-hidden">{itemLabel}</span>
                   )}
                   {isActive && !isSidebarCollapsed && (
                     <motion.div
@@ -256,7 +278,7 @@ export function Sidebar() {
             </div>
             <div className="flex-1 overflow-hidden">
               <span className="block text-lg font-bold">FloraPos</span>
-              <span className="text-xs text-muted-foreground">Smarter POS</span>
+              <span className="text-xs text-muted-foreground">{t('sidebar.brandSubtitle')}</span>
             </div>
             <button
               onClick={() => setMobileSidebarOpen(false)}
@@ -269,6 +291,7 @@ export function Sidebar() {
           {/* Menu */}
           <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto scrollbar-hide">
             {filteredItems.map(item => {
+              const itemLabel = getNavLabel(item.id, item.label);
               return (
                 <NavLink
                   key={item.id}
@@ -283,7 +306,7 @@ export function Sidebar() {
                   {({ isActive }) => (
                     <>
                       <div className="shrink-0">{item.icon}</div>
-                      <span className="text-sm font-medium">{item.label}</span>
+                      <span className="text-sm font-medium">{itemLabel}</span>
                       {isActive && (
                         <div className="ml-auto size-1.5 rounded-full bg-white shrink-0" />
                       )}

@@ -10,6 +10,7 @@ import { ProductInventorySection } from '@/app/components/products/ProductInvent
 import { PageHeader } from '@/app/components/ui/page-header';
 import { ModifierGroup, ModifierOption } from '@/app/types';
 import { useInventoryStore } from '@/app/store/inventory-store';
+import { useTranslation } from '@/app/i18n';
 
 export interface ProductOption {
   id: string;
@@ -19,6 +20,7 @@ export interface ProductOption {
 }
 
 export function ProductsPage() {
+  const { t } = useTranslation();
   const { products, addProduct, updateProduct, deleteProduct, categories, addProductCategory, refreshProducts, refreshProductCategories } = useProductStore();
   const { refreshInventory } = useInventoryStore();
   const { user, selectedStore } = useAuthStore();
@@ -339,8 +341,8 @@ export function ProductsPage() {
   return (
     <AnimatedPage className="space-y-6">
       <PageHeader
-        title="Products"
-        subtitle="Manage your product catalog"
+        title={t('products.title')}
+        subtitle={t('products.subtitle')}
         action={user?.role?.toLowerCase() === 'owner' && (
           <motion.button
             whileHover={{ scale: 1.02, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
@@ -349,7 +351,7 @@ export function ProductsPage() {
             className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 active:scale-95"
           >
             <Plus className="size-4" />
-            Add Product
+            {t('products.addProduct')}
           </motion.button>
         )}
       />
@@ -362,7 +364,7 @@ export function ProductsPage() {
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search products or tags..."
+              placeholder={t('products.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-lg border border-border bg-muted/30 py-2 pl-9 pr-4 text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
@@ -378,7 +380,7 @@ export function ProductsPage() {
                 className="h-10 rounded-lg border border-border bg-muted/30 pl-9 pr-8 text-sm outline-none focus:border-primary/50"
               >
                 {uniqueCategories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat} value={cat}>{cat === 'All' ? t('common.all') : cat}</option>
                 ))}
               </select>
             </div>
@@ -406,7 +408,7 @@ export function ProductsPage() {
         {/* Tag Filter Chips — only shown when tags exist */}
         {allTags.length > 1 && (
           <div className="flex flex-wrap items-center gap-2 px-1">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Filter by tag:</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('products.filterByTag')}</span>
             {allTags.map(tag => (
               <button
                 key={tag}
@@ -416,7 +418,7 @@ export function ProductsPage() {
                   : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
               >
-                {tag === 'All' ? '✦ All' : `# ${tag}`}
+                {tag === 'All' ? `✦ ${t('common.all')}` : `# ${tag}`}
               </button>
             ))}
           </div>
@@ -458,16 +460,16 @@ export function ProductsPage() {
                       'bg-green-100 text-green-700'
                     }`}>
                     <span className={`size-1.5 rounded-full ${product.stock === 0 ? 'bg-gray-400' : 'bg-current'}`} />
-                    {product.stock === 0 ? 'Out of Stock' : `${product.stock} in stock`}
+                    {product.stock === 0 ? t('products.outOfStock') : `${product.stock} ${t('products.inStock')}`}
                   </span>
                 ) : (
-                  <span className="text-[10px] text-muted-foreground italic">Unlimited</span>
+                  <span className="text-[10px] text-muted-foreground italic">{t('products.unlimited')}</span>
                 )}
                 {/* Status badge */}
                 <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${product.isActive ? 'text-green-600' : 'text-muted-foreground'
                   }`}>
                   {product.isActive ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-                  {product.isActive ? 'Active' : 'Hidden'}
+                  {product.isActive ? t('products.active') : t('products.hidden')}
                 </span>
               </div>
             </div>
@@ -485,7 +487,7 @@ export function ProductsPage() {
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={async () => {
-                    if (confirm('Are you sure you want to delete this product?')) {
+                    if (confirm(t('products.deleteConfirm'))) {
                       try {
                         await deleteProduct(product.id);
                         toast.success('Product deleted successfully!');
@@ -510,15 +512,15 @@ export function ProductsPage() {
           <table className="w-full">
             <thead className="border-b border-border bg-muted/30">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Image</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Product Name</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Category</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Tags</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Price</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Stock</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('products.image')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('products.productName')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('products.category')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('products.tags')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('products.price')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('products.stock')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('products.status')}</th>
                 {user?.role?.toLowerCase() === 'owner' && (
-                  <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">Actions</th>
+                  <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">{t('products.actions')}</th>
                 )}
               </tr>
             </thead>
@@ -579,17 +581,17 @@ export function ProductsPage() {
                           }`}
                       >
                         <span className={`size-1.5 rounded-full ${product.stock === 0 ? 'bg-gray-400' : 'bg-current'}`} />
-                        {product.stock === 0 ? 'Out of Stock' : product.stock}
+                        {product.stock === 0 ? t('products.outOfStock') : product.stock}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground text-xs italic">Unlimited</span>
+                      <span className="text-muted-foreground text-xs italic">{t('products.unlimited')}</span>
                     )}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${product.isActive ? 'text-green-600' : 'text-muted-foreground'
                       }`}>
                       {product.isActive ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-                      {product.isActive ? 'Active' : 'Hidden'}
+                      {product.isActive ? t('products.active') : t('products.hidden')}
                     </span>
                   </td>
                   {user?.role?.toLowerCase() === 'owner' && (
@@ -607,7 +609,7 @@ export function ProductsPage() {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={async () => {
-                            if (confirm('Are you sure you want to delete this product?')) {
+                            if (confirm(t('products.deleteConfirm'))) {
                               try {
                                 await deleteProduct(product.id);
                                 toast.success('Product deleted successfully!');
@@ -683,7 +685,7 @@ export function ProductsPage() {
         <div className="rounded-t-3xl sm:rounded-xl bg-white p-0 shadow-xl w-full max-w-5xl my-0 sm:my-auto flex flex-col" style={{ maxHeight: '92dvh' }}>
           <div className="p-6 border-b border-border">
             <h2 className="text-xl font-semibold">
-              {editingProduct ? 'Edit Product' : 'Add New Product'}
+              {editingProduct ? t('products.editProduct') : t('products.addProduct')}
             </h2>
           </div>
 
@@ -705,7 +707,7 @@ export function ProductsPage() {
                     ) : (
                       <div className="flex flex-col items-center gap-2 text-muted-foreground p-2 text-center">
                         <ImageIcon className="size-6" />
-                        <span className="text-[10px] uppercase font-semibold">Upload</span>
+                        <span className="text-[10px] uppercase font-semibold">{t('products.upload')}</span>
                       </div>
                     )}
                     {/* Hover Overlay */}
@@ -722,9 +724,9 @@ export function ProductsPage() {
                   />
                   {/* Price preview — inline on mobile, stacked on desktop */}
                   <div className="flex sm:flex-col items-center sm:items-center gap-3 sm:gap-0 sm:mt-4">
-                    <p className="text-[10px] text-muted-foreground sm:text-center">JPG/PNG, max 5MB</p>
+                    <p className="text-[10px] text-muted-foreground sm:text-center">{t('products.jpgPngMax')}</p>
                     <div className="hidden sm:flex flex-col items-center mt-2">
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1 tracking-widest">Price Preview</p>
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1 tracking-widest">{t('products.pricePreview')}</p>
                       <div className="flex items-baseline gap-1">
                         <span className="text-sm font-bold text-muted-foreground">$</span>
                         <span className="text-4xl font-black tracking-tighter text-slate-900">
@@ -740,7 +742,7 @@ export function ProductsPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium">Product Name <span className="text-red-500">*</span></label>
+                    <label className="mb-1.5 block text-sm font-medium">{t('products.productName')} <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       required
@@ -753,7 +755,7 @@ export function ProductsPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium">SKU</label>
+                      <label className="mb-1.5 block text-sm font-medium">{t('products.sku')}</label>
                       <input
                         type="text"
                         placeholder="e.g. ROSE-001"
@@ -763,7 +765,7 @@ export function ProductsPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium">Barcode</label>
+                      <label className="mb-1.5 block text-sm font-medium">{t('products.barcode')}</label>
                       <input
                         type="text"
                         placeholder="e.g. 123456789012"
@@ -775,7 +777,7 @@ export function ProductsPage() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium">Category <span className="text-red-500">*</span></label>
+                    <label className="mb-1.5 block text-sm font-medium">{t('products.category')} <span className="text-red-500">*</span></label>
                     {!isAddingNewCategory ? (
                       <div className="flex gap-2">
                         <select
@@ -790,11 +792,11 @@ export function ProductsPage() {
                           }}
                           className="flex-1 rounded-lg border border-border bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20"
                         >
-                          <option value="">Select Category</option>
+                          <option value="">{t('products.selectCategory')}</option>
                           {categories.map(cat => (
                             <option key={cat.id} value={cat.id}>{cat.name}</option>
                           ))}
-                          <option value="new" className="font-semibold text-primary">+ Add New Category</option>
+                          <option value="new" className="font-semibold text-primary">{t('products.addNewCategory')}</option>
                         </select>
                       </div>
                     ) : (

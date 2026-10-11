@@ -21,8 +21,10 @@ import { InventoryHistoryDrawer } from '@/app/components/inventory/InventoryHist
 import { QuickAdjustModal } from '@/app/components/inventory/QuickAdjustModal';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { PageHeader } from '@/app/components/ui/page-header';
+import { useTranslation } from '@/app/i18n';
 
 export function InventoryPage() {
+  const { t } = useTranslation();
   const { inventoryItems, adjustInventoryStock, deleteInventoryItem, refreshInventory } = useInventoryStore();
   const { products, categories, refreshProducts } = useProductStore();
   const { selectedStore } = useAuthStore();
@@ -235,27 +237,27 @@ export function InventoryPage() {
   return (
     <AnimatedPage className="space-y-6">
       <PageHeader
-        title="Inventory"
-        subtitle="Manage stock levels and track value"
+        title={t('inventory.title')}
+        subtitle={t('inventory.subtitle')}
         action={
           <>
             <button className="flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold shadow-sm transition-all hover:bg-muted active:scale-95">
               <Upload className="size-4" />
-              Import
+              {t('common.import')}
             </button>
             <button
               onClick={() => setShowQuickAdjust(true)}
               className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 active:scale-95"
             >
               <Zap className="size-4" />
-              Quick Adjust
+              {t('inventory.quickAdjust')}
             </button>
             <button
               onClick={handleExport}
               className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-green-600/20 transition-all hover:bg-green-700 active:scale-95"
             >
               <Download className="size-4" />
-              Export CSV
+              {t('common.exportCsv')}
             </button>
           </>
         }
@@ -270,7 +272,7 @@ export function InventoryPage() {
               <Package className="size-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Items</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('inventory.totalItems')}</p>
               <p className="text-2xl font-bold">{totalProducts}</p>
             </div>
           </div>
@@ -281,7 +283,7 @@ export function InventoryPage() {
               <AlertTriangle className="size-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Low Stock</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('inventory.lowStock')}</p>
               <p className="text-2xl font-bold">{lowStockCount}</p>
             </div>
           </div>
@@ -292,7 +294,7 @@ export function InventoryPage() {
               <X className="size-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Out of Stock</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('inventory.outOfStock')}</p>
               <p className="text-2xl font-bold">{outOfStockCount}</p>
             </div>
           </div>
@@ -303,7 +305,7 @@ export function InventoryPage() {
               <TrendingUp className="size-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Est. Value</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('inventory.estValue')}</p>
               <p className="text-2xl font-bold">${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
           </div>
@@ -316,7 +318,7 @@ export function InventoryPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search inventory..."
+            placeholder={t('inventory.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-lg border border-border bg-muted/30 py-2 pl-9 pr-4 text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
@@ -330,7 +332,7 @@ export function InventoryPage() {
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="h-10 rounded-lg border border-border bg-muted/30 pl-8 pr-2 text-sm outline-none focus:border-primary/50"
             >
-              <option value="All">All Categories</option>
+              <option value="All">{t('inventory.allCategories')}</option>
               {categories.map(cat => (
                 <option key={cat.id} value={cat.name}>{cat.name}</option>
               ))}
@@ -362,13 +364,13 @@ export function InventoryPage() {
           <table className="w-full">
             <thead className="border-b border-border bg-muted/30">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Reference</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Product/Material</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Category</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Stock Level</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Value</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">Actions</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('inventory.reference')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('inventory.productMaterial')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('products.category')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('inventory.stockLevel')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('inventory.value')}</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">{t('inventory.status')}</th>
+                <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">{t('inventory.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -398,7 +400,7 @@ export function InventoryPage() {
                         <span className="font-semibold text-blue-600 text-lg">
                           {Number(product.current_stock) || 0}
                         </span>
-                        <span className="text-[10px] text-muted-foreground bg-blue-50 px-1.5 py-0.5 rounded w-fit border border-blue-100">Auto-calculated</span>
+                        <span className="text-[10px] text-muted-foreground bg-blue-50 px-1.5 py-0.5 rounded w-fit border border-blue-100">{t('inventory.autoCalculated')}</span>
                       </div>
                     ) : (
                       <>
@@ -423,22 +425,22 @@ export function InventoryPage() {
                   <td className="px-6 py-4">
                     {(Number(product.current_stock) || 0) === 0 ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
-                        <X className="size-3" /> Out of Stock
+                        <X className="size-3" /> {t('inventory.outOfStock')}
                       </span>
                     ) : (!product.isComposite && (Number(product.current_stock) || 0) <= (Number(product.min_stock_threshold) || 10)) ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-700">
-                        <AlertTriangle className="size-3" /> Low Stock
+                        <AlertTriangle className="size-3" /> {t('inventory.lowStock')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                        <Package className="size-3" /> In Stock
+                        <Package className="size-3" /> {t('inventory.inStock')}
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
                     {product.isComposite ? (
                       <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-[10px] font-bold text-primary uppercase mb-0.5 bg-primary/5 px-2 py-0.5 rounded-full">Recipe Dependencies</span>
+                        <span className="text-[10px] font-bold text-primary uppercase mb-0.5 bg-primary/5 px-2 py-0.5 rounded-full">{t('inventory.recipeDependencies')}</span>
                         {product.recipe?.map((r: any) => {
                           const dep = inventoryItems.find(i => i.id === r.inventory_item_id);
                           return dep ? (
@@ -454,7 +456,7 @@ export function InventoryPage() {
                         <button
                           onClick={() => openAdjustModal(product)}
                           className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                          title="Adjust Stock"
+                          title={t('inventory.adjustStock')}
                         >
                           <Settings2 className="size-4" />
                         </button>
@@ -464,14 +466,14 @@ export function InventoryPage() {
                             setShowHistoryDrawer(true);
                           }}
                           className="ml-2 rounded-lg border border-purple-200 bg-purple-50 p-2 text-purple-600 transition-colors hover:bg-purple-100 hover:text-purple-700 hover:border-purple-300"
-                          title="View History"
+                          title={t('inventory.history')}
                         >
                           <History className="size-4" />
                         </button>
                         <button
                           onClick={() => setItemToDelete(product)}
                           className="ml-2 rounded-lg border border-red-200 bg-red-50 p-2 text-red-600 transition-colors hover:bg-red-100 hover:text-red-700 hover:border-red-300"
-                          title="Delete Item"
+                          title={t('inventory.deleteItem')}
                         >
                           <Trash2 className="size-4" />
                         </button>
@@ -537,7 +539,7 @@ export function InventoryPage() {
       <AnimatedModal isOpen={showAdjustModal} onClose={() => setShowAdjustModal(false)}>
         {/* ... (existing modal content) ... */}
         <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl">
-          <h2 className="mb-2 text-xl font-semibold">Adjust Stock</h2>
+          <h2 className="mb-2 text-xl font-semibold">{t('inventory.adjustStock')}</h2>
           <p className="mb-6 text-sm text-muted-foreground flex flex-wrap items-center gap-x-2">
             Update inventory for <span className="font-bold text-foreground">{adjustingProduct?.name}</span>
             {adjustingProduct?.category && (
@@ -559,14 +561,14 @@ export function InventoryPage() {
                     : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
-                  {type === 'add' ? 'Add' : type === 'remove' ? 'Remove' : 'Set'}
+                  {type === 'add' ? t('common.add') : type === 'remove' ? 'Remove' : 'Set'}
                 </button>
               ))}
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium">
-                {adjustmentType === 'set' ? 'New Stock Level' : 'Quantity'}
+                {adjustmentType === 'set' ? t('inventory.newStockLevel') : t('inventory.quantity')}
               </label>
               <input
                 type="number"
@@ -578,17 +580,17 @@ export function InventoryPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium">Reason</label>
+              <label className="mb-1.5 block text-sm font-medium">{t('inventory.reason')}</label>
               <select
                 value={adjustmentReason}
                 onChange={(e) => setAdjustmentReason(e.target.value)}
                 className="w-full rounded-lg border border-border bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <option>New delivery</option>
-                <option>Sale correction</option>
-                <option>Damaged</option>
-                <option>Expired</option>
-                <option>Manual correction</option>
+                <option value="New delivery">{t('inventory.newDelivery')}</option>
+                <option value="Sale correction">{t('inventory.saleCorrection')}</option>
+                <option value="Damaged">{t('inventory.damaged')}</option>
+                <option value="Expired">{t('inventory.expired')}</option>
+                <option value="Manual correction">{t('inventory.manualCorrection')}</option>
               </select>
             </div>
 
@@ -597,13 +599,13 @@ export function InventoryPage() {
                 onClick={() => setShowAdjustModal(false)}
                 className="flex-1 rounded-lg border border-border bg-white py-2 font-medium hover:bg-muted"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleAdjustStock}
                 className="flex-1 rounded-lg bg-primary py-2 font-medium text-white shadow-md hover:bg-primary/90"
               >
-                Confirm
+                {t('common.confirm')}
               </button>
             </div>
           </div>
@@ -621,7 +623,7 @@ export function InventoryPage() {
       <AlertDialog open={!!itemToDelete} onOpenChange={(open: boolean) => !open && setItemToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t('products.deleteConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete <strong>{itemToDelete?.name}</strong>.
               {itemToDelete && Number(itemToDelete.current_stock) > 0 && (
@@ -632,7 +634,7 @@ export function InventoryPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
@@ -641,7 +643,7 @@ export function InventoryPage() {
               disabled={isDeleting}
               className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
             >
-              {isDeleting ? "Deleting..." : "Delete Item"}
+              {isDeleting ? t('common.loading') : t('inventory.deleteItem')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
