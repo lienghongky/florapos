@@ -160,7 +160,6 @@ export function POSPage() {
   ) => {
     if (!canAdd(product, quantity)) return;
     addToCart(product, selectedVariant, selectedAddons, quantity, selectedModifiers);
-    scanFeedback.success();
     toast.success(`${product.name} added to cart`);
   };
 

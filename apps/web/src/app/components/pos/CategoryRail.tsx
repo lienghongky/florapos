@@ -9,14 +9,14 @@ interface CategoryRailProps {
 }
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-    All: <LayoutGrid className="size-5" />,
-    New: <Star className="size-5" />,
-    Discount: <Percent className="size-5" />,
-    Rose: <Flower2 className="size-5" />,
-    Lily: <Flower2 className="size-5" />,
-    Tulip: <Flower2 className="size-5" />,
-    Orchid: <Flower2 className="size-5" />,
-    Others: <Package className="size-5" />,
+    All: <LayoutGrid className="size-4" />,
+    New: <Star className="size-4" />,
+    Discount: <Percent className="size-4" />,
+    Rose: <Flower2 className="size-4" />,
+    Lily: <Flower2 className="size-4" />,
+    Tulip: <Flower2 className="size-4" />,
+    Orchid: <Flower2 className="size-4" />,
+    Others: <Package className="size-4" />,
 };
 
 export function CategoryRail({ categories, selectedCategory, onSelect, products }: CategoryRailProps) {
@@ -28,7 +28,7 @@ export function CategoryRail({ categories, selectedCategory, onSelect, products 
     };
 
     return (
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {Array.from(new Set(['All', ...categories])).map((category) => {
                 const isSelected = selectedCategory === category;
                 return (
@@ -37,21 +37,21 @@ export function CategoryRail({ categories, selectedCategory, onSelect, products 
                         onClick={() => onSelect(category)}
                         whileHover={{ y: -2 }}
                         whileTap={{ scale: 0.95 }}
-                        className={`flex min-w-[110px] flex-col items-center gap-2 rounded-3xl p-3 transition-all ${isSelected
-                            ? 'bg-brand-primary text-white shadow-xl shadow-brand-primary/20'
-                            : 'bg-white/50 text-muted-foreground hover:bg-white hover:text-foreground hover:shadow-md'
+                        className={`flex min-w-[94px] sm:min-w-[98px] flex-col items-center gap-1.5 rounded-2xl px-3 py-2.5 transition-all ${isSelected
+                            ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
+                            : 'bg-white/70 text-muted-foreground hover:bg-white hover:text-foreground hover:shadow-xs'
                             }`}
                     >
-                        <div className={`flex size-11 items-center justify-center rounded-2xl ${isSelected ? 'bg-white/20' : 'bg-slate-100 text-slate-600'
+                        <div className={`flex size-9 items-center justify-center rounded-xl transition-colors ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
                             }`}>
-                            {CATEGORY_ICONS[category] || <UtensilsCrossed className="size-5" />}
+                            {CATEGORY_ICONS[category] || <UtensilsCrossed className="size-4" />}
                         </div>
 
-                        <div className="text-center">
-                            <span className={`block text-sm font-semibold ${isSelected ? 'text-white' : 'text-foreground'}`}>
+                        <div className="text-center w-full px-0.5">
+                            <span className={`block text-xs font-semibold truncate leading-tight ${isSelected ? 'text-white' : 'text-foreground'}`}>
                                 {category}
                             </span>
-                            <span className={`text-xs ${isSelected ? 'text-white/80' : 'text-muted-foreground'}`}>
+                            <span className={`block text-[11px] leading-tight ${isSelected ? 'text-white/80' : 'text-muted-foreground'}`}>
                                 {getCount(category)} Items
                             </span>
                         </div>

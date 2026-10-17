@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Minus, Plus, CreditCard, Banknote, ShoppingBag, Clock, Truck,
-  ScanLine, Wallet, MapPin, StickyNote, Delete, ClipboardList, User, Phone
+  ScanLine, Wallet, MapPin, StickyNote, Delete, ClipboardList, User, Phone, ChevronDown
 } from 'lucide-react';
 import { useCartStore } from '@/app/store/cart-store';
 import { useOrderStore } from '@/app/store/order-store';
@@ -72,6 +72,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [address, setAddress] = useState('');
   const [tags, setTags] = useState('');
+  const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   // ── Price calculations (pure derivations — no setState during render) ──────
@@ -143,6 +144,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
       setCustomerName('');
       setCustomerPhone('');
       setTags('');
+      setShowCustomerDetails(false);
       setShowCheckoutModal(false);
       setNote('');
       setAddress('');
@@ -269,44 +271,70 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
         </div>
 
         {/* Footer */}
-        <div className="mt-6 border-t border-dashed border-border pt-6">
-          {/* Customer Details */}
-          <div className="mb-6 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder={t('pos.customerName')}
-                  value={customerName}
-                  autoComplete="name"
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
-                />
-              </div>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder={t('pos.phoneNumber')}
-                  value={customerPhone}
-                  autoComplete="tel"
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
-                />
-              </div>
-            </div>
-            <div className="relative">
-              <ScanLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder={t('pos.tableOrTag')}
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
-              />
-            </div>
+        <div className="mt-4 pt-2">
+          {/* Customer & Table Collapsible Toggle with Dashed Line */}
+          <div className="relative mb-5 flex items-center justify-center">
+            <div className="w-full border-t border-dashed border-border" />
+            <button
+              type="button"
+              onClick={() => setShowCustomerDetails(prev => !prev)}
+              className="absolute flex items-center justify-center size-6 rounded-full border border-border bg-white text-muted-foreground shadow-2xs hover:border-brand-primary/50 hover:text-brand-primary hover:bg-muted/40 transition-all active:scale-95"
+              title={showCustomerDetails ? "Hide customer & table info" : "Show customer & table info"}
+            >
+              {(customerName || customerPhone || tags) && !showCustomerDetails && (
+                <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-brand-primary ring-2 ring-white" />
+              )}
+              <ChevronDown className={`size-3.5 transition-transform duration-200 ${showCustomerDetails ? 'rotate-180' : ''}`} />
+            </button>
           </div>
+
+          {/* Customer Details & Table Collapsible Content */}
+          <AnimatePresence initial={false}>
+            {showCustomerDetails && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden mb-5 space-y-3"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder={t('pos.customerName')}
+                      value={customerName}
+                      autoComplete="name"
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder={t('pos.phoneNumber')}
+                      value={customerPhone}
+                      autoComplete="tel"
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
+                    />
+                  </div>
+                </div>
+                <div className="relative">
+                  <ScanLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder={t('pos.tableOrTag')}
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Service Type Toggles */}
           <div className="mb-6">
