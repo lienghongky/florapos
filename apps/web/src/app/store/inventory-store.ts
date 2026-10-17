@@ -51,13 +51,49 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   },
 
   findInventoryItemByCode: async (code) => {
+    const raw = (code || '').trim();
+    if (!raw) return null;
+    const clean = raw.toLowerCase();
+
+    // 1. Check local loaded inventory items first
+    const items = get().inventoryItems;
+    const localMatch = items.find(i =>
+      (i.barcode && i.barcode.toLowerCase() === clean) ||
+      (i.sku && i.sku.toLowerCase() === clean) ||
+      (i.name && i.name.toLowerCase() === clean) ||
+      (i.id && i.id.toLowerCase() === clean)
+    );
+    if (localMatch) return localMatch;
+
+    // 2. Query backend API /inventory/find
     const { token, selectedStore } = useAuthStore.getState();
-    if (!token || !selectedStore) return null;
-    try {
-      return await inventoryService.findItemByCode(token, selectedStore.id, code);
-    } catch (e) {
-      return null;
+    if (token && selectedStore) {
+      try {
+        const item = await inventoryService.findItemByCode(token, selectedStore.id, raw);
+        if (item) return item;
+      } catch (e) {
+        // Fallback to product-based search below
+      }
     }
+
+    // 3. Fallback: match via products (if barcode/SKU belongs to a product linked to inventory item)
+    const product = useProductStore.getState().products.find(p =>
+      (p.barcode && p.barcode.toLowerCase() === clean) ||
+      (p.sku && p.sku.toLowerCase() === clean) ||
+      (p.name && p.name.toLowerCase() === clean) ||
+      (p.variants || []).some(v => (v.barcode && v.barcode.toLowerCase() === clean) || (v.sku && v.sku.toLowerCase() === clean))
+    );
+
+    if (product) {
+      const matched = items.find(i =>
+        i.name.toLowerCase() === product.name.toLowerCase() ||
+        (product.inventoryItemId && i.id === product.inventoryItemId) ||
+        (product.recipe && product.recipe.some((r: any) => r.inventory_item_id === i.id))
+      );
+      if (matched) return matched;
+    }
+
+    return null;
   },
 
   adjustInventoryStock: async (id, type, quantity, reason) => {

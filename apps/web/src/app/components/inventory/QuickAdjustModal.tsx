@@ -2,11 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Search, Zap, Package, Plus, Minus, 
-  RotateCcw, Camera, CameraOff, CheckCircle2, 
+  RotateCcw, Camera, CheckCircle2, 
   AlertCircle, History, Loader2, ArrowRight
 } from 'lucide-react';
-import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
+import { useInventoryStore } from '@/app/store/inventory-store';
 import { useProductStore } from '@/app/store/product-store';
+import { CameraScannerModal } from '@/app/components/pos/CameraScannerModal';
+import { cleanScannedCode } from '@/app/lib/product-code-index';
+import { scanFeedback } from '@/app/lib/scan-feedback';
+import { useBarcodeScanner } from '@/app/hooks/useBarcodeScanner';
 import { InventoryItem } from '@/app/types';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { toast } from 'sonner';
@@ -17,7 +21,8 @@ interface QuickAdjustModalProps {
 }
 
 export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
-  const { findInventoryItemByCode, adjustInventoryStock, products, categories } = useProductStore();
+  const { findInventoryItemByCode, adjustInventoryStock } = useInventoryStore();
+  const { products, categories } = useProductStore();
   
   // State
   const [searchCode, setSearchCode] = useState('');
@@ -25,39 +30,52 @@ export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
   const [foundItem, setFoundItem] = useState<InventoryItem | null>(null);
   const [adjustmentQty, setAdjustmentQty] = useState<number>(1);
   const [adjustmentAction, setAdjustmentAction] = useState<'increase' | 'decrease' | 'set'>('increase');
-  const [isScanning, setIsScanning] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [recentAdjustments, setRecentAdjustments] = useState<{name: string, qty: number, type: string}[]>([]);
   
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   // Focus input on open
   useEffect(() => {
-    if (isOpen && !isScanning) {
+    if (isOpen && !isCameraOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, isScanning]);
+  }, [isOpen, isCameraOpen]);
 
   // Handle Finding Item
-  const handleFind = async (code: string) => {
-    if (!code.trim()) return;
+  const handleFind = async (rawCode: string) => {
+    const code = cleanScannedCode(rawCode);
+    if (!code) return null;
     setLoading(true);
     try {
       const item = await findInventoryItemByCode(code);
       if (item) {
         setFoundItem(item);
         setSearchCode('');
-        // If we found it via scan, maybe auto-focus qty or something
+        toast.success(`Found item: ${item.name}`);
+        return item;
       } else {
-        toast.error('Item not found');
+        toast.error(`Item not found for "${code}"`);
+        return null;
       }
-    } catch (e) {
-      toast.error('Error finding item');
+    } catch (e: any) {
+      toast.error(e?.message || 'Error finding item');
+      return null;
     } finally {
       setLoading(false);
     }
   };
+
+  // Hardware barcode scanner support
+  useBarcodeScanner({
+    enabled: isOpen && !isCameraOpen,
+    onScan: (code) => {
+      scanFeedback.success();
+      scanFeedback.vibrate();
+      handleFind(code);
+    }
+  });
 
   // Handle Adjustment
   const handleAdjust = async () => {
@@ -91,106 +109,80 @@ export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
     }
   };
 
-  // Scan Logic
-  useEffect(() => {
-    if (isScanning) {
-      const html5QrCode = new Html5Qrcode("reader");
-      scannerRef.current = html5QrCode;
-      
-      html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        (decodedText) => {
-          handleFind(decodedText);
-          setIsScanning(false);
-        },
-        (errorMessage) => {
-          // parse errors are normal
-        }
-      ).catch(err => {
-        console.error("Camera start error", err);
-        setIsScanning(false);
-        toast.error('Could not start camera');
-      });
-
-      return () => {
-        if (scannerRef.current?.isScanning) {
-          scannerRef.current.stop().catch(e => console.error(e));
-        }
-      };
-    }
-  }, [isScanning]);
-
   return (
-    <AnimatedModal isOpen={isOpen} onClose={() => {
-      if (isScanning) setIsScanning(false);
-      onClose();
-    }}>
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
-        {/* Header */}
-        <div className="bg-primary p-6 text-white relative">
-          <div className="flex items-center gap-3">
-             <div className="p-2 bg-white/20 rounded-lg">
-               <Zap className="size-6" />
-             </div>
-             <div>
-               <h2 className="text-xl font-bold">Quick Adjust</h2>
-               <p className="text-primary-foreground/80 text-sm">Scan barcode or find item to update stock</p>
-             </div>
-          </div>
-          <button 
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
+    <>
+      <CameraScannerModal
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onDetected={async (rawCode) => {
+          const code = cleanScannedCode(rawCode);
+          if (!code) return false;
+          scanFeedback.success();
+          scanFeedback.vibrate();
+          const item = await handleFind(code);
+          return !!item;
+        }}
+        title="Scan Inventory QR or Barcode"
+        subtitle="Point camera at item QR code or barcode to adjust stock"
+        initialContinuous={false}
+      />
 
-        <div className="p-6 space-y-6">
-          {/* Finding Section */}
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <form 
-                onSubmit={(e: React.FormEvent) => { e.preventDefault(); handleFind(searchCode); }}
-                className="relative flex-1"
-              >
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Enter Barcode, SKU or Name..."
-                  value={searchCode}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchCode(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-muted/30 focus:bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium"
-                />
-              </form>
-              <button 
-                onClick={() => setIsScanning(!isScanning)}
-                className={`flex items-center justify-center p-3 rounded-xl border border-border transition-all ${isScanning ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white hover:bg-muted'}`}
-                title={isScanning ? "Stop Camera" : "Scan with Camera"}
-              >
-                {isScanning ? <CameraOff className="size-6" /> : <Camera className="size-6" />}
-              </button>
+      <AnimatedModal isOpen={isOpen} onClose={() => {
+        setIsCameraOpen(false);
+        onClose();
+      }}>
+        <div className="w-[min(680px,94vw)] overflow-hidden rounded-3xl bg-white shadow-2xl flex flex-col my-auto max-h-[92vh]">
+          {/* Header */}
+          <div className="bg-primary p-6 text-white relative">
+            <div className="flex items-center gap-3">
+               <div className="p-2.5 bg-white/20 rounded-xl">
+                 <Zap className="size-6" />
+               </div>
+               <div>
+                 <h2 className="text-xl font-bold">Quick Adjust</h2>
+                 <p className="text-primary-foreground/80 text-sm">Scan QR code, barcode, or search item to update stock</p>
+               </div>
+            </div>
+            <button 
+              onClick={onClose}
+              className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
+
+          <div className="overflow-y-auto p-6 sm:p-7 space-y-6">
+            {/* Finding Section */}
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <form 
+                  onSubmit={(e: React.FormEvent) => { e.preventDefault(); handleFind(searchCode); }}
+                  className="relative flex-1"
+                >
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Enter Barcode, SKU or Name..."
+                    value={searchCode}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchCode(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-muted/30 focus:bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium"
+                  />
+                </form>
+                <button 
+                  type="button"
+                  onClick={() => setIsCameraOpen(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-3 rounded-xl border border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all font-semibold shadow-xs"
+                  title="Scan QR or Barcode with Camera"
+                >
+                  <Camera className="size-5" />
+                  <span className="hidden sm:inline text-xs font-bold">Scan QR / Code</span>
+                </button>
+              </div>
             </div>
 
-            {isScanning && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden rounded-xl border-2 border-dashed border-primary/30 bg-muted/10 p-2"
-              >
-                <div id="reader" className="w-full overflow-hidden rounded-lg aspect-video" />
-                <p className="text-center text-xs text-muted-foreground mt-2">Position the barcode within the frame</p>
-              </motion.div>
-            )}
-          </div>
-
-          <AnimatePresence mode="wait">
-            {foundItem ? (
+            <AnimatePresence mode="wait">
+              {foundItem ? (
               <motion.div
                 key="found"
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -273,11 +265,11 @@ export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
                     </div>
                     {/* Quick Qty Presets */}
                     <div className="flex gap-2">
-                       {[5, 10, 50].map(q => (
+                       {[5, 10, 20, 50].map(q => (
                          <button 
                            key={q}
                            onClick={() => setAdjustmentQty(q)}
-                           className="px-3 py-2 rounded-lg bg-muted text-xs font-bold hover:bg-muted/80"
+                           className="px-3 py-2 rounded-lg bg-muted text-xs font-bold hover:bg-muted/80 transition-colors"
                          >
                            +{q}
                          </button>
@@ -351,6 +343,7 @@ export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
         </div>
       </div>
     </AnimatedModal>
+    </>
   );
 }
 
