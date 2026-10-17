@@ -433,10 +433,19 @@ export interface TranslationSchema {
     viewPlans: string;
     orders: string;
     reports: string;
+    lowStock: string;
+    notificationChannels: string;
+    notificationChannelsDesc: string;
+    orderNotificationsDesc: string;
+    dailySummaryDesc: string;
+    lowStockDesc: string;
+    disableAll: string;
+    enableAll: string;
     botAccess: string;
     enabled: string;
     disabled: string;
     fullMenu: string;
+
     openBot: string;
     disconnectAccount: string;
     connectAccount: string;

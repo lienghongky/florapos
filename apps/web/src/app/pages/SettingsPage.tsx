@@ -207,19 +207,11 @@ export function SettingsPage() {
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.12 }}
-          className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
-        >
-          <TelegramLinkingSection />
-        </motion.div>
-
         <ChangePasswordModal 
           isOpen={isChangingPassword} 
           onClose={() => setIsChangingPassword(false)} 
         />
+
 
         {/* Store Profile Section (Owner Only) */}
         {user?.role?.toLowerCase() === UserRole.OWNER.toLowerCase() && (
@@ -393,11 +385,65 @@ export function SettingsPage() {
           </motion.div>
         )}
 
-        {/* Language Section */}
+        {/* Notifications Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
+          className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
+        >
+          <div className="mb-8 flex items-center gap-4">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
+              <Bell className="size-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">{t('settings.smartNotifications')}</h2>
+              <p className="text-sm text-slate-500">{t('settings.notificationsDesc')}</p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {[
+              { key: 'email' as const, label: t('settings.emailNotifications'), description: t('settings.emailNotificationsDesc') },
+              { key: 'lowStock' as const, label: t('settings.lowStockAlerts'), description: t('settings.lowStockAlertsDesc') },
+              { key: 'dailyReport' as const, label: t('settings.dailyReports'), description: t('settings.dailyReportsDesc') },
+            ].map(item => (
+              <div key={item.key} className="flex items-center justify-between p-4 rounded-2xl border border-slate-50 bg-slate-50/30">
+                <div>
+                  <div className="font-bold text-slate-800">{item.label}</div>
+                  <div className="text-xs text-slate-500">{item.description}</div>
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setNotifications({ ...notifications, [item.key]: !notifications[item.key] })}
+                  className={`relative h-7 w-12 rounded-full transition-colors ${notifications[item.key] ? 'bg-brand-primary' : 'bg-slate-300'
+                    }`}
+                >
+                  <motion.div
+                    animate={{ x: notifications[item.key] ? 22 : 2 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className="absolute top-1 size-5 rounded-full bg-white shadow-lg"
+                  />
+                </motion.button>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Telegram Integration Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
+        >
+          <TelegramLinkingSection />
+        </motion.div>
+
+        {/* System Language Section (Most Bottom) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
           className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
         >
           <div className="mb-8 flex items-center gap-4">
@@ -442,51 +488,8 @@ export function SettingsPage() {
             </div>
           </div>
         </motion.div>
-
-        {/* Notifications Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="rounded-[2rem] border border-border bg-white p-4 sm:p-8 shadow-sm"
-        >
-          <div className="mb-8 flex items-center gap-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
-              <Bell className="size-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">{t('settings.smartNotifications')}</h2>
-              <p className="text-sm text-slate-500">{t('settings.notificationsDesc')}</p>
-            </div>
-          </div>
-          <div className="space-y-4">
-            {[
-              { key: 'email' as const, label: t('settings.emailNotifications'), description: t('settings.emailNotificationsDesc') },
-              { key: 'lowStock' as const, label: t('settings.lowStockAlerts'), description: t('settings.lowStockAlertsDesc') },
-              { key: 'dailyReport' as const, label: t('settings.dailyReports'), description: t('settings.dailyReportsDesc') },
-            ].map(item => (
-              <div key={item.key} className="flex items-center justify-between p-4 rounded-2xl border border-slate-50 bg-slate-50/30">
-                <div>
-                  <div className="font-bold text-slate-800">{item.label}</div>
-                  <div className="text-xs text-slate-500">{item.description}</div>
-                </div>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setNotifications({ ...notifications, [item.key]: !notifications[item.key] })}
-                  className={`relative h-7 w-12 rounded-full transition-colors ${notifications[item.key] ? 'bg-brand-primary' : 'bg-slate-300'
-                    }`}
-                >
-                  <motion.div
-                    animate={{ x: notifications[item.key] ? 22 : 2 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    className="absolute top-1 size-5 rounded-full bg-white shadow-lg"
-                  />
-                </motion.button>
-              </div>
-            ))}
-          </div>
-        </motion.div>
       </div>
     </AnimatedPage>
   );
 }
+

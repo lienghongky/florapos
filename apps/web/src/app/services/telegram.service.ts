@@ -45,4 +45,16 @@ export const telegramService = {
   getGlobalStatus: async (token: string): Promise<{ enabled: boolean }> => {
     return request<{ enabled: boolean }>('/telegram/global-status', { token });
   },
+
+  updatePreferences: async (
+    token: string,
+    preferences: { notify_orders?: boolean; notify_daily_summary?: boolean; notify_low_stock?: boolean }
+  ): Promise<{ notify_orders: boolean; notify_daily_summary: boolean; notify_low_stock: boolean }> => {
+    return request<{ notify_orders: boolean; notify_daily_summary: boolean; notify_low_stock: boolean }>('/telegram/preferences', {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(preferences),
+    });
+  },
 };
+

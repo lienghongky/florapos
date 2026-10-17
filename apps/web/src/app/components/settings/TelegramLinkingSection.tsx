@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, QrCode, Link as LinkIcon, Check, X, RefreshCw, ExternalLink, Bot, BellRing, Crown } from 'lucide-react';
+import { Send, QrCode, Link as LinkIcon, Check, X, RefreshCw, ExternalLink, Bot, BellRing, Crown, BarChart3, AlertTriangle } from 'lucide-react';
+
 import { useAuthStore } from '@/app/store/auth-store';
 import { telegramService, TelegramStatus, TelegramLinkResponse } from '@/app/services/telegram.service';
 import { toast } from 'sonner';
@@ -80,6 +81,77 @@ export function TelegramLinkingSection() {
       toast.success('Telegram account disconnected');
     } catch (error: any) {
       toast.error(error.message || 'Failed to unlink');
+    }
+  };
+
+  const handleTogglePreference = async (key: 'notify_orders' | 'notify_daily_summary' | 'notify_low_stock') => {
+    if (!token || !status?.preferences) return;
+    const currentVal = !!status.preferences[key];
+    const newVal = !currentVal;
+
+    // Optimistic update
+    setStatus(prev => prev ? {
+      ...prev,
+      preferences: {
+        ...prev.preferences!,
+        [key]: newVal,
+      },
+    } : null);
+
+    try {
+      const updated = await telegramService.updatePreferences(token, { [key]: newVal });
+      setStatus(prev => prev ? {
+        ...prev,
+        preferences: {
+          ...prev.preferences!,
+          ...updated,
+        },
+      } : null);
+      toast.success(newVal ? 'Notification channel enabled' : 'Notification channel disabled');
+    } catch (error: any) {
+      // Revert on error
+      setStatus(prev => prev ? {
+        ...prev,
+        preferences: {
+          ...prev.preferences!,
+          [key]: currentVal,
+        },
+      } : null);
+      toast.error(error.message || 'Failed to update notification setting');
+    }
+  };
+
+  const handleBatchTogglePreferences = async (enable: boolean) => {
+    if (!token || !status?.preferences) return;
+    const previous = { ...status.preferences };
+
+    const newPrefs = {
+      notify_orders: enable,
+      notify_daily_summary: enable,
+      notify_low_stock: enable,
+    };
+
+    setStatus(prev => prev ? {
+      ...prev,
+      preferences: newPrefs,
+    } : null);
+
+    try {
+      const updated = await telegramService.updatePreferences(token, newPrefs);
+      setStatus(prev => prev ? {
+        ...prev,
+        preferences: {
+          ...prev.preferences!,
+          ...updated,
+        },
+      } : null);
+      toast.success(enable ? 'All notifications enabled' : 'All notifications muted');
+    } catch (error: any) {
+      setStatus(prev => prev ? {
+        ...prev,
+        preferences: previous,
+      } : null);
+      toast.error(error.message || 'Failed to update notification settings');
     }
   };
 
@@ -163,32 +235,146 @@ export function TelegramLinkingSection() {
 
         {status?.linked ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-3">
-                <div className={`size-8 rounded-lg flex items-center justify-center ${status.preferences?.notify_orders ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
-                  <BellRing className="size-4" />
-                </div>
+            {/* Interactive Notification Preferences */}
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('settings.orders')}</p>
-                  <p className="text-xs font-bold text-slate-700">{status.preferences?.notify_orders ? t('settings.enabled') : t('settings.disabled')}</p>
+                  <h4 className="text-sm font-bold text-slate-800">{t('settings.notificationChannels')}</h4>
+                  <p className="text-xs text-slate-500">{t('settings.notificationChannelsDesc')}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleBatchTogglePreferences(true)}
+                    className="text-[11px] font-bold text-brand-primary hover:text-brand-primary/80 px-2.5 py-1 rounded-lg hover:bg-brand-primary/5 transition-colors active:scale-95"
+                  >
+                    {t('settings.enableAll')}
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => handleBatchTogglePreferences(false)}
+                    className="text-[11px] font-bold text-slate-500 hover:text-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-colors active:scale-95"
+                  >
+                    {t('settings.disableAll')}
+                  </button>
                 </div>
               </div>
-              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-3">
-                <div className={`size-8 rounded-lg flex items-center justify-center ${status.preferences?.notify_daily_summary ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
-                  <Bot className="size-4" />
+
+              {/* Channels Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Channel 1: Order Notifications */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  status.preferences?.notify_orders 
+                    ? 'bg-white border-emerald-200/90 shadow-sm' 
+                    : 'bg-white/60 border-slate-200/70 opacity-75'
+                }`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`size-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        status.preferences?.notify_orders ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                        <BellRing className="size-4" />
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-800">{t('settings.orders')}</h5>
+                        <span className={`text-[10px] font-black uppercase tracking-wider ${
+                          status.preferences?.notify_orders ? 'text-emerald-600' : 'text-slate-400'
+                        }`}>
+                          {status.preferences?.notify_orders ? t('settings.enabled') : t('settings.disabled')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input 
+                        type="checkbox" 
+                        checked={!!status.preferences?.notify_orders}
+                        onChange={() => handleTogglePreference('notify_orders')}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-2.5 line-clamp-2">
+                    {t('settings.orderNotificationsDesc')}
+                  </p>
                 </div>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('settings.reports')}</p>
-                  <p className="text-xs font-bold text-slate-700">{status.preferences?.notify_daily_summary ? t('settings.enabled') : t('settings.disabled')}</p>
+
+                {/* Channel 2: Daily Sales Summary */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  status.preferences?.notify_daily_summary 
+                    ? 'bg-white border-blue-200/90 shadow-sm' 
+                    : 'bg-white/60 border-slate-200/70 opacity-75'
+                }`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`size-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        status.preferences?.notify_daily_summary ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                        <BarChart3 className="size-4" />
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-800">{t('settings.reports')}</h5>
+                        <span className={`text-[10px] font-black uppercase tracking-wider ${
+                          status.preferences?.notify_daily_summary ? 'text-blue-600' : 'text-slate-400'
+                        }`}>
+                          {status.preferences?.notify_daily_summary ? t('settings.enabled') : t('settings.disabled')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input 
+                        type="checkbox" 
+                        checked={!!status.preferences?.notify_daily_summary}
+                        onChange={() => handleTogglePreference('notify_daily_summary')}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-2.5 line-clamp-2">
+                    {t('settings.dailySummaryDesc')}
+                  </p>
                 </div>
-              </div>
-              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-3">
-                <div className="size-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
-                  <Bot className="size-4" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('settings.botAccess')}</p>
-                  <p className="text-xs font-bold text-slate-700">{t('settings.fullMenu')}</p>
+
+                {/* Channel 3: Low Stock Alerts */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  status.preferences?.notify_low_stock 
+                    ? 'bg-white border-amber-200/90 shadow-sm' 
+                    : 'bg-white/60 border-slate-200/70 opacity-75'
+                }`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`size-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        status.preferences?.notify_low_stock ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                        <AlertTriangle className="size-4" />
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-800">{t('settings.lowStock')}</h5>
+                        <span className={`text-[10px] font-black uppercase tracking-wider ${
+                          status.preferences?.notify_low_stock ? 'text-amber-600' : 'text-slate-400'
+                        }`}>
+                          {status.preferences?.notify_low_stock ? t('settings.enabled') : t('settings.disabled')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input 
+                        type="checkbox" 
+                        checked={!!status.preferences?.notify_low_stock}
+                        onChange={() => handleTogglePreference('notify_low_stock')}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-2.5 line-clamp-2">
+                    {t('settings.lowStockDesc')}
+                  </p>
                 </div>
               </div>
             </div>
@@ -196,14 +382,14 @@ export function TelegramLinkingSection() {
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
               <button
                 onClick={() => window.open(`https://t.me/${status.bot_username || 'bot'}`, '_blank')}
-                className="w-full sm:w-auto rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white flex items-center justify-center gap-2 hover:bg-brand-primary transition-all"
+                className="w-full sm:w-auto rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white flex items-center justify-center gap-2 hover:bg-brand-primary transition-all active:scale-95 shadow-sm"
               >
                 <ExternalLink className="size-4" />
                 {t('settings.openBot')}
               </button>
               <button
                 onClick={handleUnlink}
-                className="w-full sm:w-auto rounded-xl border border-red-100 bg-red-50 px-6 py-3 text-sm font-bold text-red-600 hover:bg-red-100 transition-all"
+                className="w-full sm:w-auto rounded-xl border border-red-100 bg-red-50 px-6 py-3 text-sm font-bold text-red-600 hover:bg-red-100 transition-all active:scale-95"
               >
                 {t('settings.disconnectAccount')}
               </button>

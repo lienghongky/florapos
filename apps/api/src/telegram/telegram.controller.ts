@@ -1,4 +1,5 @@
-import { Controller, Post, Get, Delete, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Body, UseGuards, Request, NotFoundException } from '@nestjs/common';
+
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TelegramService } from './telegram.service';
@@ -74,6 +75,24 @@ export class TelegramController {
         };
     }
 
+    @Patch('preferences')
+    @ApiOperation({ summary: 'Update Telegram notification preferences for current user' })
+    @ApiResponse({ status: 200, description: 'Preferences updated successfully' })
+    async updatePreferences(
+        @Request() req: any,
+        @Body() dto: { notify_orders?: boolean; notify_daily_summary?: boolean; notify_low_stock?: boolean },
+    ) {
+        const account = await this.telegramService.updatePreferencesByUserId(req.user.userId, dto);
+        if (!account) {
+            throw new NotFoundException('Telegram account not linked');
+        }
+        return {
+            notify_orders: account.notify_orders,
+            notify_daily_summary: account.notify_daily_summary,
+            notify_low_stock: account.notify_low_stock,
+        };
+    }
+
     @Delete('unlink')
     @ApiOperation({ summary: 'Unlink Telegram account from current user' })
     @ApiResponse({ status: 200, description: 'Account unlinked successfully' })
@@ -82,3 +101,4 @@ export class TelegramController {
         return { message: 'Telegram account unlinked successfully' };
     }
 }
+

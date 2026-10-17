@@ -94,6 +94,17 @@ export class TelegramService {
         return this.telegramAccountRepo.save(account);
     }
 
+    async updatePreferencesByUserId(
+        userId: string,
+        prefs: Partial<Pick<TelegramAccount, 'notify_orders' | 'notify_daily_summary' | 'notify_low_stock'>>,
+    ): Promise<TelegramAccount | null> {
+        const account = await this.findAccountByUserId(userId);
+        if (!account) return null;
+        Object.assign(account, prefs);
+        return this.telegramAccountRepo.save(account);
+    }
+
+
     async setActiveStore(chatId: number, storeId: string): Promise<TelegramAccount | null> {
         const account = await this.findAccountByChatId(chatId);
         if (!account) return null;
