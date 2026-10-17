@@ -1,3 +1,4 @@
+import { printSystemReceipts } from './system-receipt-print';
 import { Order, Store } from '../types';
 import { jsPDF } from 'jspdf';
 import { domToCanvas } from 'modern-screenshot';
@@ -185,51 +186,16 @@ export async function printReceipt(
         }
     }
 
-    // 4. Fallback: System Browser Print (`window.print()`)
+    // Print a fresh receipt for this order, outside clipped/hidden modal ancestors.
+    const toastId = toast.loading('Opening system print preview...');
     try {
-        const toastId = toast.loading('Opening system print preview...');
-        
-        if (options.targetElement) {
-            const canvas = await domToCanvas(options.targetElement, {
-                scale: 2,
-                backgroundColor: '#ffffff'
-            });
-
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-            const pdfBlob = pdf.output('blob');
-            const blobUrl = URL.createObjectURL(pdfBlob);
-
-            const printWindow = window.open(blobUrl);
-            toast.dismiss(toastId);
-
-            if (printWindow) {
-                printWindow.onload = () => {
-                    printWindow.print();
-                };
-            } else {
-                window.print();
-            }
-        } else {
-            toast.dismiss(toastId);
-            window.print();
-        }
-
+        await printSystemReceipts([order], store, options);
         return true;
     } catch (error) {
         console.error('System Print Error:', error);
-        toast.error('Failed to trigger system print');
+        toast.error('Failed to open receipt print preview');
         return false;
+    } finally {
+        toast.dismiss(toastId);
     }
 }

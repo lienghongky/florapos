@@ -7,6 +7,8 @@ import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 interface ProductCustomizationModalProps {
     isOpen: boolean;
     onClose: () => void;
+    initialVariantId?: string;
+    initialQuantity?: number;
     product: Product | null;
     onAddToCart: (
         product: Product, 
@@ -18,14 +20,18 @@ interface ProductCustomizationModalProps {
 }
 
 
-export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCart }: ProductCustomizationModalProps) {
+export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCart, initialVariantId, initialQuantity = 1 }: ProductCustomizationModalProps) {
     const [selectedModifiers, setSelectedModifiers] = useState<{ [groupId: string]: ModifierOption[] }>({});
+    const [variantId, setVariantId] = useState('');
+    const [addons, setAddons] = useState<Addon[]>([]);
     const [quantity, setQuantity] = useState(1);
 
     useEffect(() => {
         if (isOpen && product) {
             setSelectedModifiers({});
-            setQuantity(1);
+            setQuantity(initialQuantity);
+            setVariantId(initialVariantId || product.variants?.find(v => v.is_active && v.is_default)?.id || product.variants?.find(v => v.is_active)?.id || '');
+            setAddons((product.product_addons || []).flatMap(p => p.addon?.is_active && p.addon.required ? [p.addon] : []));
 
             // Initialize required single-choice modifiers
             if (product.modifier_groups) {
@@ -38,7 +44,7 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                 setSelectedModifiers(initialModifiers);
             }
         }
-    }, [isOpen, product]);
+    }, [isOpen, product, initialVariantId, initialQuantity]);
 
     if (!isOpen || !product) return null;
 
@@ -71,14 +77,19 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
     const isModifierSelected = (groupId: string, optionId: string) => 
         (selectedModifiers[groupId] || []).some(o => o.id === optionId);
 
-    const basePrice = Number(product.base_price) || 0;
+    const selectedVariant = product.variants?.find(v => v.id === variantId && v.is_active);
+    const basePrice = (Number(product.base_price) || 0) + Number(selectedVariant?.price_modifier || 0) + addons.reduce((sum, a) => sum + Number(a.price), 0);
+    const invalidOptions = (!!product.variants?.length && !selectedVariant) || (product.modifier_groups || []).some(g => {
+        const count = (selectedModifiers[g.id!] || []).length;
+        return count < g.min_selection || (g.max_selection > 0 && count > g.max_selection);
+    });
     const modifiersPrice = Object.values(selectedModifiers).flat().reduce((acc, curr) => acc + Number(curr.price_adjustment), 0);
     const totalPrice = (basePrice + modifiersPrice) * quantity;
     const isOutOfStock = product.track_inventory && !product.allow_negative_stock && (Number(product.calculated_stock) <= 0);
 
     const handleAdd = () => {
-        if (isOutOfStock) return;
-        onAddToCart(product, undefined, [], quantity, selectedModifiers);
+        if (isOutOfStock || invalidOptions) return;
+        onAddToCart(product, selectedVariant, addons, quantity, selectedModifiers);
         onClose();
     };
 
@@ -106,7 +117,7 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                         transition={{ type: 'spring', damping: 30, stiffness: 500 }}
                         className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pointer-events-none"
                     >
-                        <div className="bg-white pointer-events-auto w-full max-w-5xl my-0 sm:my-auto max-h-[95vh] lg:max-h-[85vh] rounded-t-3xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row relative">
+                        <div data-scanner-pause role="dialog" aria-label="Customize product" className="bg-white pointer-events-auto w-full max-w-5xl my-0 sm:my-auto max-h-[95vh] lg:max-h-[85vh] rounded-t-3xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row relative">
 
                             {/* Left Side: Product Shot */}
                             <div className="relative w-full lg:w-[45%] h-48 sm:h-64 lg:h-auto bg-slate-50 shrink-0">
@@ -137,6 +148,16 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                             {/* Right Side: Options */}
                             <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-white opacity-100">
                                 <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8">
+                                    {!!product.variants?.length && <label className="block font-semibold">Variant
+                                        <select className="mt-2 w-full rounded-xl border p-3" value={variantId} onChange={e => setVariantId(e.target.value)}>
+                                            {product.variants.filter(v => v.is_active).map(v => <option key={v.id} value={v.id}>{v.name} (+{v.price_modifier})</option>)}
+                                        </select>
+                                    </label>}
+                                    {product.product_addons?.map(p => p.addon?.is_active && <label key={p.id} className="flex items-center gap-3">
+                                        <input type="checkbox" checked={addons.some(a => a.id === p.addon!.id)} disabled={p.addon.required} onChange={e => setAddons(e.target.checked ? [...addons, p.addon!] : addons.filter(a => a.id !== p.addon!.id))} />
+                                        {p.addon.name} (+{p.addon.price}) {p.addon.required ? 'Required' : ''}
+                                    </label>)}
+                                    {invalidOptions && <p className="text-sm text-amber-700">Select a variant and satisfy each group’s minimum and maximum selections.</p>}
                                     {hasModifiers ? (
                                         <div className="space-y-10">
                                             {product.modifier_groups?.map(group => (
@@ -231,7 +252,7 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                                     <motion.button
                                         whileHover={isOutOfStock ? {} : { scale: 1.02 }}
                                         whileTap={isOutOfStock ? {} : { scale: 0.98 }}
-                                        disabled={isOutOfStock}
+                                        disabled={isOutOfStock || invalidOptions}
                                         onClick={handleAdd}
                                         className={`w-full h-14 sm:h-16 font-black rounded-xl sm:rounded-[1.25rem] shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 ${
                                             isOutOfStock 

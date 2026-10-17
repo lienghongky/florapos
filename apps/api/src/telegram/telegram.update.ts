@@ -39,7 +39,7 @@ export class TelegramUpdate {
                 );
             } else {
                 await ctx.reply(
-                    `👋 Welcome to FloraPos Bot!\n\n` +
+                    `👋 Welcome to Ottor POS Bot!\n\n` +
                     `To link your account, ask your store owner/manager for an invite link.\n\n` +
                     `The link will look like:\nhttps://t.me/bot_name?start=<token>`,
                 );
@@ -82,7 +82,7 @@ export class TelegramUpdate {
         }
 
         await ctx.reply(
-            '📋 <b>FloraPos Menu</b>\n\nWhat would you like to do?',
+            '📋 <b>Ottor POS Menu</b>\n\nWhat would you like to do?',
             {
                 parse_mode: 'HTML',
                 ...Markup.inlineKeyboard([
@@ -219,7 +219,7 @@ export class TelegramUpdate {
                 `🏆 <b>Top Products:</b>`,
                 topProductsText,
                 ``,
-                `<i>— FloraPos</i>`,
+                `<i>— Ottor POS</i>`,
             ].join('\n');
 
             await ctx.reply(message, {
@@ -315,7 +315,7 @@ export class TelegramUpdate {
     @Help()
     async onHelp(@Ctx() ctx: Context): Promise<void> {
         await ctx.reply(
-            `ℹ️ <b>FloraPos Bot Help</b>\n\n` +
+            `ℹ️ <b>Ottor POS Bot Help</b>\n\n` +
             `<b>Commands:</b>\n` +
             `/start — Link your account\n` +
             `/menu — Show main menu\n` +

@@ -13,7 +13,7 @@ export class AppService {
   ) {}
 
   getHello(): string {
-    return 'FloraPos API is running!';
+    return 'Ottor POS API is running!';
   }
 
   /**

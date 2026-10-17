@@ -18,12 +18,15 @@ async function bootstrap() {
     transformOptions: { enableImplicitConversion: true },
   }));
 
-  // CORS — allow local dev and Docker origins
+  // CORS — allow local dev, Docker origins, and production domain
   app.enableCors({
     origin: [
       'http://localhost:4200',
       'http://localhost:5173',
       'http://localhost',
+      'https://ottor.cc',
+      'https://www.ottor.cc',
+      'http://ottor.cc',
     ],
     credentials: true,
   });

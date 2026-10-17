@@ -94,10 +94,7 @@ export function OrdersPage() {
   };
 
   const handlePrintSingle = async (order: Order) => {
-    setBatchOrder(order);
-    await new Promise(resolve => setTimeout(resolve, 100));
-    await printReceipt(order, selectedStore, { targetElement: batchRef.current });
-    setBatchOrder(null);
+    await printReceipt(order, selectedStore);
   };
 
   const handleDownloadSingle = async (order: Order) => {

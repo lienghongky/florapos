@@ -1,3 +1,9 @@
+import { useBarcodeScanner } from '@/app/hooks/useBarcodeScanner';
+import { buildCodeIndex, lookupCode, CodeMatch } from '@/app/lib/product-code-index';
+import { scanFeedback } from '@/app/lib/scan-feedback';
+import { ScannerStatus } from '@/app/components/pos/ScannerStatus';
+import { UnknownBarcodeModal } from '@/app/components/pos/UnknownBarcodeModal';
+import { CameraScannerModal } from '@/app/components/pos/CameraScannerModal';
 import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { ProductCard } from '@/app/components/pos/ProductCard';
 import { CartPanel } from '@/app/components/pos/CartPanel';
@@ -5,11 +11,11 @@ import { CategoryRail } from '@/app/components/pos/CategoryRail';
 import { useProductStore } from '@/app/store/product-store';
 import { useCartStore } from '@/app/store/cart-store';
 import { useAuthStore } from '@/app/store/auth-store';
-import { Search, SlidersHorizontal, ShoppingBag, X, ChevronDown } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { Search, SlidersHorizontal, ShoppingBag, X, ChevronDown, Camera } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ProductCustomizationModal } from '@/app/components/pos/ProductCustomizationModal';
 import { Product, ProductVariant, Addon, ModifierOption } from '@/app/types';
@@ -31,7 +37,7 @@ export function POSPage() {
   const { t } = useTranslation();
   const { products, categories, refreshProducts, refreshProductCategories } = useProductStore();
   const { addToCart, cart, clearCart } = useCartStore();
-  const { selectedStore } = useAuthStore();
+  const { selectedStore, user } = useAuthStore();
 
   useEffect(() => {
     refreshProducts();
@@ -39,6 +45,29 @@ export function POSPage() {
     clearCart();
   }, [selectedStore?.id]);
   const location = useLocation();
+  const navigate = useNavigate();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const scanQueue = useRef(Promise.resolve());
+  const scanBlocked = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const [scannerEnabled, setScannerEnabled] = useState(() => { try { return localStorage.getItem('pos-scanner-enabled') !== 'off'; } catch { return true; } });
+  const [scannerPaused, setScannerPaused] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [lastCode, setLastCode] = useState('');
+  const [multiplier, setMultiplier] = useState(1);
+  const multiplierRef = useRef(1);
+  const [unknown, setUnknown] = useState<{ code: string; quantity: number } | null>(null);
+  const [initialVariantId, setInitialVariantId] = useState<string>();
+  const [initialQuantity, setInitialQuantity] = useState(1);
+  const codeIndex = useMemo(() => buildCodeIndex(products), [products]);
+  useEffect(() => {
+    const update = () => setScannerPaused(!!document.querySelector('[data-scanner-pause]'));
+    const observer = new MutationObserver(update);
+    observer.observe(document.body, { childList: true, subtree: true });
+    update(); return () => observer.disconnect();
+  }, []);
+  useEffect(() => { const timer = setTimeout(() => setLastCode(''), 3000); return () => clearTimeout(timer); }, [lastCode]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedTag, setSelectedTag] = useState('All');
@@ -60,6 +89,7 @@ export function POSPage() {
     let result = products.filter(product => {
       const catName = categories.find(c => c.id === product.category_id)?.name || '';
       const matchesSearch =
+        [product.barcode, product.sku, ...(product.variants || []).flatMap(v => [v.barcode, v.sku])].some(code => code?.toLowerCase().includes(searchQuery.toLowerCase())) ||
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         catName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (product.tags || []).some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -100,6 +130,7 @@ export function POSPage() {
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleProductClick = (product: Product) => {
+    setInitialVariantId(undefined); setInitialQuantity(1);
     const isOutOfStock = product.track_inventory && !product.allow_negative_stock && (Number(product.calculated_stock) <= 0);
     
     if (isOutOfStock) {
@@ -112,6 +143,7 @@ export function POSPage() {
       (product.product_addons && product.product_addons.length > 0) ||
       (product.modifier_groups && product.modifier_groups.length > 0)
     ) {
+      scanBlocked.current = true;
       setCustomizingProduct(product);
     } else {
       addToCart(product, undefined, []);
@@ -126,9 +158,62 @@ export function POSPage() {
     quantity: number = 1,
     selectedModifiers?: { [groupId: string]: ModifierOption[] }
   ) => {
+    if (!canAdd(product, quantity)) return;
     addToCart(product, selectedVariant, selectedAddons, quantity, selectedModifiers);
+    scanFeedback.success();
     toast.success(`${product.name} added to cart`);
   };
+
+  function canAdd(product: Product, quantity: number) {
+    const inCart = useCartStore.getState().cart.filter(item => item.product.id === product.id).reduce((sum, item) => sum + item.quantity, 0);
+    const error = !product.is_active ? 'Product is hidden' : product.track_inventory && !product.allow_negative_stock && Number(product.calculated_stock) < inCart + quantity ? product.name + ' is out of stock' : null;
+    if (error) { scanFeedback.error(); toast.error(error); return false; }
+    return true;
+  }
+  function addMatch({ product, variant }: CodeMatch, quantity: number) {
+    if (!canAdd(product, quantity)) return false;
+    if (variant && !variant.is_active) { scanFeedback.error(); toast.error('Variant is hidden'); return false; }
+    if (product.product_addons?.length || product.modifier_groups?.length || (!variant && product.variants?.length)) {
+      scanBlocked.current = true;
+      setCameraOpen(false);
+      setInitialVariantId(variant?.id); setInitialQuantity(quantity); setCustomizingProduct(product);
+      scanFeedback.info();
+      return true;
+    }
+    addToCart(product, variant, [], quantity);
+    const state = useCartStore.getState();
+    const line = state.cart.find(item => item.uuid === state.lastAddedUuid);
+    scanFeedback.success();
+    toast.success('✓ ' + product.name + ' added · qty ' + line?.quantity);
+    return true;
+  }
+  function handleScan(code: string, quantity = 1): Promise<boolean> {
+    const storeId = selectedStore?.id;
+    let result = false;
+    const operation = scanQueue.current.then(async () => {
+      if (!mounted.current || scanBlocked.current || useAuthStore.getState().selectedStore?.id !== storeId || (!cameraOpen && document.querySelector('[data-scanner-pause]'))) return;
+      setLastCode(code);
+      const currentProducts = useProductStore.getState().products;
+      let match = lookupCode(currentProducts === products ? codeIndex : buildCodeIndex(currentProducts), code);
+      if (!match) {
+        await refreshProducts();
+        if (!mounted.current || scanBlocked.current || useAuthStore.getState().selectedStore?.id !== storeId) return;
+        match = lookupCode(buildCodeIndex(useProductStore.getState().products), code);
+      }
+      if (match) result = addMatch(match, quantity);
+      else {
+        scanBlocked.current = true; setCameraOpen(false); setUnknown({ code, quantity }); scanFeedback.error();
+      }
+    }).catch(() => { scanFeedback.error(); toast.error('Could not look up barcode'); });
+    scanQueue.current = operation;
+    return operation.then(() => result);
+  }
+  const takeMultiplier = () => { const n = multiplierRef.current; multiplierRef.current = 1; setMultiplier(1); return n; };
+  useBarcodeScanner({
+    enabled: scannerEnabled && !scannerPaused,
+    onScan: (code, input, original) => { if (input) setSearchQuery(original || ''); void handleScan(code, takeMultiplier()); },
+    onMultiplier: (n, input, original) => { multiplierRef.current = n; setMultiplier(n); if (input) setSearchQuery(original || ''); },
+  });
 
   const pageHeight = isFullscreen ? 'h-[calc(100vh-2rem)]' : 'h-[calc(100vh-5rem)]';
 
@@ -150,6 +235,15 @@ export function POSPage() {
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 size-4 md:size-5 -translate-y-1/2 text-slate-400" />
               <input
+                ref={searchRef}
+                data-scan-target
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && searchQuery.trim() && !scannerPaused) {
+                    e.preventDefault();
+                    if (lookupCode(codeIndex, searchQuery)) setSearchQuery('');
+                    void handleScan(searchQuery.trim(), takeMultiplier());
+                  }
+                }}
                 type="text"
                 placeholder={t('pos.searchPlaceholder')}
                 value={searchQuery}
@@ -157,6 +251,7 @@ export function POSPage() {
                 className="h-11 md:h-12 w-full rounded-2xl border border-slate-200 bg-white/50 pl-11 md:pl-12 pr-4 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-brand-primary/50 focus:bg-white focus:ring-4 focus:ring-brand-primary/5 text-sm md:text-base"
               />
             </div>
+            <button aria-label="Scan with camera" disabled={!scannerEnabled} onClick={() => setCameraOpen(true)} className="rounded-xl border bg-white p-3 disabled:opacity-40"><Camera className="size-5" /></button>
             <button 
               onClick={() => setShowFilters(!showFilters)}
               className={`flex size-11 md:size-12 items-center justify-center rounded-2xl border border-slate-200 shadow-sm transition-all active:scale-95 ${showFilters ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white/50 text-slate-600 hover:bg-white hover:text-brand-primary'}`}
@@ -165,6 +260,8 @@ export function POSPage() {
             </button>
           </div>
 
+          <ScannerStatus enabled={scannerEnabled} paused={scannerPaused} lastCode={lastCode} multiplier={multiplier}
+            onClearMultiplier={takeMultiplier} onEnabled={enabled => { setScannerEnabled(enabled); try { localStorage.setItem('pos-scanner-enabled', enabled ? 'on' : 'off'); } catch {} }} />
           {/* Category rail & Tags */}
           <AnimatePresence>
             {showFilters && (
@@ -349,9 +446,23 @@ export function POSPage() {
         )}
       </div>
 
+      <CameraScannerModal isOpen={cameraOpen} onClose={() => setCameraOpen(false)} onDetected={code => handleScan(code, takeMultiplier())} />
+      {unknown && <UnknownBarcodeModal key={unknown.code} code={unknown.code} products={products} role={user?.role}
+        onClose={() => { setUnknown(null); scanBlocked.current = false; }}
+        onSearch={() => { setSearchQuery(unknown.code); setUnknown(null); scanBlocked.current = false; searchRef.current?.focus(); }}
+        onCreate={() => navigate('/products?barcode=' + encodeURIComponent(unknown.code))}
+        onAssign={async product => {
+          if (!['owner', 'manager'].includes(user?.role?.toLowerCase() || '')) return;
+          await useProductStore.getState().updateProduct(product.id, { barcode: unknown.code, sku: product.sku, pricing_type: product.pricing_type, name: product.name, category_id: product.category_id, tags: product.tags });
+          const updated = useProductStore.getState().products.find(p => p.id === product.id) || { ...product, barcode: unknown.code };
+          setUnknown(null); scanBlocked.current = false;
+          addMatch({ product: updated, matchedBy: 'barcode' }, unknown.quantity);
+        }} />}
       <ProductCustomizationModal
         isOpen={!!customizingProduct}
-        onClose={() => setCustomizingProduct(null)}
+        onClose={() => { setCustomizingProduct(null); scanBlocked.current = false; }}
+        initialVariantId={initialVariantId}
+        initialQuantity={initialQuantity}
         product={customizingProduct}
         onAddToCart={handleAddToCartFromModal}
       />

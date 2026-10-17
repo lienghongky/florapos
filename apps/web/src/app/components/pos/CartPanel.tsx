@@ -38,10 +38,18 @@ function getFlowerImage(name: string): string {
 
 export function CartPanel({ onClose }: { onClose?: () => void }) {
   const { t } = useTranslation();
-  const { cart, removeFromCart, updateCartQuantity, clearCart } = useCartStore();
+  const { cart, removeFromCart, updateCartQuantity, clearCart, lastAddedUuid, lastAddedAt } = useCartStore();
   const { checkoutOrder } = useOrderStore();
   const { selectedStore } = useAuthStore();
 
+  const [flashing, setFlashing] = useState<string | null>(null);
+  useEffect(() => {
+    if (!lastAddedUuid) return;
+    setFlashing(lastAddedUuid);
+    document.getElementById('cart-line-' + lastAddedUuid)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const timer = setTimeout(() => setFlashing(null), 1000);
+    return () => clearTimeout(timer);
+  }, [lastAddedUuid, lastAddedAt]);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1024);
@@ -183,6 +191,8 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
               return (
                 <motion.div
                   key={item.uuid}
+                  id={'cart-line-' + item.uuid}
+                  style={flashing === item.uuid ? { backgroundColor: '#d1fae5', borderColor: '#34d399' } : undefined}
                   layout
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}

@@ -61,6 +61,7 @@ export function AnimatedModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
+          data-scanner-pause
           className={`fixed inset-0 z-[99999] flex ${position === 'center' ? 'items-center' : 'items-end lg:items-center'} justify-center bg-black/60 p-4 overflow-y-auto backdrop-blur-sm pointer-events-auto`}
           onClick={onClose}
         >

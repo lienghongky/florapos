@@ -1,3 +1,4 @@
+import { printSystemReceipts } from '@/app/utils/system-receipt-print';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -181,11 +182,13 @@ export function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
     const handlePrintAll = async () => {
         if (displayOrders.length === 0) return;
         setIsPrintingAll(true);
-        setPrintingOrders(displayOrders);
-        setTimeout(() => {
-            window.print();
+        try {
+            await printSystemReceipts(displayOrders, selectedStore);
+        } catch {
+            toast.error('Failed to open receipt print preview');
+        } finally {
             setIsPrintingAll(false);
-        }, 500);
+        }
     };
 
     const handleRefresh = () => {

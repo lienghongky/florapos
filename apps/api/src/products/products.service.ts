@@ -42,6 +42,16 @@ export class ProductsService {
 
 
         return this.dataSource.transaction(async (manager) => {
+            await this.assertUniqueCodes(manager, createProductDto.store_id, createProductDto, createProductDto.variants);
+
+            // Auto-generate missing codes (unique within the store)
+            if (!createProductDto.sku) {
+                createProductDto.sku = await this.generateUniqueCode(manager, createProductDto.store_id, 'sku', () => ProductsService.generateSku(createProductDto.name));
+            }
+            if (!createProductDto.barcode) {
+                createProductDto.barcode = await this.generateUniqueCode(manager, createProductDto.store_id, 'barcode', () => ProductsService.generateBarcode());
+            }
+
             const productData: Partial<Product> = {
                 name: createProductDto.name,
                 description: createProductDto.description,
@@ -307,6 +317,9 @@ export class ProductsService {
             // Ensure user has access to the store
             await this.storesService.findOne(userId, product.store_id);
 
+            // Ensure SKU / barcode are unique within the store
+            await this.assertUniqueCodes(manager, product.store_id, updateProductDto, updateProductDto.variants, id);
+
             // Build update payload
             // If no new file was uploaded and no image_url was sent, skip the field
             // entirely so the existing image is not accidentally cleared.
@@ -514,6 +527,119 @@ export class ProductsService {
                 throw new ConflictException('Cannot delete product because it is referenced in orders or other records. Consider hiding it instead.');
             }
             throw error;
+        }
+    }
+
+    /**
+     * Generates a 12-digit in-store barcode (one digit shorter than EAN-13).
+     * Format: '2' + 10 random digits + check digit (UPC-A layout).
+     * Prefix '2' is the GS1 restricted-circulation range, so it never clashes
+     * with real manufacturer barcodes, and any standard scanner can read it.
+     */
+    static generateBarcode(): string {
+        let body = '2';
+        for (let i = 0; i < 10; i++) body += Math.floor(Math.random() * 10).toString();
+        let sum = 0;
+        for (let i = 0; i < 11; i++) sum += Number(body[i]) * (i % 2 === 0 ? 3 : 1);
+        return body + ((10 - (sum % 10)) % 10).toString();
+    }
+
+    /** Generates a readable SKU such as 'LAT-4821' from the product name. */
+    static generateSku(name?: string): string {
+        const prefix = (name || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3) || 'PRD';
+        return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+
+    private async isCodeTaken(manager: EntityManager, storeId: string, field: 'sku' | 'barcode', value: string): Promise<boolean> {
+        const lowered = value.toLowerCase();
+        const p = await manager.getRepository(Product).createQueryBuilder('p')
+            .where('p.store_id = :storeId', { storeId })
+            .andWhere(`LOWER(p.${field}) = :lowered`, { lowered })
+            .getCount();
+        if (p > 0) return true;
+        const v = await manager.getRepository(ProductVariant).createQueryBuilder('v')
+            .innerJoin('v.product', 'p')
+            .where('p.store_id = :storeId', { storeId })
+            .andWhere('v.is_active = true')
+            .andWhere(`LOWER(v.${field}) = :lowered`, { lowered })
+            .getCount();
+        return v > 0;
+    }
+
+    private async generateUniqueCode(manager: EntityManager, storeId: string, field: 'sku' | 'barcode', gen: () => string): Promise<string> {
+        for (let i = 0; i < 20; i++) {
+            const code = gen();
+            if (!(await this.isCodeTaken(manager, storeId, field, code))) return code;
+        }
+        throw new ConflictException(`Could not generate a unique ${field}. Please enter one manually.`);
+    }
+
+    /**
+     * Ensures SKU and barcode values are unique within a store, across both
+     * products and active product variants. Also checks for duplicates within
+     * the submitted payload itself. Empty values are normalized to null and ignored.
+     * @param excludeProductId product being updated (its own product row and variants are skipped)
+     */
+    private async assertUniqueCodes(
+        manager: EntityManager,
+        storeId: string,
+        dto: any,
+        variants?: any[],
+        excludeProductId?: string,
+    ): Promise<void> {
+        const norm = (v: any): string | null => {
+            if (v === undefined || v === null) return null;
+            const s = String(v).trim();
+            return s && s !== 'null' && s !== 'undefined' ? s : null;
+        };
+
+        // Normalize values in-place so blanks are stored as null
+        dto.sku = norm(dto.sku);
+        dto.barcode = norm(dto.barcode);
+        const variantList = Array.isArray(variants) ? variants : [];
+        variantList.forEach(v => { v.sku = norm(v.sku); v.barcode = norm(v.barcode); });
+
+        for (const field of ['sku', 'barcode'] as const) {
+            const label = field === 'sku' ? 'SKU' : 'Barcode';
+            const values: { value: string; owner: string }[] = [];
+            if (dto[field]) values.push({ value: dto[field], owner: dto.name || 'this product' });
+            variantList.forEach(v => { if (v[field]) values.push({ value: v[field], owner: `variant '${v.name}'` }); });
+
+            // 1. Duplicates inside the payload
+            const seen = new Map<string, string>();
+            for (const { value, owner } of values) {
+                const key = value.toLowerCase();
+                if (seen.has(key)) {
+                    throw new ConflictException(`${label} '${value}' is used more than once (${seen.get(key)} and ${owner}).`);
+                }
+                seen.set(key, owner);
+            }
+            if (values.length === 0) continue;
+
+            const lowered = [...seen.keys()];
+
+            // 2. Existing products in the same store
+            const productQb = manager.getRepository(Product).createQueryBuilder('p')
+                .select(['p.id', 'p.name', `p.${field}`])
+                .where('p.store_id = :storeId', { storeId })
+                .andWhere(`LOWER(p.${field}) IN (:...lowered)`, { lowered });
+            if (excludeProductId) productQb.andWhere('p.id != :excludeProductId', { excludeProductId });
+            const productHit = await productQb.getOne();
+            if (productHit) {
+                throw new ConflictException(`${label} '${productHit[field]}' is already used by product '${productHit.name}' in this store.`);
+            }
+
+            // 3. Existing active variants in the same store
+            const variantQb = manager.getRepository(ProductVariant).createQueryBuilder('v')
+                .innerJoinAndSelect('v.product', 'p')
+                .where('p.store_id = :storeId', { storeId })
+                .andWhere('v.is_active = true')
+                .andWhere(`LOWER(v.${field}) IN (:...lowered)`, { lowered });
+            if (excludeProductId) variantQb.andWhere('v.product_id != :excludeProductId', { excludeProductId });
+            const variantHit = await variantQb.getOne();
+            if (variantHit) {
+                throw new ConflictException(`${label} '${variantHit[field]}' is already used by variant '${variantHit.name}' of product '${variantHit.product.name}' in this store.`);
+            }
         }
     }
 

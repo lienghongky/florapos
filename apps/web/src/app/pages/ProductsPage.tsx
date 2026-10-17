@@ -2,7 +2,9 @@ import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useProductStore } from '@/app/store/product-store';
 import { useAuthStore } from '@/app/store/auth-store';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Edit2, Trash2, Search, Filter, ArrowUpDown, Eye, EyeOff, Image as ImageIcon, Upload, X, Check, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, ArrowUpDown, Eye, EyeOff, Image as ImageIcon, Upload, X, Check, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Tag } from 'lucide-react';
+import { PrintLabelsModal } from '@/app/components/labels/PrintLabelsModal';
+import { useSearchParams } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { toast } from 'sonner';
@@ -19,13 +21,32 @@ export interface ProductOption {
   price: number;
 }
 
+/** 12-digit in-store barcode: '2' + 10 random digits + check digit (scanner-readable, never clashes with retail codes). */
+const generateBarcode = () => {
+  let body = '2';
+  for (let i = 0; i < 10; i++) body += Math.floor(Math.random() * 10);
+  let sum = 0;
+  for (let i = 0; i < 11; i++) sum += Number(body[i]) * (i % 2 === 0 ? 3 : 1);
+  return body + ((10 - (sum % 10)) % 10);
+};
+
+/** Readable SKU from the product name, e.g. 'Latte' -> 'LAT-4821'. */
+const generateSku = (name: string) => {
+  const prefix = name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3) || 'PRD';
+  return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+};
+
 export function ProductsPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { products, addProduct, updateProduct, deleteProduct, categories, addProductCategory, refreshProducts, refreshProductCategories } = useProductStore();
   const { refreshInventory } = useInventoryStore();
   const { user, selectedStore } = useAuthStore();
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [showLabels, setShowLabels] = useState(false);
+  const [labelProductIds, setLabelProductIds] = useState<string[] | undefined>(undefined);
+  const openLabels = (ids?: string[]) => { setLabelProductIds(ids); setShowLabels(true); };
 
   // Search, Filter, Sort State
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +84,8 @@ export function ProductsPage() {
 
   // Tag chip input state
   const [tagInput, setTagInput] = useState('');
+  // Once the user edits the SKU manually, stop auto-filling it from the name
+  const [skuTouched, setSkuTouched] = useState(false);
 
 
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
@@ -170,6 +193,7 @@ export function ProductsPage() {
         modifierGroups: product.modifier_groups || [],
       });
       setTagInput('');
+      setSkuTouched(true);
     } else {
       setEditingProduct(null);
       setFormData({
@@ -190,16 +214,25 @@ export function ProductsPage() {
         imagePreview: '',
         imageFile: null,
         tags: [],
-        sku: `PRD-${Date.now().toString().slice(-6)}`,
-        barcode: `7${Math.floor(Math.random() * 100000000000).toString().padStart(11, '0')}`,
+        sku: generateSku(''),
+        barcode: generateBarcode(),
         modifierGroups: [],
       });
       setTagInput('');
+      setSkuTouched(false);
 
     }
     setShowModal(true);
     setIsAddingNewCategory(false);
   };
+
+  useEffect(() => {
+    const barcode = searchParams.get('barcode');
+    if (!barcode || user?.role?.toLowerCase() !== 'owner') return;
+    handleOpenModal();
+    setFormData(previous => ({ ...previous, barcode }));
+    setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('barcode'); return next; }, { replace: true });
+  }, [searchParams, user?.role]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -321,16 +354,16 @@ export function ProductsPage() {
         await updateProduct(editingProduct.id, formDataToSend);
         toast.success('Product updated successfully!');
         setShowModal(false);
-      } catch (error) {
-        toast.error('Failed to update product');
+      } catch (error: any) {
+        toast.error(error?.message || 'Failed to update product');
       }
     } else {
       try {
         await addProduct(formDataToSend);
         toast.success('Product added successfully!');
         setShowModal(false);
-      } catch (error) {
-        toast.error('Failed to add product');
+      } catch (error: any) {
+        toast.error(error?.message || 'Failed to add product');
       }
     }
 
@@ -344,16 +377,46 @@ export function ProductsPage() {
         title={t('products.title')}
         subtitle={t('products.subtitle')}
         action={user?.role?.toLowerCase() === 'owner' && (
-          <motion.button
-            whileHover={{ scale: 1.02, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 active:scale-95"
-          >
-            <Plus className="size-4" />
-            {t('products.addProduct')}
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <motion.button
+              id="print-labels-btn"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => openLabels()}
+              className="flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-bold text-foreground shadow-sm transition-all hover:border-brand-primary/40 hover:text-brand-primary"
+            >
+              <Tag className="size-4" />
+              <span className="hidden sm:inline">Print Labels</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => handleOpenModal()}
+              className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 active:scale-95"
+            >
+              <Plus className="size-4" />
+              {t('products.addProduct')}
+            </motion.button>
+          </div>
         )}
+      />
+
+      <PrintLabelsModal
+        isOpen={showLabels}
+        onClose={() => setShowLabels(false)}
+        products={products}
+        categories={categories}
+        storeId={selectedStore?.id}
+        storeName={(selectedStore as any)?.name}
+        initialProductIds={labelProductIds}
+        generateBarcode={generateBarcode}
+        onSaveBarcode={async (product, barcode) => {
+          const fd = new FormData();
+          fd.append('name', product.name);
+          fd.append('sku', product.sku || '');
+          fd.append('barcode', barcode);
+          await updateProduct(product.id, fd);
+        }}
       />
 
 
@@ -600,6 +663,15 @@ export function ProductsPage() {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
+                          title="Print label"
+                          onClick={() => openLabels([product.id])}
+                          className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <Tag className="size-4" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
                           onClick={() => handleOpenModal(product)}
                           className="rounded-lg p-2 text-primary transition-colors hover:bg-primary/10"
                         >
@@ -748,7 +820,15 @@ export function ProductsPage() {
                       required
                       placeholder="e.g. Red Rose Bouquet"
                       value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      onChange={e => {
+                        const name = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          name,
+                          // Keep the number part stable, only refresh the prefix while auto-filling
+                          sku: skuTouched ? prev.sku : `${name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3) || 'PRD'}-${prev.sku.split('-')[1] || Math.floor(1000 + Math.random() * 9000)}`,
+                        }));
+                      }}
                       className="w-full rounded-lg border border-border bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                     />
                   </div>
@@ -756,23 +836,45 @@ export function ProductsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="mb-1.5 block text-sm font-medium">{t('products.sku')}</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. ROSE-001"
-                        value={formData.sku}
-                        onChange={e => setFormData({ ...formData, sku: e.target.value })}
-                        className="w-full rounded-lg border border-border bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="e.g. ROSE-001"
+                          value={formData.sku}
+                          onChange={e => { setSkuTouched(true); setFormData({ ...formData, sku: e.target.value }); }}
+                          className="w-full rounded-lg border border-border bg-white py-2 pl-3 pr-9 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                        <button
+                          type="button"
+                          title="Generate SKU"
+                          onClick={() => { setSkuTouched(false); setFormData({ ...formData, sku: generateSku(formData.name) }); }}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-all hover:bg-muted hover:text-primary active:rotate-180"
+                        >
+                          <RefreshCw className="size-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="mb-1.5 block text-sm font-medium">{t('products.barcode')}</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. 123456789012"
-                        value={formData.barcode}
-                        onChange={e => setFormData({ ...formData, barcode: e.target.value })}
-                        className="w-full rounded-lg border border-border bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Scan or generate"
+                          value={formData.barcode}
+                          onChange={e => setFormData({ ...formData, barcode: e.target.value })}
+                          onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); /* scanners send Enter */ }}
+                          className="w-full rounded-lg border border-border bg-white py-2 pl-3 pr-9 font-mono outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                        <button
+                          type="button"
+                          title="Generate barcode"
+                          onClick={() => setFormData({ ...formData, barcode: generateBarcode() })}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-all hover:bg-muted hover:text-primary active:rotate-180"
+                        >
+                          <RefreshCw className="size-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 

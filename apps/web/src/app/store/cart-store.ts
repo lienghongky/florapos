@@ -3,6 +3,9 @@ import { Product, ProductVariant, Addon, CartItem, ModifierOption } from '../typ
 
 interface CartState {
   cart: CartItem[];
+  /** uuid of the line most recently added/incremented (used for highlight) */
+  lastAddedUuid: string | null;
+  lastAddedAt: number;
   addToCart: (
     product: Product, 
     selectedVariant?: ProductVariant, 
@@ -17,6 +20,8 @@ interface CartState {
 
 export const useCartStore = create<CartState>((set, get) => ({
   cart: [],
+  lastAddedUuid: null,
+  lastAddedAt: 0,
 
   addToCart: (product, selectedVariant, selectedAddons = [], quantity = 1, selectedModifiers = {}) => {
     const addonsMatch = (opts1: Addon[] = [], opts2: Addon[] = []) => {
@@ -50,12 +55,16 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     if (existingItem) {
       get().updateCartQuantity(existingItem.uuid, existingItem.quantity + quantity);
+      set({ lastAddedUuid: existingItem.uuid, lastAddedAt: Date.now() });
     } else {
+      const uuid = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       set({
         cart: [...cart, {
-          uuid: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          uuid,
           product, quantity, selectedVariant, selectedAddons, selectedModifiers
-        }]
+        }],
+        lastAddedUuid: uuid,
+        lastAddedAt: Date.now(),
       });
     }
   },
