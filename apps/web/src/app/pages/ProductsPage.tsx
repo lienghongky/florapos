@@ -2,8 +2,11 @@ import { AnimatedPage } from '@/app/components/motion/AnimatedPage';
 import { useProductStore } from '@/app/store/product-store';
 import { useAuthStore } from '@/app/store/auth-store';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Edit2, Trash2, Search, Filter, ArrowUpDown, Eye, EyeOff, Image as ImageIcon, Upload, X, Check, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Tag } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, ArrowUpDown, Eye, EyeOff, Image as ImageIcon, Upload, X, Check, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Tag, Camera } from 'lucide-react';
 import { PrintLabelsModal } from '@/app/components/labels/PrintLabelsModal';
+import { CameraScannerModal } from '@/app/components/pos/CameraScannerModal';
+import { scanFeedback } from '@/app/lib/scan-feedback';
+import { cleanScannedCode } from '@/app/lib/product-code-index';
 import { useSearchParams } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
@@ -47,6 +50,12 @@ export function ProductsPage() {
   const [showLabels, setShowLabels] = useState(false);
   const [labelProductIds, setLabelProductIds] = useState<string[] | undefined>(undefined);
   const openLabels = (ids?: string[]) => { setLabelProductIds(ids); setShowLabels(true); };
+
+  // Camera Scanner Modal State
+  const [cameraModal, setCameraModal] = useState<{
+    isOpen: boolean;
+    mode: 'form-barcode' | 'page-quick-scan';
+  }>({ isOpen: false, mode: 'form-barcode' });
 
   // Search, Filter, Sort State
   const [searchQuery, setSearchQuery] = useState('');
@@ -234,6 +243,63 @@ export function ProductsPage() {
     setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('barcode'); return next; }, { replace: true });
   }, [searchParams, user?.role]);
 
+  const handleCameraDetected = (rawCode: string) => {
+    const code = cleanScannedCode(rawCode);
+    if (!code) return false;
+
+    scanFeedback.success();
+    scanFeedback.vibrate();
+
+    if (cameraModal.mode === 'form-barcode') {
+      setFormData(prev => ({
+        ...prev,
+        barcode: code,
+        // If sku is empty or default auto-generated, also sync with scanned code
+        sku: (!prev.sku || prev.sku.startsWith('PRD-')) ? code : prev.sku,
+      }));
+      toast.success(`Barcode scanned: ${code}`);
+      return true;
+    }
+
+    if (cameraModal.mode === 'page-quick-scan') {
+      const normalized = code.toLowerCase();
+      const existing = products.find(p =>
+        (p.barcode && p.barcode.toLowerCase() === normalized) ||
+        (p.sku && p.sku.toLowerCase() === normalized) ||
+        (p.variants || []).some(v =>
+          (v.barcode && v.barcode.toLowerCase() === normalized) ||
+          (v.sku && v.sku.toLowerCase() === normalized)
+        )
+      );
+
+      if (existing) {
+        toast.info(`Found existing product: ${existing.name}`);
+        handleOpenModal(existing);
+      } else {
+        toast.success(`New code: ${code}. Opening new product form.`);
+        handleOpenModal();
+        setFormData(prev => ({
+          ...prev,
+          barcode: code,
+          sku: code,
+        }));
+      }
+      return true;
+    }
+
+    return false;
+  };
+
+  const barcodeConflict = formData.barcode?.trim()
+    ? products.find(p =>
+        p.id !== editingProduct?.id &&
+        (
+          (p.barcode && p.barcode.trim() === formData.barcode.trim()) ||
+          (p.variants || []).some(v => v.barcode && v.barcode.trim() === formData.barcode.trim())
+        )
+      )
+    : null;
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -379,6 +445,16 @@ export function ProductsPage() {
         action={user?.role?.toLowerCase() === 'owner' && (
           <div className="flex items-center gap-2">
             <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setCameraModal({ isOpen: true, mode: 'page-quick-scan' })}
+              className="flex items-center gap-2 rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm font-semibold text-foreground shadow-xs transition-all hover:border-brand-primary/40 hover:text-brand-primary"
+              title={t('products.scanToAdd')}
+            >
+              <Camera className="size-4 text-brand-primary" />
+              <span className="hidden sm:inline">{t('products.scanToAdd')}</span>
+            </motion.button>
+            <motion.button
               id="print-labels-btn"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -399,6 +475,15 @@ export function ProductsPage() {
             </motion.button>
           </div>
         )}
+      />
+
+      <CameraScannerModal
+        isOpen={cameraModal.isOpen}
+        onClose={() => setCameraModal(prev => ({ ...prev, isOpen: false }))}
+        onDetected={handleCameraDetected}
+        title={cameraModal.mode === 'form-barcode' ? t('products.scanBarcode') : t('products.scanToAdd')}
+        subtitle={cameraModal.mode === 'form-barcode' ? 'Point camera at the QR code or barcode to input number' : 'Point camera at any QR code or barcode to look up or create'}
+        initialContinuous={false}
       />
 
       <PrintLabelsModal
@@ -855,26 +940,49 @@ export function ProductsPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium">{t('products.barcode')}</label>
-                      <div className="relative">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm font-medium">{t('products.barcode')}</label>
+                        {barcodeConflict && (
+                          <span className="text-xs text-amber-600 font-medium flex items-center gap-1" title={barcodeConflict.name}>
+                            <AlertCircle className="size-3" />
+                            Already used by "{barcodeConflict.name}"
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative flex items-center">
                         <input
                           type="text"
-                          inputMode="numeric"
-                          placeholder="Scan or generate"
+                          placeholder="Scan QR/barcode or generate"
                           value={formData.barcode}
                           onChange={e => setFormData({ ...formData, barcode: e.target.value })}
                           onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); /* scanners send Enter */ }}
-                          className="w-full rounded-lg border border-border bg-white py-2 pl-3 pr-9 font-mono outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          className={`w-full rounded-lg border bg-white py-2 pl-3 pr-28 font-mono text-sm outline-none transition-all focus:ring-2 ${
+                            barcodeConflict ? 'border-amber-400 focus:ring-amber-200' : 'border-border focus:ring-primary/20'
+                          }`}
                         />
-                        <button
-                          type="button"
-                          title="Generate barcode"
-                          onClick={() => setFormData({ ...formData, barcode: generateBarcode() })}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-all hover:bg-muted hover:text-primary active:rotate-180"
-                        >
-                          <RefreshCw className="size-3.5" />
-                        </button>
+                        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                          <button
+                            type="button"
+                            title={t('products.scanWithCamera')}
+                            onClick={() => setCameraModal({ isOpen: true, mode: 'form-barcode' })}
+                            className="flex items-center gap-1 rounded-md bg-brand-primary/10 px-2 py-1 text-xs font-semibold text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-2xs"
+                          >
+                            <Camera className="size-3.5" />
+                            <span className="text-[11px]">{t('products.scanBarcode')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            title="Generate barcode"
+                            onClick={() => setFormData({ ...formData, barcode: generateBarcode() })}
+                            className="rounded-md p-1.5 text-muted-foreground transition-all hover:bg-muted hover:text-primary active:rotate-180"
+                          >
+                            <RefreshCw className="size-3.5" />
+                          </button>
+                        </div>
                       </div>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        Point camera at any QR code or retail barcode to insert number instantly.
+                      </p>
                     </div>
                   </div>
 

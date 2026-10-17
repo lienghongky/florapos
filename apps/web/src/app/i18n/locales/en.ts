@@ -169,6 +169,9 @@ export const en: TranslationSchema = {
     selectCategory: 'Select Category',
     addNewCategory: '+ Add New Category',
     deleteConfirm: 'Are you sure you want to delete this product?',
+    scanBarcode: 'Scan Barcode / QR',
+    scanToAdd: 'Scan to Add / Find',
+    scanWithCamera: 'Scan with Camera',
   },
   inventory: {
     title: 'Inventory',

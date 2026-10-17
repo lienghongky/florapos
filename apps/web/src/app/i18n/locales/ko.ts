@@ -169,6 +169,9 @@ export const ko: TranslationSchema = {
     selectCategory: '카테고리 선택',
     addNewCategory: '+ 새 카테고리 추가',
     deleteConfirm: '이 상품을 정말 삭제하시겠습니까?',
+    scanBarcode: '바코드 / QR 스캔',
+    scanToAdd: '스캔하여 추가 / 찾기',
+    scanWithCamera: '카메라로 스캔',
   },
   inventory: {
     title: '재고 관리',

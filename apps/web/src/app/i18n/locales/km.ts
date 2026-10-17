@@ -169,6 +169,9 @@ export const km: TranslationSchema = {
     selectCategory: 'ជ្រើសរើសប្រភេទ',
     addNewCategory: '+ បន្ថែមប្រភេទថ្មី',
     deleteConfirm: 'តើអ្នកប្រាកដជាចង់លុបផលិតផលនេះមែនទេ?',
+    scanBarcode: 'ស្កេនបារកូដ / QR',
+    scanToAdd: 'ស្កេនដើម្បីបន្ថែម / ស្វែងរក',
+    scanWithCamera: 'ស្កេនតាមកាមេរ៉ា',
   },
   inventory: {
     title: 'សារពើភ័ណ្ឌ',

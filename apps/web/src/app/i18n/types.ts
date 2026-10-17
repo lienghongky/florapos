@@ -169,6 +169,9 @@ export interface TranslationSchema {
     selectCategory: string;
     addNewCategory: string;
     deleteConfirm: string;
+    scanBarcode: string;
+    scanToAdd: string;
+    scanWithCamera: string;
   };
   inventory: {
     title: string;

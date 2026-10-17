@@ -41,3 +41,30 @@ export function lookupCode(index: Map<string, CodeMatch>, code: string): CodeMat
   if (/^\d{12}$/.test(k)) return index.get('0' + k);
   return undefined;
 }
+
+/**
+ * Clean and extract a product code from raw scanned text (such as QR codes containing URLs,
+ * identifiers, or query parameters).
+ */
+export function cleanScannedCode(raw?: string | null): string {
+  const trimmed = (raw ?? '').trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      const param = url.searchParams.get('barcode') ||
+                    url.searchParams.get('code') ||
+                    url.searchParams.get('id') ||
+                    url.searchParams.get('sku');
+      if (param) return param.trim();
+      const segments = url.pathname.split('/').filter(Boolean);
+      const last = segments[segments.length - 1];
+      if (last && /^[A-Za-z0-9_-]+$/.test(last)) {
+        return last.trim();
+      }
+    } catch {
+      // Return trimmed if URL parsing fails
+    }
+  }
+  return trimmed;
+}

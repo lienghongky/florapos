@@ -8,6 +8,9 @@ interface Props {
   onClose: () => void;
   /** Return true if the code was handled successfully (used for the flash colour). */
   onDetected: (code: string) => boolean | void | Promise<boolean | void>;
+  title?: string;
+  subtitle?: string;
+  initialContinuous?: boolean;
 }
 
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code', 'itf'];
@@ -17,10 +20,23 @@ const FACING_KEY = 'pos-camera-facing';
  * Camera barcode scanner. Uses the native BarcodeDetector API when available (Chrome/Android/Edge),
  * otherwise falls back to ZXing (Safari/iOS/Firefox).
  */
-export function CameraScannerModal({ isOpen, onClose, onDetected }: Props) {
+export function CameraScannerModal({
+  isOpen,
+  onClose,
+  onDetected,
+  title,
+  subtitle,
+  initialContinuous = true,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [continuous, setContinuous] = useState(true);
+  const [continuous, setContinuous] = useState(initialContinuous);
+
+  useEffect(() => {
+    if (isOpen) {
+      setContinuous(initialContinuous);
+    }
+  }, [isOpen, initialContinuous]);
   const [facing, setFacing] = useState<'environment' | 'user'>(() => { try { return localStorage.getItem(FACING_KEY) === 'user' ? 'user' : 'environment'; } catch { return 'environment'; } });
   const [torch, setTorch] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
@@ -158,8 +174,8 @@ export function CameraScannerModal({ isOpen, onClose, onDetected }: Props) {
           <div className="flex items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-xl bg-white/10"><Camera className="size-4.5" /></div>
             <div>
-              <h2 className="text-base font-semibold leading-tight">Scan with camera</h2>
-              <p className="text-[11px] text-white/50">Point at a barcode — it adds automatically</p>
+              <h2 className="text-base font-semibold leading-tight">{title || 'Scan with camera'}</h2>
+              <p className="text-[11px] text-white/50">{subtitle || 'Point at a barcode — it adds automatically'}</p>
             </div>
           </div>
           <button onClick={onClose} className="rounded-full p-2 text-white/60 hover:bg-white/10 hover:text-white"><X className="size-5" /></button>
