@@ -33,7 +33,8 @@ import {
   Music2,
   Send,
   Phone,
-  ShoppingBag
+  ShoppingBag,
+  CheckCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAllTemplates } from '@/app/emenu/templates';
@@ -49,7 +50,8 @@ export function EMenuPage() {
     uploadBanner,
     emenuProductIds,
     fetchEmenuProducts,
-    toggleProductVisibility
+    toggleProductVisibility,
+    toggleCategoryProducts,
   } = useEmenuStore();
   const { products, refreshProducts } = useProductStore();
 
@@ -562,50 +564,85 @@ export function EMenuPage() {
           <div className="p-3 sm:p-6 md:p-10">
             {activeTab === 'editor' && (
               <div className="space-y-12 max-w-5xl">
-                {Object.entries(categorizedProducts).map(([category, items]) => (
-                  <div key={category} className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <h3 className="font-black text-slate-800 text-lg uppercase tracking-wider">{category}</h3>
-                      <div className="h-px flex-1 bg-slate-100"></div>
-                      <span className="text-[10px] font-black text-slate-400">{items.length} Items</span>
-                    </div>
+                {Object.entries(categorizedProducts).map(([category, items]) => {
+                  const itemIds = items.map(p => p.id);
+                  const selectedCount = items.filter(p => emenuProductIds.includes(p.id)).length;
+                  const isAllSelected = items.length > 0 && selectedCount === items.length;
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                      {items.map(product => {
-                        const isVisible = emenuProductIds.includes(product.id);
-                        return (
-                          <div
-                            key={product.id}
-                            onClick={() => handleToggleProduct(product.id)}
-                            className={`group p-4 rounded-[1.25rem] border transition-all cursor-pointer flex items-center justify-between ${isVisible ? 'bg-brand-primary/5 border-brand-primary/20 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-200'
-                              }`}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="size-14 rounded-2xl bg-slate-50 overflow-hidden shrink-0 border border-slate-100 p-0.5">
-                                {product.image_url ? (
-                                  <img src={product.image_url} alt="" className="size-full object-cover rounded-[0.85rem]" />
-                                ) : (
-                                  <div className="size-full flex items-center justify-center bg-slate-100 rounded-[0.85rem]">
-                                    <Package className="size-6 text-slate-300" />
-                                  </div>
-                                )}
+                  return (
+                    <div key={category} className="space-y-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <h3 className="font-black text-slate-800 text-base md:text-lg uppercase tracking-wider">{category}</h3>
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200/60">
+                            {items.length} {items.length === 1 ? 'Item' : 'Items'}
+                          </span>
+                        </div>
+
+                        <div className="h-px flex-1 bg-slate-100 hidden sm:block"></div>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleCategoryProducts(selectedStore.id, itemIds, !isAllSelected)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border active:scale-95 ${
+                            isAllSelected
+                              ? 'bg-brand-primary text-white border-brand-primary shadow-sm shadow-brand-primary/25 hover:opacity-90'
+                              : selectedCount > 0
+                              ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20 hover:bg-brand-primary/20'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                          }`}
+                        >
+                          <CheckCheck className="size-3.5" />
+                          <span>{isAllSelected ? 'Deselect All' : 'Select All'}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                            isAllSelected
+                              ? 'bg-white/20 text-white'
+                              : selectedCount > 0
+                              ? 'bg-brand-primary text-white'
+                              : 'bg-slate-200/80 text-slate-600'
+                          }`}>
+                            {selectedCount}/{items.length}
+                          </span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        {items.map(product => {
+                          const isVisible = emenuProductIds.includes(product.id);
+                          return (
+                            <div
+                              key={product.id}
+                              onClick={() => handleToggleProduct(product.id)}
+                              className={`group p-4 rounded-[1.25rem] border transition-all cursor-pointer flex items-center justify-between ${isVisible ? 'bg-brand-primary/5 border-brand-primary/20 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-200'
+                                }`}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="size-14 rounded-2xl bg-slate-50 overflow-hidden shrink-0 border border-slate-100 p-0.5">
+                                  {product.image_url ? (
+                                    <img src={product.image_url} alt="" className="size-full object-cover rounded-[0.85rem]" />
+                                  ) : (
+                                    <div className="size-full flex items-center justify-center bg-slate-100 rounded-[0.85rem]">
+                                      <Package className="size-6 text-slate-300" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className={`font-bold transition-colors ${isVisible ? 'text-slate-900' : 'text-slate-600'}`}>{product.name}</p>
+                                  <p className="text-xs font-bold text-slate-400 mt-0.5">${Number(product.base_price).toFixed(2)}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className={`font-bold transition-colors ${isVisible ? 'text-slate-900' : 'text-slate-600'}`}>{product.name}</p>
-                                <p className="text-xs font-bold text-slate-400 mt-0.5">${Number(product.base_price).toFixed(2)}</p>
+
+                              <div className={`size-7 rounded-full border-2 flex items-center justify-center transition-all ${isVisible ? 'bg-brand-primary border-brand-primary shadow-lg shadow-brand-primary/20' : 'border-slate-100 bg-slate-50 group-hover:border-slate-300'
+                                }`}>
+                                {isVisible ? <Check className="size-4 text-white" /> : <Plus className="size-4 text-slate-200" />}
                               </div>
                             </div>
-
-                            <div className={`size-7 rounded-full border-2 flex items-center justify-center transition-all ${isVisible ? 'bg-brand-primary border-brand-primary shadow-lg shadow-brand-primary/20' : 'border-slate-100 bg-slate-50 group-hover:border-slate-300'
-                              }`}>
-                              {isVisible ? <Check className="size-4 text-white" /> : <Plus className="size-4 text-slate-200" />}
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {Object.keys(categorizedProducts).length === 0 && (
                   <div className="py-24 text-center">

@@ -38,7 +38,9 @@ interface EmenuState {
   emenuProductIds: string[];
   fetchEmenuProducts: (storeId: string) => Promise<void>;
   toggleProductVisibility: (storeId: string, productId: string, isVisible: boolean) => Promise<void>;
+  toggleCategoryProducts: (storeId: string, productIds: string[], shouldSelectAll: boolean) => Promise<void>;
 }
+
 
 export const useEmenuStore = create<EmenuState>((set, get) => ({
   settings: null,
@@ -145,4 +147,37 @@ export const useEmenuStore = create<EmenuState>((set, get) => ({
       toast.error('Failed to update product visibility');
     }
   },
+
+  toggleCategoryProducts: async (storeId: string, productIds: string[], shouldSelectAll: boolean) => {
+    const { token } = useAuthStore.getState();
+    if (!token || !storeId || productIds.length === 0) return;
+
+    const currentIds = get().emenuProductIds;
+    let nextIds: string[];
+    if (shouldSelectAll) {
+      const setIds = new Set(currentIds);
+      productIds.forEach(id => setIds.add(id));
+      nextIds = Array.from(setIds);
+    } else {
+      const toRemoveSet = new Set(productIds);
+      nextIds = currentIds.filter(id => !toRemoveSet.has(id));
+    }
+    set({ emenuProductIds: nextIds });
+
+    try {
+      await request(`/emenu/settings/${storeId}/products/bulk`, {
+        method: 'POST',
+        body: JSON.stringify({
+          productIds,
+          action: shouldSelectAll ? 'add' : 'remove',
+        }),
+        token,
+      });
+      toast.success(shouldSelectAll ? `Added all items in category to E-Menu` : `Removed all items in category from E-Menu`);
+    } catch (error: any) {
+      set({ emenuProductIds: currentIds });
+      toast.error('Failed to update category products');
+    }
+  },
 }));
+

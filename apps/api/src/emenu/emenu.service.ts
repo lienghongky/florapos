@@ -181,4 +181,25 @@ export class EmenuService {
         await this.emenuProductRepository.delete({ store_id: storeId, product_id: productId });
         return { success: true };
     }
+
+    async bulkUpdateProducts(storeId: string, productIds: string[], action: 'add' | 'remove') {
+        if (!productIds || productIds.length === 0) return { success: true };
+        if (action === 'add') {
+            const existing = await this.emenuProductRepository.find({
+                where: { store_id: storeId, product_id: In(productIds) }
+            });
+            const existingIds = new Set(existing.map(e => e.product_id));
+            const toAdd = productIds.filter(id => !existingIds.has(id));
+            if (toAdd.length > 0) {
+                const entities = toAdd.map(productId => this.emenuProductRepository.create({ store_id: storeId, product_id: productId }));
+                await this.emenuProductRepository.save(entities);
+            }
+        } else {
+            await this.emenuProductRepository.delete({
+                store_id: storeId,
+                product_id: In(productIds)
+            });
+        }
+        return { success: true };
+    }
 }

@@ -83,6 +83,17 @@ export class EmenuController {
 
     @ApiBearerAuth()
     @UseGuards(JwtAuthGuard)
+    @Post('settings/:storeId/products/bulk')
+    @ApiOperation({ summary: 'Bulk add or remove products from E-Menu' })
+    bulkUpdateProducts(
+        @Param('storeId') storeId: string,
+        @Body() body: { productIds: string[]; action: 'add' | 'remove' }
+    ) {
+        return this.emenuService.bulkUpdateProducts(storeId, body.productIds, body.action);
+    }
+
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard)
     @Post('settings/:storeId/products/:productId')
     @ApiOperation({ summary: 'Add product to E-Menu' })
     addProductToEmenu(@Param('storeId') storeId: string, @Param('productId') productId: string) {
@@ -97,3 +108,4 @@ export class EmenuController {
         return this.emenuService.removeProductFromEmenu(storeId, productId);
     }
 }
+
