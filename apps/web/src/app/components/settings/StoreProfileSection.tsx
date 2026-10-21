@@ -11,6 +11,7 @@ import { OrderReceipt } from '@/app/components/orders/OrderReceipt';
 import { usePrinterStore } from '@/app/store/printer-store';
 import { PrinterSettingsModal } from '@/app/components/orders/PrinterSettingsModal';
 import { useTranslation } from '@/app/i18n';
+import { normalizeImage } from '@/app/utils/image-processor';
 
 export function StoreProfileSection() {
   const { user, selectedStore, updateStoreInfo, uploadStoreBanner, uploadStoreLogo } = useAuthStore();
@@ -99,19 +100,23 @@ export function StoreProfileSection() {
     const file = e.target.files?.[0];
     if (!file || !selectedStore) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => setBannerPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
-
-    setIsUploadingBanner(true);
     try {
-      await uploadStoreBanner(selectedStore.id, file);
+      setIsUploadingBanner(true);
+      const { file: normalizedFile, previewUrl } = await normalizeImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        quality: 0.85,
+      });
+      setBannerPreview(previewUrl);
+
+      await uploadStoreBanner(selectedStore.id, normalizedFile);
       toast.success('Banner uploaded successfully');
     } catch (error: any) {
       toast.error(error?.message || 'Failed to upload banner');
       setBannerPreview(selectedStore.banner_image ? `/api${selectedStore.banner_image}` : null);
     } finally {
       setIsUploadingBanner(false);
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -119,19 +124,24 @@ export function StoreProfileSection() {
     const file = e.target.files?.[0];
     if (!file || !selectedStore) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => setLogoPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
-
-    setIsUploadingLogo(true);
     try {
-      await uploadStoreLogo(selectedStore.id, file);
+      setIsUploadingLogo(true);
+      const { file: normalizedFile, previewUrl } = await normalizeImage(file, {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.85,
+        preserveTransparency: true,
+      });
+      setLogoPreview(previewUrl);
+
+      await uploadStoreLogo(selectedStore.id, normalizedFile);
       toast.success('Logo uploaded successfully');
     } catch (error: any) {
       toast.error(error?.message || 'Failed to upload logo');
       setLogoPreview(selectedStore.logo_url ? `/api${selectedStore.logo_url}` : null);
     } finally {
       setIsUploadingLogo(false);
+      if (e.target) e.target.value = '';
     }
   };
 

@@ -16,6 +16,7 @@ import { PageHeader } from '@/app/components/ui/page-header';
 import { ModifierGroup, ModifierOption } from '@/app/types';
 import { useInventoryStore } from '@/app/store/inventory-store';
 import { useTranslation } from '@/app/i18n';
+import { normalizeImage } from '@/app/utils/image-processor';
 
 export interface ProductOption {
   id: string;
@@ -99,6 +100,7 @@ export function ProductsPage() {
 
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch fresh data whenever this page mounts or the store changes
@@ -300,18 +302,29 @@ export function ProductsPage() {
       )
     : null;
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
-        return;
+      try {
+        setIsProcessingImage(true);
+        const { file: normalizedFile, previewUrl } = await normalizeImage(file, {
+          maxWidth: 1200,
+          maxHeight: 1200,
+          quality: 0.85,
+        });
+
+        setFormData(prev => ({
+          ...prev,
+          imageFile: normalizedFile,
+          imagePreview: previewUrl,
+        }));
+      } catch (err: any) {
+        console.error('Image processing error:', err);
+        toast.error(err?.message || 'Failed to process image');
+      } finally {
+        setIsProcessingImage(false);
+        if (e.target) e.target.value = '';
       }
-      setFormData({
-        ...formData,
-        imageFile: file,
-        imagePreview: URL.createObjectURL(file)
-      });
     }
   };
 
@@ -838,12 +851,20 @@ export function ProductsPage() {
       )}
 
       {/* Product Creation/Edit Modal */}
-      <AnimatedModal isOpen={showModal} onClose={() => setShowModal(false)}>
+      <AnimatedModal isOpen={showModal} onClose={() => setShowModal(false)} closeOnClickOutside={false}>
         <div className="rounded-t-3xl sm:rounded-xl bg-white p-0 shadow-xl w-full max-w-5xl my-0 sm:my-auto flex flex-col" style={{ maxHeight: '92dvh' }}>
-          <div className="p-6 border-b border-border">
+          <div className="p-4 sm:p-6 border-b border-border flex items-center justify-between">
             <h2 className="text-xl font-semibold">
               {editingProduct ? t('products.editProduct') : t('products.addProduct')}
             </h2>
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label="Close"
+            >
+              <X className="size-5" />
+            </button>
           </div>
 
           <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-6 sm:space-y-8">
@@ -855,7 +876,12 @@ export function ProductsPage() {
                     onClick={() => fileInputRef.current?.click()}
                     className="group relative size-20 sm:size-28 shrink-0 rounded-xl border-2 border-dashed border-border bg-muted/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/40 transition-all overflow-hidden"
                   >
-                    {formData.imagePreview || (editingProduct && formData.image && formData.image !== 'placeholder') ? (
+                    {isProcessingImage ? (
+                      <div className="flex flex-col items-center gap-1.5 text-primary p-2 text-center">
+                        <RefreshCw className="size-5 animate-spin" />
+                        <span className="text-[9px] uppercase font-bold tracking-wider">Optimizing...</span>
+                      </div>
+                    ) : formData.imagePreview || (editingProduct && formData.image && formData.image !== 'placeholder') ? (
                       <img
                         src={formData.imagePreview || formData.image}
                         alt="Preview"
@@ -876,12 +902,12 @@ export function ProductsPage() {
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
-                    accept="image/png, image/jpeg"
+                    accept="image/*"
                     onChange={handleImageUpload}
                   />
                   {/* Price preview — inline on mobile, stacked on desktop */}
                   <div className="flex sm:flex-col items-center sm:items-center gap-3 sm:gap-0 sm:mt-4">
-                    <p className="text-[10px] text-muted-foreground sm:text-center">{t('products.jpgPngMax')}</p>
+                    <p className="text-[10px] text-muted-foreground sm:text-center">Mobile & camera photos auto-optimized</p>
                     <div className="hidden sm:flex flex-col items-center mt-2">
                       <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1 tracking-widest">{t('products.pricePreview')}</p>
                       <div className="flex items-baseline gap-1">

@@ -25,12 +25,14 @@ export function AnimatedModal({
   children, 
   isOpen, 
   onClose,
-  position = 'bottom'
+  position = 'bottom',
+  closeOnClickOutside = true,
 }: { 
   children: ReactNode; 
   isOpen: boolean;
   onClose?: () => void;
   position?: 'center' | 'bottom';
+  closeOnClickOutside?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -63,7 +65,7 @@ export function AnimatedModal({
           transition={{ duration: 0.15 }}
           data-scanner-pause
           className={`fixed inset-0 z-[99999] flex ${position === 'center' ? 'items-center' : 'items-end lg:items-center'} justify-center bg-black/60 p-4 overflow-y-auto backdrop-blur-sm pointer-events-auto`}
-          onClick={onClose}
+          onClick={closeOnClickOutside ? onClose : undefined}
         >
           <motion.div
             initial={position === 'center' ? { scale: 0.95, opacity: 0, y: 10 } : { y: '100%', opacity: 0 }}

@@ -8,7 +8,7 @@ import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { getDiskStorage, imageFileFilter } from '../common/utils/file-upload.utils';
+import { getDiskStorage, imageFileFilter, multerLimits } from '../common/utils/file-upload.utils';
 
 /**
  * Controller for managing store-related operations.
@@ -56,7 +56,8 @@ export class StoresController {
   @ApiOperation({ summary: 'Upload a banner image for the store' })
   @UseInterceptors(FileInterceptor('file', { 
     storage: getDiskStorage('./uploads'),
-    fileFilter: imageFileFilter 
+    fileFilter: imageFileFilter,
+    limits: multerLimits,
   }))
   uploadBanner(@Request() req: any, @Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
     const bannerPath = `/uploads/${file.filename}`;
@@ -67,7 +68,8 @@ export class StoresController {
   @ApiOperation({ summary: 'Upload a logo image for the store' })
   @UseInterceptors(FileInterceptor('file', { 
     storage: getDiskStorage('./uploads'),
-    fileFilter: imageFileFilter 
+    fileFilter: imageFileFilter,
+    limits: multerLimits,
   }))
   uploadLogo(@Request() req: any, @Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
     const logoPath = `/uploads/${file.filename}`;

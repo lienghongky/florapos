@@ -5,12 +5,18 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 
+import { json, urlencoded } from 'express';
+
 /**
  * Bootstrap the NestJS application with security, validation, CORS, and Swagger.
  */
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+
+  // Increase body size limits for large payloads & base64 buffers
+  app.use(json({ limit: '25mb' }));
+  app.use(urlencoded({ extended: true, limit: '25mb' }));
 
   // Global validation pipe — auto-transforms payloads to DTO instances
   app.useGlobalPipes(new ValidationPipe({

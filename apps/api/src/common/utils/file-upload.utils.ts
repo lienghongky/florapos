@@ -1,5 +1,6 @@
 import { extname, parse } from 'path';
 import { diskStorage } from 'multer';
+import { BadRequestException } from '@nestjs/common';
 
 /**
  * Generates a consistent filename for uploaded files.
@@ -17,13 +18,23 @@ export const editFileName = (req: any, file: Express.Multer.File, callback: (err
 };
 
 /**
- * Filters out non-image files.
+ * Filters out non-image files. Supports standard web images plus mobile camera HEIC/HEIF.
  */
 export const imageFileFilter = (req: any, file: Express.Multer.File, callback: (error: Error | null, acceptFile: boolean) => void) => {
-  if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp|avif)$/i)) {
-    return callback(new Error('Only image files are allowed!'), false);
+  const isImageMime = file.mimetype && file.mimetype.toLowerCase().startsWith('image/');
+  const isImageExt = file.originalname && file.originalname.match(/\.(jpg|jpeg|png|gif|webp|avif|heic|heif)$/i);
+
+  if (!isImageMime && !isImageExt) {
+    return callback(new BadRequestException('Only image files (JPEG, PNG, WEBP, GIF, HEIC) are allowed!'), false);
   }
   callback(null, true);
+};
+
+/**
+ * Default Multer limits (25MB to accommodate high-res mobile photos before server processing).
+ */
+export const multerLimits = {
+  fileSize: 25 * 1024 * 1024, // 25 MB
 };
 
 /**

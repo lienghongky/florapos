@@ -4,6 +4,7 @@ import { useEmenuStore } from '@/app/store/emenu-store';
 import { useAuthStore } from '@/app/store/auth-store';
 import { useProductStore } from '@/app/store/product-store';
 import { QRCodeSVG } from 'qrcode.react';
+import { normalizeImage } from '@/app/utils/image-processor';
 import {
   Store as StoreIcon,
   QrCode,
@@ -59,6 +60,7 @@ export function EMenuPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [tags, setTags] = useState('');
   const [newTag, setNewTag] = useState('');
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddTag = () => {
@@ -342,12 +344,22 @@ export function EMenuPage() {
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error('Image size should be less than 2MB');
-        return;
+    if (file && selectedStore) {
+      try {
+        setIsUploadingBanner(true);
+        const { file: normalizedFile } = await normalizeImage(file, {
+          maxWidth: 1920,
+          maxHeight: 1080,
+          quality: 0.85,
+        });
+        await uploadBanner(selectedStore.id, normalizedFile);
+      } catch (err: any) {
+        console.error('Banner upload error:', err);
+        toast.error(err?.message || 'Failed to upload banner');
+      } finally {
+        setIsUploadingBanner(false);
+        if (e.target) e.target.value = '';
       }
-      await uploadBanner(selectedStore.id, file);
     }
   };
 

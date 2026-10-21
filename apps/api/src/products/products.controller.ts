@@ -5,7 +5,7 @@ import { ImportProductDto } from './dto/import-product.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { getDiskStorage, imageFileFilter } from '../common/utils/file-upload.utils';
+import { getDiskStorage, imageFileFilter, multerLimits } from '../common/utils/file-upload.utils';
 
 /**
  * Controller for managing products within a store.
@@ -23,6 +23,7 @@ export class ProductsController {
         FileInterceptor('image', {
             storage: getDiskStorage('./uploads/products'),
             fileFilter: imageFileFilter,
+            limits: multerLimits,
         }),
     )
     @ApiOperation({ summary: 'Create a new product' })
@@ -61,6 +62,7 @@ export class ProductsController {
         FileInterceptor('image', {
             storage: getDiskStorage('./uploads/products'),
             fileFilter: imageFileFilter,
+            limits: multerLimits,
         }),
     )
     @ApiOperation({ summary: 'Update a product' })

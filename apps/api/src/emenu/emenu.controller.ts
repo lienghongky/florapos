@@ -7,7 +7,7 @@ import { UpdateEmenuSettingDto } from './dto/update-emenu-setting.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { getDiskStorage, imageFileFilter } from '../common/utils/file-upload.utils';
+import { getDiskStorage, imageFileFilter, multerLimits } from '../common/utils/file-upload.utils';
 
 @ApiTags('emenu')
 @Controller('emenu')
@@ -67,7 +67,8 @@ export class EmenuController {
     @ApiOperation({ summary: 'Upload E-Menu banner' })
     @UseInterceptors(FileInterceptor('file', { 
       storage: getDiskStorage('./uploads'),
-      fileFilter: imageFileFilter 
+      fileFilter: imageFileFilter,
+      limits: multerLimits,
     }))
     uploadBanner(@Request() req: any, @Param('storeId') storeId: string, @UploadedFile() file: Express.Multer.File) {
         const bannerPath = `/uploads/${file.filename}`;
