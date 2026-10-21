@@ -13,13 +13,15 @@ import {
     POCKET_PRINT_WIDTH
 } from '../utils/pocket-printer';
 
-export type PrintMode = 'system' | 'bluetooth' | 'pocket' | 'rawbt' | 'network' | 'native_bridge';
+export type PrintMode = 'system' | 'bluetooth' | 'pocket' | 'rawbt' | 'network' | 'native_bridge' | 'escpos_driver';
 export type PaperSize = '58mm' | '80mm';
 
 interface PrinterState {
     printMode: PrintMode;
     paperSize: PaperSize;
     autoPrintOnCheckout: boolean;
+    printTwoReceipts: boolean;
+    receiptDelaySeconds: number;
     autoCut: boolean;
     openCashDrawer: boolean;
     bluetoothDeviceName: string | null;
@@ -40,6 +42,8 @@ interface PrinterState {
     setPrintMode: (mode: PrintMode) => void;
     setPaperSize: (size: PaperSize) => void;
     setAutoPrintOnCheckout: (enabled: boolean) => void;
+    setPrintTwoReceipts: (enabled: boolean) => void;
+    setReceiptDelaySeconds: (seconds: number) => void;
     setAutoCut: (enabled: boolean) => void;
     setOpenCashDrawer: (enabled: boolean) => void;
     setNetworkPrinterIp: (ip: string) => void;
@@ -74,6 +78,8 @@ export const usePrinterStore = create<PrinterState>()(
             printMode: 'system',
             paperSize: '58mm',
             autoPrintOnCheckout: false,
+            printTwoReceipts: false,
+            receiptDelaySeconds: 2,
             autoCut: true,
             openCashDrawer: false,
             bluetoothDeviceName: null,
@@ -91,6 +97,8 @@ export const usePrinterStore = create<PrinterState>()(
             setPrintMode: (mode) => set({ printMode: mode, lastError: null }),
             setPaperSize: (size) => set({ paperSize: size }),
             setAutoPrintOnCheckout: (enabled) => set({ autoPrintOnCheckout: enabled }),
+            setPrintTwoReceipts: (enabled) => set({ printTwoReceipts: enabled }),
+            setReceiptDelaySeconds: (seconds) => set({ receiptDelaySeconds: Math.max(0, Math.min(30, seconds)) }),
             setAutoCut: (enabled) => set({ autoCut: enabled }),
             setOpenCashDrawer: (enabled) => set({ openCashDrawer: enabled }),
             setNetworkPrinterIp: (ip) => set({ networkPrinterIp: ip }),
@@ -313,6 +321,12 @@ export const usePrinterStore = create<PrinterState>()(
                     if (success) {
                         toast.success('Test receipt printed successfully!');
                     }
+                } else if (printMode === 'escpos_driver') {
+                    // Send test print via ESC-POS Driver (com.fidelier.posprinterdriver)
+                    const testData = `$bighw$OTTOR POS TEST$intro$$intro$$bigh$Mode: ESC-POS DRIVER$intro$$small$App: com.fidelier.posprinterdriver$intro$${new Date().toLocaleString()}$intro$--------------------------------$intro$Paper: ${paperSize}$intro$Status: OK$intro$================================$intro$$intro$$intro$$cut$`;
+                    const intentUrl = `intent:${encodeURIComponent(testData)}#Intent;scheme=com.fidelier.printfromweb;package=com.fidelier.posprinterdriver;end;`;
+                    window.location.href = intentUrl;
+                    toast.success('Test print sent to ESC-POS Driver app!');
                 } else if (printMode === 'rawbt' || printMode === 'network') {
                     // Send test print via RawBT Intent
                     let binary = '';
@@ -320,7 +334,7 @@ export const usePrinterStore = create<PrinterState>()(
                         binary += String.fromCharCode(bytes[i]);
                     }
                     const base64Data = btoa(binary);
-                    const intentUrl = `intent:#Intent;scheme=rawbt;package=ru.a4105.rawbt;S.base64=${encodeURIComponent(base64Data)};end;`;
+                    const intentUrl = `intent:base64,${base64Data}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
                     window.location.href = intentUrl;
                     toast.success('Test print sent to Android RawBT / Network Printer Driver!');
                 } else {
@@ -335,6 +349,8 @@ export const usePrinterStore = create<PrinterState>()(
                 printMode: state.printMode,
                 paperSize: state.paperSize,
                 autoPrintOnCheckout: state.autoPrintOnCheckout,
+                printTwoReceipts: state.printTwoReceipts,
+                receiptDelaySeconds: state.receiptDelaySeconds,
                 autoCut: state.autoCut,
                 openCashDrawer: state.openCashDrawer,
                 networkPrinterIp: state.networkPrinterIp,

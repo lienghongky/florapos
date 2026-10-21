@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Printer, Bluetooth, Settings, Check, RefreshCw, Scissors, DollarSign, Smartphone, Zap, Wifi, Usb } from 'lucide-react';
+import { X, Printer, Bluetooth, Settings, Check, RefreshCw, Scissors, DollarSign, Smartphone, Zap, Wifi, Usb, Copy, Clock } from 'lucide-react';
 import { usePrinterStore, PrintMode, PaperSize } from '@/app/store/printer-store';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { useTranslation } from '@/app/i18n';
@@ -16,6 +16,8 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
         printMode,
         paperSize,
         autoPrintOnCheckout,
+        printTwoReceipts,
+        receiptDelaySeconds,
         autoCut,
         openCashDrawer,
         bluetoothDeviceName,
@@ -30,6 +32,8 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
         setPrintMode,
         setPaperSize,
         setAutoPrintOnCheckout,
+        setPrintTwoReceipts,
+        setReceiptDelaySeconds,
         setAutoCut,
         setOpenCashDrawer,
         setNetworkPrinterIp,
@@ -100,6 +104,12 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                                     title: t('settings.networkIp'),
                                     subtitle: t('settings.networkIpSub'),
                                     icon: Wifi,
+                                },
+                                {
+                                    id: 'escpos_driver',
+                                    title: t('settings.escposDriver'),
+                                    subtitle: t('settings.escposDriverSub'),
+                                    icon: Smartphone,
                                 },
                             ].map((mode) => {
                                 const Icon = mode.icon;
@@ -264,6 +274,37 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                         </div>
                     )}
 
+                    {/* ESC-POS Driver Section (solyarisoftware/posprinterdriver) */}
+                    {printMode === 'escpos_driver' && (
+                        <div className="rounded-3xl border border-sky-100 bg-sky-50/40 p-5 space-y-3">
+                            <div className="flex items-center gap-2.5">
+                                <Smartphone className="size-5 text-sky-600" />
+                                <div>
+                                    <h4 className="font-bold text-sm text-slate-900">ESC-POS Driver (Android App)</h4>
+                                    <p className="text-xs text-slate-500">
+                                        Package: <code className="font-mono bg-sky-100/60 px-1.5 py-0.5 rounded text-[11px]">com.fidelier.posprinterdriver</code>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <p className="text-xs text-slate-600 leading-relaxed">
+                                Sends formatted receipts directly to the <strong>ESC POS Printer Driver</strong> Android app using the <code>com.fidelier.printfromweb</code> intent scheme. Supports USB, Wi-Fi, and Bluetooth printers linked in the app.
+                            </p>
+
+                            <div className="pt-2 border-t border-sky-200/50 flex items-center justify-between text-xs">
+                                <span className="font-semibold text-slate-700">App Reference:</span>
+                                <a
+                                    href="https://github.com/solyarisoftware/posprinterdriver"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="font-bold text-sky-600 hover:underline flex items-center gap-1"
+                                >
+                                    solyarisoftware/posprinterdriver ↗
+                                </a>
+                            </div>
+                        </div>
+                    )}
+
                     {/* USB Thermal Printer Section (NO IP Needed) */}
                     {printMode === 'usb' && (
                         <div className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-5 space-y-2">
@@ -313,6 +354,9 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                                     />
                                 </div>
                             </div>
+                            <p className="text-xs text-slate-600 pt-2 border-t border-purple-200/50">
+                                <strong>How it works on Android:</strong> Web browsers cannot open raw TCP sockets directly to LAN IPs due to browser security. When you print, the POS triggers an Android Intent to the <strong>RawBT Print Service</strong> app (<code>ru.a402d.rawbtprinter</code>). In the RawBT app, configure your printer under <em>WiFi / Ethernet</em> with your IP (<code>{networkPrinterIp}</code>) and Port (<code>{networkPrinterPort}</code>). RawBT immediately routes the print job over your local network!
+                            </p>
                         </div>
                     )}
 
@@ -390,6 +434,47 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                                 className="size-5 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
                             />
                         </label>
+
+                        {/* Print 2 Receipts Toggle */}
+                        <div className="space-y-2.5 rounded-2xl p-3 hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                            <label className="flex items-center justify-between cursor-pointer">
+                                <div className="flex items-center gap-3">
+                                    <Copy className="size-5 text-slate-500" />
+                                    <div>
+                                        <span className="font-bold text-sm text-slate-900 block">{t('settings.printTwoReceipts')}</span>
+                                        <span className="text-xs text-muted-foreground">{t('settings.printTwoReceiptsDesc')}</span>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={printTwoReceipts}
+                                    onChange={(e) => setPrintTwoReceipts(e.target.checked)}
+                                    className="size-5 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                                />
+                            </label>
+
+                            {/* Delay input when 2 receipts is checked */}
+                            {printTwoReceipts && (
+                                <div className="ml-8 pl-3 border-l-2 border-brand-primary/40 pt-1 flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                                        <Clock className="size-4 text-brand-primary" />
+                                        <span>{t('settings.receiptDelaySeconds')}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            max={30}
+                                            step={1}
+                                            value={receiptDelaySeconds}
+                                            onChange={(e) => setReceiptDelaySeconds(Number(e.target.value) || 0)}
+                                            className="w-16 h-8 px-2 rounded-lg border border-slate-200 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-brand-primary/20 bg-white"
+                                        />
+                                        <span className="text-xs text-slate-500 font-semibold">sec</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

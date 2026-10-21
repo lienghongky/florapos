@@ -1,12 +1,15 @@
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Minus, Plus, CreditCard, Banknote, ShoppingBag, Clock, Truck,
-  ScanLine, Wallet, MapPin, StickyNote, Delete, ClipboardList, User, Phone, ChevronDown
+  ScanLine, Wallet, MapPin, StickyNote, Delete, ClipboardList, User, Phone, ChevronDown,
+  X, Check
 } from 'lucide-react';
 import { useCartStore } from '@/app/store/cart-store';
 import { useOrderStore } from '@/app/store/order-store';
 import { useAuthStore } from '@/app/store/auth-store';
-import { useState, useMemo, useEffect } from 'react';
+import { usePrinterStore } from '@/app/store/printer-store';
+import { printReceipt } from '@/app/utils/receipt-actions';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { AnimatedModal } from '../motion/AnimatedPage';
 import { toast } from 'sonner';
 import { OrderListModal } from './OrderListModal';
@@ -39,7 +42,7 @@ function getFlowerImage(name: string): string {
 export function CartPanel({ onClose }: { onClose?: () => void }) {
   const { t } = useTranslation();
   const { cart, removeFromCart, updateCartQuantity, clearCart, lastAddedUuid, lastAddedAt } = useCartStore();
-  const { checkoutOrder } = useOrderStore();
+  const { checkoutOrder, orders } = useOrderStore();
   const { selectedStore } = useAuthStore();
 
   const [flashing, setFlashing] = useState<string | null>(null);
@@ -74,6 +77,53 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
   const [tags, setTags] = useState('');
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showTableSuggestions, setShowTableSuggestions] = useState(false);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  // Close suggestions when clicking/tapping outside
+  useEffect(() => {
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      if (
+        tableContainerRef.current &&
+        !tableContainerRef.current.contains(e.target as Node)
+      ) {
+        setShowTableSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, []);
+
+  // Set of occupied table tags from active orders (not completed or cancelled)
+  const occupiedTables = useMemo(() => {
+    const set = new Set<string>();
+    if (orders) {
+      orders.forEach(o => {
+        if (o.status !== 'completed' && o.status !== 'cancelled' && o.tags?.trim()) {
+          set.add(o.tags.trim().toLowerCase());
+        }
+      });
+    }
+    return set;
+  }, [orders]);
+
+  // Table suggestions: Table 1 .. Table 24 + any custom tags from recent orders
+  const tableSuggestions = useMemo(() => {
+    const defaultTables = Array.from({ length: 24 }, (_, i) => `Table ${i + 1}`);
+    const existingTags = orders
+      ? orders.map(o => o.tags?.trim()).filter(Boolean) as string[]
+      : [];
+
+    const all = Array.from(new Set([...defaultTables, ...existingTags]));
+    if (!tags.trim()) return all;
+
+    const query = tags.toLowerCase().trim();
+    return all.filter(t => t.toLowerCase().includes(query));
+  }, [orders, tags]);
 
   // ── Price calculations (pure derivations — no setState during render) ──────
   const { subTotal, tax, total } = useMemo(() => {
@@ -136,9 +186,17 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
         tax_rate: (selectedStore?.enable_tax !== false) ? (selectedStore?.tax_rate || 0) : 0,
       };
 
-      await checkoutOrder(payload);
+      const createdOrder = await checkoutOrder(payload);
       clearCart();
       toast.success('Order placed successfully!');
+
+      // Auto-print receipt if enabled in printer settings
+      const { autoPrintOnCheckout } = usePrinterStore.getState();
+      if (autoPrintOnCheckout && createdOrder) {
+        void printReceipt(createdOrder, selectedStore).catch((err) => {
+          console.error('Auto-print receipt failed:', err);
+        });
+      }
 
       // Reset form
       setCustomerName('');
@@ -278,11 +336,16 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
             <button
               type="button"
               onClick={() => setShowCustomerDetails(prev => !prev)}
-              className="absolute flex items-center justify-center size-6 rounded-full border border-border bg-white text-muted-foreground shadow-2xs hover:border-brand-primary/50 hover:text-brand-primary hover:bg-muted/40 transition-all active:scale-95"
+              className="absolute flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-white text-muted-foreground shadow-2xs hover:border-brand-primary/50 hover:text-brand-primary hover:bg-muted/40 transition-all active:scale-95"
               title={showCustomerDetails ? "Hide customer & table info" : "Show customer & table info"}
             >
-              {(customerName || customerPhone || tags) && !showCustomerDetails && (
-                <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-brand-primary ring-2 ring-white" />
+              {tags && !showCustomerDetails && (
+                <span className="text-[11px] font-bold text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded-full">
+                  {tags}
+                </span>
+              )}
+              {(customerName || customerPhone) && !showCustomerDetails && !tags && (
+                <span className="size-2 rounded-full bg-brand-primary ring-2 ring-white" />
               )}
               <ChevronDown className={`size-3.5 transition-transform duration-200 ${showCustomerDetails ? 'rotate-180' : ''}`} />
             </button>
@@ -322,15 +385,99 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
                     />
                   </div>
                 </div>
-                <div className="relative">
-                  <ScanLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder={t('pos.tableOrTag')}
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10"
-                  />
+                <div className="relative" ref={tableContainerRef}>
+                  <div className="relative">
+                    <ScanLine className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder={t('pos.tableOrTag')}
+                      value={tags}
+                      onFocus={() => setShowTableSuggestions(true)}
+                      onChange={(e) => {
+                        setTags(e.target.value);
+                        setShowTableSuggestions(true);
+                      }}
+                      className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-8 text-sm outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10 transition-all"
+                    />
+                    {tags && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTags('');
+                          setShowTableSuggestions(true);
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 size-5 rounded-full flex items-center justify-center text-muted-foreground hover:bg-slate-100 hover:text-slate-800 transition-colors"
+                        title="Clear"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Table Suggestions Dropdown / Quick Pick */}
+                  <AnimatePresence>
+                    {showTableSuggestions && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.18 }}
+                        className="overflow-hidden mt-2 rounded-2xl border border-slate-200/90 bg-slate-50/95 p-3 backdrop-blur-sm shadow-inner"
+                      >
+                        <div className="mb-2 flex items-center justify-between px-1">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <span>{t('pos.suggestedTables')}</span>
+                          </span>
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            {tags ? `${tableSuggestions.length} found` : 'Tap to select'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto scrollbar-hide py-0.5">
+                          {tableSuggestions.map((tableName) => {
+                            const isSelected = tags.trim().toLowerCase() === tableName.toLowerCase();
+                            const isOccupied = occupiedTables.has(tableName.toLowerCase());
+
+                            return (
+                              <button
+                                key={tableName}
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setTags(tableName);
+                                  setShowTableSuggestions(false);
+                                }}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 border ${
+                                  isSelected
+                                    ? 'bg-brand-primary text-white border-brand-primary shadow-sm shadow-brand-primary/25'
+                                    : isOccupied
+                                      ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                                      : 'bg-white text-slate-700 border-slate-200 hover:border-brand-primary/40 hover:text-brand-primary hover:bg-brand-primary/5'
+                                }`}
+                              >
+                                {isOccupied && !isSelected && (
+                                  <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                )}
+                                <span>{tableName}</span>
+                                {isOccupied && !isSelected && (
+                                  <span className="text-[9px] font-bold uppercase tracking-tight text-amber-600/80">
+                                    {t('pos.occupied')}
+                                  </span>
+                                )}
+                                {isSelected && <Check className="size-3" />}
+                              </button>
+                            );
+                          })}
+
+                          {tableSuggestions.length === 0 && (
+                            <div className="w-full py-2 text-center text-xs text-muted-foreground">
+                              No matching tables. Press enter or tap to keep "{tags}".
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </motion.div>
             )}

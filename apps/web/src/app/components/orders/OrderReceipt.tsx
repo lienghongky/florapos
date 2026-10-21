@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Order, OrderItem } from '@/app/types';
-import { Printer, Download, Settings, FileText, Image as ImageIcon, Bluetooth, Check, Zap } from 'lucide-react';
+import { Printer, Download, Settings, FileText, Image as ImageIcon, Bluetooth, Check, Zap, Smartphone } from 'lucide-react';
 import { formatDateTime, formatPaymentMethod } from '@/app/utils/format';
 import { useAuthStore } from '@/app/store/auth-store';
 import { usePrinterStore } from '@/app/store/printer-store';
@@ -75,62 +75,66 @@ export function OrderReceipt({
 
     return (
         <>
-            <div className="printable-receipt relative mx-auto w-full max-w-[340px] overflow-hidden bg-white text-black font-mono text-xs sm:text-sm shadow-sm rounded-xl border border-slate-100" style={{ backgroundColor: '#ffffff', fontFamily: '"Courier New", Courier, monospace' }}>
+            <div className="printable-receipt relative mx-auto w-full max-w-[340px] overflow-hidden bg-white text-black font-mono text-sm sm:text-[15px] shadow-sm rounded-xl border border-slate-100" style={{ backgroundColor: '#ffffff', fontFamily: '"Courier New", Courier, monospace', fontWeight: 700 }}>
                 <div className="p-4 sm:p-6 pb-8">
                     {/* Header / Branding */}
                     <div className="text-center mb-4">
                         {storeLogo && (
                             <img src={storeLogo} alt="Store Logo" className="mx-auto mb-2 max-h-16 object-contain grayscale" />
                         )}
-                        <h2 className="text-sm font-bold uppercase tracking-widest">{storeName}</h2>
+                        <h2 className="text-base sm:text-lg font-black uppercase tracking-wider">{storeName}</h2>
                         
                         {!storeLogo && website && (
-                            <p className="text-[10px] mt-1">{website}</p>
+                            <p className="text-xs font-bold mt-1">{website}</p>
                         )}
                         
-                        <div className="mt-4 font-bold text-lg border-b border-black pb-1 mb-2">RECEIPT</div>
+                        <div className="mt-4 font-black text-xl border-b-2 border-black pb-1 mb-2">RECEIPT</div>
                         
-                        <div className="flex flex-col gap-1 text-[11px] sm:text-xs">
+                        <div className="flex flex-col gap-1 text-xs sm:text-[13px] font-bold">
                             {storeAddress && <div className="mb-1 font-bold">{storeAddress}</div>}
                             {storePhone && <div>TEL: {storePhone}</div>}
                             {taxId && <div>VAT TIN : {taxId}</div>}
                             <div>Invoice : {customInvoiceCode || (order.order_number?.toUpperCase() || order.id.slice(-6).toUpperCase())}</div>
-                            <div>ORDER : {order.id.replace(/-/g, '').toUpperCase()}</div>
                             <div>DATE : {formatDateTime(order.created_at)}</div>
                             <div>CASHIER : {order.staff_name || user?.full_name || 'System'}</div>
                             <div>PAYMENT : {formatPaymentMethod(order.payment_method || 'Cash')}</div>
                             {order.customer_name && <div>CUSTOMER: {order.customer_name}</div>}
                             {order.customer_phone && <div>PHONE: {order.customer_phone}</div>}
                             <div>EXCHANGE RATE: 1$ = {exchangeRate.toLocaleString()} ៛</div>
+                            {order.tags && (
+                                <div className="text-base sm:text-lg font-black text-black tracking-wide mt-1">
+                                    TAG : {order.tags}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    <div className="border-t border-dashed border-black my-3"></div>
+                    <div className="border-t-2 border-dashed border-black my-3"></div>
 
                     {/* Items Table */}
-                    <table className="w-full text-left text-[11px] sm:text-xs">
+                    <table className="w-full text-left text-xs sm:text-[13px]">
                         <thead>
-                            <tr>
-                                <th className="pb-1 w-6">#</th>
-                                <th className="pb-1">Product</th>
-                                <th className="pb-1 text-right">Price</th>
-                                <th className="pb-1 text-right">Total</th>
+                            <tr className="border-b border-black font-black">
+                                <th className="pb-1.5 w-6">#</th>
+                                <th className="pb-1.5">Product</th>
+                                <th className="pb-1.5 text-right">Price</th>
+                                <th className="pb-1.5 text-right">Total</th>
                             </tr>
                         </thead>
                         <tbody className="border-t border-dashed border-black">
                             {order.items.map((item: OrderItem, idx: number) => (
                                 <React.Fragment key={idx}>
                                     <tr>
-                                        <td className="py-1 align-top">{idx + 1}</td>
-                                        <td className="py-1 pr-1 font-bold">{item.product_name_snapshot}</td>
-                                        <td className="py-1 text-right align-top whitespace-nowrap">{item.quantity}x{parsePrice(item.unit_price).toFixed(2)}</td>
-                                        <td className="py-1 text-right align-top font-bold">${parsePrice(item.line_total).toFixed(2)}</td>
+                                        <td className="py-1.5 align-top font-bold">{idx + 1}</td>
+                                        <td className="py-1.5 pr-1 font-black text-black">{item.product_name_snapshot}</td>
+                                        <td className="py-1.5 text-right align-top whitespace-nowrap font-bold">{item.quantity}x{parsePrice(item.unit_price).toFixed(2)}</td>
+                                        <td className="py-1.5 text-right align-top font-black">${parsePrice(item.line_total).toFixed(2)}</td>
                                     </tr>
                                     {item.addons && item.addons.length > 0 && item.addons.map((addon: any, aIdx: number) => (
                                         <tr key={`addon-${idx}-${aIdx}`}>
                                             <td></td>
-                                            <td colSpan={2} className="pl-2 pb-1 text-[10px]">+ {addon.name_snapshot}</td>
-                                            <td className="pb-1 text-right text-[10px]">${parsePrice(addon.price || 0).toFixed(2)}</td>
+                                            <td colSpan={2} className="pl-2 pb-1 text-xs font-bold">+ {addon.name_snapshot}</td>
+                                            <td className="pb-1 text-right text-xs font-black">${parsePrice(addon.price || 0).toFixed(2)}</td>
                                         </tr>
                                     ))}
                                 </React.Fragment>
@@ -138,58 +142,58 @@ export function OrderReceipt({
                         </tbody>
                     </table>
 
-                    <div className="border-t border-dashed border-black my-3"></div>
+                    <div className="border-t-2 border-dashed border-black my-3"></div>
 
                     {/* Financial Summary */}
-                    <div className="space-y-1 text-[11px] sm:text-xs">
+                    <div className="space-y-1.5 text-xs sm:text-[13px] font-bold">
                         <div className="flex justify-between">
                             <span>Subtotal:</span>
-                            <span>${parsePrice(order.subtotal).toFixed(2)}</span>
+                            <span className="font-black">${parsePrice(order.subtotal).toFixed(2)}</span>
                         </div>
                         {(activeStore?.enable_tax !== false) && (
                             <div className="flex justify-between">
                                 <span>Tax ({order.tax_rate || activeStore?.tax_rate || 0}%):</span>
-                                <span>${parsePrice(order.tax_total).toFixed(2)}</span>
+                                <span className="font-black">${parsePrice(order.tax_total).toFixed(2)}</span>
                             </div>
                         )}
                         {parsePrice(order.discount_total) > 0 && (
                             <div className="flex justify-between">
                                 <span>Discount:</span>
-                                <span>-${parsePrice(order.discount_total).toFixed(2)}</span>
+                                <span className="font-black">-${parsePrice(order.discount_total).toFixed(2)}</span>
                             </div>
                         )}
                         {order.order_type === 'delivery' && (
                             <div className="flex justify-between">
                                 <span>Delivery Fee:</span>
-                                <span>${parsePrice(order.delivery_fee || 0).toFixed(2)}</span>
+                                <span className="font-black">${parsePrice(order.delivery_fee || 0).toFixed(2)}</span>
                             </div>
                         )}
                         {order.order_type === 'delivery' && order.delivery_address && (
-                            <div className="pt-2 border-t border-dashed border-black/20 text-[10px]">
-                                <span className="font-bold">DELIVERY TO:</span>
+                            <div className="pt-2 border-t border-dashed border-black/30 text-xs font-bold">
+                                <span className="font-black">DELIVERY TO:</span>
                                 <div className="mt-1 whitespace-pre-wrap">{order.delivery_address}</div>
                             </div>
                         )}
                         
-                        <div className="pt-2 border-t border-black mt-2">
-                            <div className="flex justify-between font-bold text-sm sm:text-base">
+                        <div className="pt-2 border-t-2 border-black mt-2">
+                            <div className="flex justify-between font-black text-base sm:text-lg">
                                 <span>GRAND TOTAL:</span>
                                 <span>${parsePrice(order.grand_total).toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-xs font-bold mt-0.5">
+                            <div className="flex justify-between text-sm sm:text-base font-black mt-1">
                                 <span>TOTAL (KHR):</span>
                                 <span>{(parsePrice(order.grand_total) * exchangeRate).toLocaleString()}៛</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="border-t border-dashed border-black my-4"></div>
+                    <div className="border-t-2 border-dashed border-black my-4"></div>
 
                     {/* Footer Note */}
-                    <div className="text-center text-[10px] sm:text-[11px] space-y-1">
-                        {customNote && <p className="font-bold border-b border-black pb-1 mb-2 italic">Note: {customNote}</p>}
-                        <p className="font-bold whitespace-pre-wrap">{footerText}</p>
-                        <p>Powered by Ottor POS</p>
+                    <div className="text-center text-xs sm:text-[13px] font-bold space-y-1">
+                        {customNote && <p className="font-black border-b border-black pb-1 mb-2 italic">Note: {customNote}</p>}
+                        <p className="font-black whitespace-pre-wrap">{footerText}</p>
+                        <p className="font-semibold text-xs">Powered by Ottor POS</p>
                     </div>
                     
                     {/* Action Bar: Download vs Print (Hidden in screen capture & print mode) */}
@@ -205,6 +209,8 @@ export function OrderReceipt({
                                         <Bluetooth className="size-4 text-blue-400" />
                                     ) : printMode === 'pocket' ? (
                                         <Zap className="size-4 text-amber-400" />
+                                    ) : printMode === 'escpos_driver' ? (
+                                        <Smartphone className="size-4 text-sky-400" />
                                     ) : (
                                         <Printer className="size-4" />
                                     )}
@@ -260,6 +266,11 @@ export function OrderReceipt({
                                         <>
                                             <span className="inline-block size-2 rounded-full bg-amber-500 animate-pulse" />
                                             Lucky Jingle: {isPocketConnected ? (pocketDeviceName || 'Ready') : 'Not Paired'}
+                                        </>
+                                    ) : printMode === 'escpos_driver' ? (
+                                        <>
+                                            <span className="inline-block size-2 rounded-full bg-sky-500 animate-pulse" />
+                                            ESC-POS Driver (Android)
                                         </>
                                     ) : (
                                         <>

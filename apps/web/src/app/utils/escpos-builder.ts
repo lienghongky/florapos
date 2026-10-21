@@ -96,13 +96,13 @@ export class EscPosBuilder {
         // Line 1: Item Name
         this.bold(true);
         this.textLine(name);
-        this.bold(false);
 
         // Line 2: Qty x Price ... Total
         const leftIndent = "  " + qtyPriceStr;
         const available = this.width - totalStr.length;
         const spaces = Math.max(1, available - leftIndent.length);
         this.textLine(leftIndent + ' '.repeat(spaces) + totalStr);
+        this.bold(false);
         return this;
     }
 
@@ -162,13 +162,19 @@ export class EscPosBuilder {
 
         builder.divider('-');
         builder.twoColumn("Invoice:", invoiceCode);
-        builder.twoColumn("Order ID:", order.id.replace(/-/g, '').substring(0, 12).toUpperCase());
         builder.twoColumn("Date:", formatDateTime(order.created_at));
         builder.twoColumn("Cashier:", order.staff_name || 'System');
         builder.twoColumn("Payment:", formatPaymentMethod(order.payment_method || 'Cash'));
         if (order.customer_name) builder.twoColumn("Customer:", order.customer_name);
         if (order.customer_phone) builder.twoColumn("Phone:", order.customer_phone);
         builder.twoColumn("Ex. Rate:", `1$ = ${exchangeRate.toLocaleString()} KHR`);
+        if (order.tags) {
+            builder.bold(true);
+            builder.textSize(2, 2);
+            builder.textLine(`TAG: ${order.tags}`);
+            builder.textSize(1, 1);
+            builder.bold(false);
+        }
 
         builder.divider('-');
         builder.bold(true);

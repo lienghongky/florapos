@@ -79,6 +79,8 @@ export interface TranslationSchema {
     customerName: string;
     phoneNumber: string;
     tableOrTag: string;
+    suggestedTables: string;
+    occupied: string;
     pickUp: string;
     delivery: string;
     deliveryAddress: string;
@@ -470,6 +472,8 @@ export interface TranslationSchema {
     usbThermalSub: string;
     networkIp: string;
     networkIpSub: string;
+    escposDriver: string;
+    escposDriverSub: string;
     paperWidth: string;
     autoCut: string;
     autoCutDesc: string;
@@ -477,6 +481,9 @@ export interface TranslationSchema {
     openCashDrawerDesc: string;
     autoPrintOnCheckout: string;
     autoPrintDesc: string;
+    printTwoReceipts: string;
+    printTwoReceiptsDesc: string;
+    receiptDelaySeconds: string;
     testPrintReceipt: string;
     saveAndClose: string;
   };

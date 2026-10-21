@@ -334,9 +334,9 @@ export function generatePocketReceiptCanvas(
     return Number(val) || 0;
   };
 
-  // Estimate height
+  // Estimate height with bigger text and spacing
   const itemsCount = (order.items || []).length;
-  const estimatedHeight = 340 + itemsCount * 42 + 200;
+  const estimatedHeight = 400 + itemsCount * 48 + 260;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -347,17 +347,17 @@ export function generatePocketReceiptCanvas(
   ctx.fillRect(0, 0, width, estimatedHeight);
   ctx.fillStyle = '#000000';
 
-  let y = 16;
+  let y = 18;
 
   // Store Name
   const storeName = store?.name || 'Ottor POS';
-  ctx.font = "bold 22px 'Inter', 'Noto Sans Khmer', Arial, sans-serif";
+  ctx.font = "bold 24px 'Inter', 'Noto Sans Khmer', Arial, sans-serif";
   ctx.textAlign = 'center';
   ctx.fillText(storeName.toUpperCase(), width / 2, y);
-  y += 26;
+  y += 28;
 
   // Address & Phone
-  ctx.font = "13px 'Inter', 'Noto Sans Khmer', Arial, sans-serif";
+  ctx.font = "bold 13px 'Inter', 'Noto Sans Khmer', Arial, sans-serif";
   if (store?.address) {
     ctx.fillText(store.address, width / 2, y);
     y += 18;
@@ -369,56 +369,66 @@ export function generatePocketReceiptCanvas(
 
   // RECEIPT title
   y += 6;
-  ctx.font = "bold 16px 'Inter', Arial, sans-serif";
+  ctx.font = "bold 18px 'Inter', Arial, sans-serif";
   ctx.fillText('RECEIPT', width / 2, y);
-  y += 20;
+  y += 22;
 
   // Divider
   const drawDivider = (dashed = true) => {
     ctx.beginPath();
-    ctx.lineWidth = 1;
-    if (dashed) ctx.setLineDash([4, 3]);
+    ctx.lineWidth = dashed ? 1.5 : 2;
+    if (dashed) ctx.setLineDash([5, 3]);
     else ctx.setLineDash([]);
     ctx.moveTo(padding, y);
     ctx.lineTo(width - padding, y);
     ctx.stroke();
     ctx.setLineDash([]);
-    y += 14;
+    y += 16;
   };
 
   drawDivider(true);
 
   // Meta info
-  ctx.font = "12px 'SF Mono', Menlo, 'Noto Sans Khmer', monospace";
+  ctx.font = "bold 13px 'SF Mono', Menlo, 'Noto Sans Khmer', monospace";
   ctx.textAlign = 'left';
   const invoice = options.customInvoiceCode || order.order_number?.toUpperCase() || order.id.slice(-6).toUpperCase();
-  ctx.fillText(`Invoice : ${invoice}`, padding, y); y += 16;
-  ctx.fillText(`Date    : ${formatDateTime(order.created_at)}`, padding, y); y += 16;
-  ctx.fillText(`Cashier : ${order.staff_name || 'System'}`, padding, y); y += 16;
-  ctx.fillText(`Payment : ${formatPaymentMethod(order.payment_method || 'Cash')}`, padding, y); y += 16;
+  ctx.fillText(`Invoice : ${invoice}`, padding, y); y += 18;
+  ctx.fillText(`Date    : ${formatDateTime(order.created_at)}`, padding, y); y += 18;
+  ctx.fillText(`Cashier : ${order.staff_name || 'System'}`, padding, y); y += 18;
+  ctx.fillText(`Payment : ${formatPaymentMethod(order.payment_method || 'Cash')}`, padding, y); y += 18;
+  if (order.customer_name) {
+    ctx.fillText(`Client  : ${order.customer_name}`, padding, y); y += 18;
+  }
   ctx.fillText(`Rate    : 1$ = ${exchangeRate.toLocaleString()}៛`, padding, y); y += 18;
+  if (order.tags) {
+    y += 2;
+    ctx.font = "bold 17px 'Inter', 'Noto Sans Khmer', Arial, sans-serif";
+    ctx.fillText(`TAG : ${order.tags}`, padding, y);
+    y += 22;
+  }
+  y += 2;
 
   drawDivider(true);
 
   // Items header
-  ctx.font = "bold 12px 'Inter', 'Noto Sans Khmer', sans-serif";
+  ctx.font = "bold 13px 'Inter', 'Noto Sans Khmer', sans-serif";
   ctx.textAlign = 'left';
   ctx.fillText('Item', padding, y);
   ctx.textAlign = 'right';
-  ctx.fillText('Qty x Price', width - padding - 65, y);
+  ctx.fillText('Qty x Price', width - padding - 72, y);
   ctx.fillText('Total', width - padding, y);
-  y += 16;
+  y += 18;
 
   drawDivider(false);
 
   // Items list
-  ctx.font = "12px 'Inter', 'Noto Sans Khmer', sans-serif";
   (order.items || []).forEach((item: OrderItem, idx: number) => {
+    ctx.font = "bold 13px 'Inter', 'Noto Sans Khmer', sans-serif";
     ctx.textAlign = 'left';
     const name = item.product_name_snapshot || 'Product';
     // Truncate long item names
     let shortName = name;
-    while (shortName.length > 0 && ctx.measureText(shortName).width > 160) {
+    while (shortName.length > 0 && ctx.measureText(shortName).width > 155) {
       shortName = shortName.slice(0, -1);
     }
     if (shortName.length < name.length) shortName += '…';
@@ -426,26 +436,50 @@ export function generatePocketReceiptCanvas(
     ctx.fillText(`${idx + 1}. ${shortName}`, padding, y);
     ctx.textAlign = 'right';
     const unitPrice = parsePrice(item.unit_price).toFixed(2);
-    ctx.fillText(`${item.quantity}x$${unitPrice}`, width - padding - 65, y);
+    ctx.fillText(`${item.quantity}x$${unitPrice}`, width - padding - 72, y);
     const lineTotal = parsePrice(item.line_total).toFixed(2);
     ctx.fillText(`$${lineTotal}`, width - padding, y);
-    y += 18;
+    y += 20;
+
+    // Addons
+    if (item.addons && item.addons.length > 0) {
+      ctx.font = "bold 11px 'Inter', 'Noto Sans Khmer', sans-serif";
+      item.addons.forEach((addon: any) => {
+        ctx.textAlign = 'left';
+        ctx.fillText(`   + ${addon.name_snapshot}`, padding, y);
+        ctx.textAlign = 'right';
+        ctx.fillText(`$${parsePrice(addon.price || 0).toFixed(2)}`, width - padding, y);
+        y += 16;
+      });
+    }
   });
 
   drawDivider(true);
 
   // Totals
-  ctx.font = "13px 'Inter', Arial, sans-serif";
+  ctx.font = "bold 14px 'Inter', Arial, sans-serif";
   const subtotal = parsePrice(order.subtotal).toFixed(2);
   ctx.textAlign = 'left'; ctx.fillText('Subtotal:', padding, y);
   ctx.textAlign = 'right'; ctx.fillText(`$${subtotal}`, width - padding, y);
-  y += 18;
+  y += 20;
+
+  if (store?.enable_tax !== false && parsePrice(order.tax_total) > 0) {
+    ctx.textAlign = 'left'; ctx.fillText(`Tax (${order.tax_rate || store?.tax_rate || 0}%):`, padding, y);
+    ctx.textAlign = 'right'; ctx.fillText(`$${parsePrice(order.tax_total).toFixed(2)}`, width - padding, y);
+    y += 20;
+  }
 
   if (parsePrice(order.discount_total) > 0) {
     const discount = parsePrice(order.discount_total).toFixed(2);
     ctx.textAlign = 'left'; ctx.fillText('Discount:', padding, y);
     ctx.textAlign = 'right'; ctx.fillText(`-$${discount}`, width - padding, y);
-    y += 18;
+    y += 20;
+  }
+
+  if (order.order_type === 'delivery' && parsePrice(order.delivery_fee || 0) > 0) {
+    ctx.textAlign = 'left'; ctx.fillText('Delivery Fee:', padding, y);
+    ctx.textAlign = 'right'; ctx.fillText(`$${parsePrice(order.delivery_fee || 0).toFixed(2)}`, width - padding, y);
+    y += 20;
   }
 
   // Grand Total
@@ -454,31 +488,31 @@ export function generatePocketReceiptCanvas(
   const grandTotal = parsePrice(order.grand_total);
   const khrTotal = Math.round(grandTotal * exchangeRate);
 
-  ctx.font = "bold 16px 'Inter', Arial, sans-serif";
+  ctx.font = "bold 19px 'Inter', Arial, sans-serif";
   ctx.textAlign = 'left'; ctx.fillText('GRAND TOTAL:', padding, y);
   ctx.textAlign = 'right'; ctx.fillText(`$${grandTotal.toFixed(2)}`, width - padding, y);
-  y += 22;
+  y += 24;
 
-  ctx.font = "bold 14px 'Inter', 'Noto Sans Khmer', Arial, sans-serif";
+  ctx.font = "bold 16px 'Inter', 'Noto Sans Khmer', Arial, sans-serif";
   ctx.textAlign = 'left'; ctx.fillText('TOTAL (KHR):', padding, y);
   ctx.textAlign = 'right'; ctx.fillText(`${khrTotal.toLocaleString()}៛`, width - padding, y);
-  y += 24;
+  y += 26;
 
   drawDivider(true);
 
   // Footer note
-  ctx.font = "italic 11px 'Inter', 'Noto Sans Khmer', sans-serif";
+  ctx.font = "bold 12px 'Inter', 'Noto Sans Khmer', sans-serif";
   ctx.textAlign = 'center';
   if (options.customNote) {
     ctx.fillText(`Note: ${options.customNote}`, width / 2, y);
-    y += 16;
+    y += 18;
   }
   const footer = store?.receipt_footer_text || 'Thank you for your purchase!';
   ctx.fillText(footer, width / 2, y);
-  y += 16;
-  ctx.font = "10px 'Inter', sans-serif";
+  y += 18;
+  ctx.font = "bold 11px 'Inter', sans-serif";
   ctx.fillText('Powered by Ottor POS', width / 2, y);
-  y += 20;
+  y += 22;
 
   // Trim canvas to actual content height
   const trimmed = document.createElement('canvas');

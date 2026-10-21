@@ -14,7 +14,7 @@ interface OrderState {
   isDashboardLoading: boolean;
   refreshOrders: (filters?: any) => Promise<void>;
   refreshDashboardData: () => Promise<void>;
-  checkoutOrder: (payload: any) => Promise<void>;
+  checkoutOrder: (payload: any) => Promise<Order | undefined>;
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
   updateOrderPayment: (id: string, paymentStatus: string, paymentMethod?: string) => Promise<void>;
 }
@@ -77,10 +77,11 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     const { token, selectedStore } = useAuthStore.getState();
     if (!token || !selectedStore) return;
     try {
-      await ordersService.createOrder(token, { ...payload, store_id: selectedStore.id });
+      const createdOrder = await ordersService.createOrder(token, { ...payload, store_id: selectedStore.id });
       useCartStore.getState().clearCart();
       await get().refreshOrders();
       await useInventoryStore.getState().refreshInventory();
+      return createdOrder as Order;
     } catch (e) {
       throw e;
     }
