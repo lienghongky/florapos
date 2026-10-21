@@ -1,5 +1,5 @@
 import { useBarcodeScanner } from '@/app/hooks/useBarcodeScanner';
-import { buildCodeIndex, lookupCode, CodeMatch } from '@/app/lib/product-code-index';
+import { buildCodeIndex, lookupCode, CodeMatch, cleanScannedCode } from '@/app/lib/product-code-index';
 import { scanFeedback } from '@/app/lib/scan-feedback';
 import { ScannerStatus } from '@/app/components/pos/ScannerStatus';
 import { UnknownBarcodeModal } from '@/app/components/pos/UnknownBarcodeModal';
@@ -210,8 +210,18 @@ export function POSPage() {
   const takeMultiplier = () => { const n = multiplierRef.current; multiplierRef.current = 1; setMultiplier(1); return n; };
   useBarcodeScanner({
     enabled: scannerEnabled && !scannerPaused,
-    onScan: (code, input, original) => { if (input) setSearchQuery(original || ''); void handleScan(code, takeMultiplier()); },
-    onMultiplier: (n, input, original) => { multiplierRef.current = n; setMultiplier(n); if (input) setSearchQuery(original || ''); },
+    onScan: (code, input) => {
+      // Clear the search bar completely so the scanned barcode never appends to previous search text
+      setSearchQuery('');
+      if (input) input.value = '';
+      void handleScan(code, takeMultiplier());
+    },
+    onMultiplier: (n, input) => {
+      multiplierRef.current = n;
+      setMultiplier(n);
+      setSearchQuery('');
+      if (input) input.value = '';
+    },
   });
 
   const pageHeight = isFullscreen ? 'h-[calc(100vh-2rem)]' : 'h-[calc(100vh-5rem)]';
@@ -236,11 +246,24 @@ export function POSPage() {
               <input
                 ref={searchRef}
                 data-scan-target
+                onFocus={e => e.target.select()}
+                onPaste={e => {
+                  const pasted = e.clipboardData.getData('text');
+                  if (pasted?.trim()) {
+                    const code = cleanScannedCode(pasted.trim());
+                    if (code && lookupCode(codeIndex, code)) {
+                      e.preventDefault();
+                      setSearchQuery('');
+                      void handleScan(code, takeMultiplier());
+                    }
+                  }
+                }}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && searchQuery.trim() && !scannerPaused) {
                     e.preventDefault();
-                    if (lookupCode(codeIndex, searchQuery)) setSearchQuery('');
-                    void handleScan(searchQuery.trim(), takeMultiplier());
+                    const query = cleanScannedCode(searchQuery.trim());
+                    setSearchQuery('');
+                    void handleScan(query, takeMultiplier());
                   }
                 }}
                 type="text"

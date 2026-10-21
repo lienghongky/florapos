@@ -10,7 +10,6 @@ import { useProductStore } from '@/app/store/product-store';
 import { CameraScannerModal } from '@/app/components/pos/CameraScannerModal';
 import { cleanScannedCode } from '@/app/lib/product-code-index';
 import { scanFeedback } from '@/app/lib/scan-feedback';
-import { useBarcodeScanner } from '@/app/hooks/useBarcodeScanner';
 import { InventoryItem } from '@/app/types';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { toast } from 'sonner';
@@ -67,15 +66,85 @@ export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
     }
   };
 
-  // Hardware barcode scanner support
-  useBarcodeScanner({
-    enabled: isOpen && !isCameraOpen,
-    onScan: (code) => {
+  // Hardware barcode scanner support (replaces existing input instead of appending)
+  useEffect(() => {
+    if (!isOpen || isCameraOpen) return;
+
+    let buffer = '';
+    let firstAt = 0;
+    let lastAt = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const reset = () => {
+      buffer = '';
+      clearTimeout(timer);
+    };
+
+    const isFast = () => {
+      return buffer.length >= 3 && (lastAt - firstAt) / (buffer.length - 1) < 45;
+    };
+
+    const processScan = (raw: string) => {
+      const code = cleanScannedCode(raw);
+      if (!code) return;
+
+      // Completely REPLACE searchCode (never append!)
+      setSearchCode(code);
       scanFeedback.success();
       scanFeedback.vibrate();
       handleFind(code);
-    }
-  });
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.altKey || e.metaKey || e.isComposing) {
+        reset();
+        return;
+      }
+
+      const now = performance.now();
+
+      // Enter or Tab triggers scanner completion
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        if (isFast()) {
+          e.preventDefault();
+          e.stopPropagation();
+          processScan(buffer);
+        }
+        reset();
+        return;
+      }
+
+      if (e.key.length !== 1) {
+        if (e.key !== 'Shift') reset();
+        return;
+      }
+
+      if (buffer && now - lastAt >= 80) {
+        reset();
+      }
+
+      if (!buffer) {
+        firstAt = now;
+      }
+
+      buffer += e.key;
+      lastAt = now;
+
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (isFast()) {
+          processScan(buffer);
+        }
+        reset();
+      }, 70);
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      reset();
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [isOpen, isCameraOpen]);
 
   // Handle Adjustment
   const handleAdjust = async () => {
@@ -127,10 +196,14 @@ export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
         initialContinuous={false}
       />
 
-      <AnimatedModal isOpen={isOpen} onClose={() => {
-        setIsCameraOpen(false);
-        onClose();
-      }}>
+      <AnimatedModal 
+        isOpen={isOpen} 
+        closeOnClickOutside={false}
+        onClose={() => {
+          setIsCameraOpen(false);
+          onClose();
+        }}
+      >
         <div className="w-[min(680px,94vw)] overflow-hidden rounded-3xl bg-white shadow-2xl flex flex-col my-auto max-h-[92vh]">
           {/* Header */}
           <div className="bg-primary p-6 text-white relative">
@@ -166,6 +239,16 @@ export function QuickAdjustModal({ isOpen, onClose }: QuickAdjustModalProps) {
                     placeholder="Enter Barcode, SKU or Name..."
                     value={searchCode}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchCode(e.target.value)}
+                    onFocus={e => e.target.select()}
+                    onPaste={e => {
+                      const pasted = e.clipboardData.getData('text');
+                      if (pasted?.trim()) {
+                        e.preventDefault();
+                        const code = cleanScannedCode(pasted.trim());
+                        setSearchCode(code);
+                        handleFind(code);
+                      }
+                    }}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-muted/30 focus:bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium"
                   />
                 </form>
