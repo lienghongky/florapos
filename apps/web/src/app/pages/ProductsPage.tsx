@@ -102,6 +102,128 @@ export function ProductsPage() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const skuInputRef = useRef<HTMLInputElement>(null);
+
+  // Hardware barcode scanner detection (replaces existing barcode instead of appending)
+  useEffect(() => {
+    let buffer = '';
+    let firstAt = 0;
+    let lastAt = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let focusedEl: HTMLInputElement | null = null;
+    let originalVal = '';
+
+    const reset = () => {
+      buffer = '';
+      clearTimeout(timer);
+    };
+
+    const isFast = () => {
+      return buffer.length >= 3 && (lastAt - firstAt) / (buffer.length - 1) < 45;
+    };
+
+    const applyScannedCode = (raw: string) => {
+      const code = cleanScannedCode(raw);
+      if (!code) return;
+
+      if (showModal) {
+        // Modal is open: replace code in the form
+        if (focusedEl === skuInputRef.current) {
+          // User explicitly focused SKU input
+          setFormData(prev => ({ ...prev, sku: code }));
+          scanFeedback.success();
+          scanFeedback.vibrate();
+          toast.success(`SKU scanned: ${code}`);
+        } else {
+          // User focused barcode input or any other field (name/price) or nothing
+          if (focusedEl && focusedEl !== barcodeInputRef.current) {
+            // Restore whatever was in that field before scanner burst typed into it
+            focusedEl.value = originalVal;
+            focusedEl.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+
+          // REPLACE the barcode field (never append!)
+          setFormData(prev => ({
+            ...prev,
+            barcode: code,
+            sku: (!prev.sku || prev.sku.startsWith('PRD-')) ? code : prev.sku,
+          }));
+
+          scanFeedback.success();
+          scanFeedback.vibrate();
+          toast.success(`Barcode scanned: ${code}`);
+        }
+      } else {
+        // Main products page: quick search/lookup or open new product
+        handleCameraDetected(code);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept when modifier keys are held or during IME composition
+      if (e.ctrlKey || e.altKey || e.metaKey || e.isComposing) {
+        reset();
+        return;
+      }
+
+      // If camera scanner modal is open, let camera handle it
+      if (cameraModal.isOpen) {
+        reset();
+        return;
+      }
+
+      const target = e.target as HTMLElement | null;
+      const currentInput = target?.tagName === 'INPUT' ? (target as HTMLInputElement) : null;
+      const now = performance.now();
+
+      // Enter or Tab triggers scanner completion
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        if (isFast()) {
+          e.preventDefault();
+          e.stopPropagation();
+          applyScannedCode(buffer);
+        }
+        reset();
+        return;
+      }
+
+      // Check for single printable character
+      if (e.key.length !== 1) {
+        if (e.key !== 'Shift') reset();
+        return;
+      }
+
+      // Reset buffer if gap between keys exceeds 80ms (human typing)
+      if (buffer && now - lastAt >= 80) {
+        reset();
+      }
+
+      if (!buffer) {
+        firstAt = now;
+        focusedEl = currentInput;
+        originalVal = currentInput?.value || '';
+      }
+
+      buffer += e.key;
+      lastAt = now;
+
+      // Fallback timer for scanners that do not send an Enter key
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (isFast()) {
+          applyScannedCode(buffer);
+        }
+        reset();
+      }, 70);
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      reset();
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [showModal, cameraModal.isOpen, products]);
 
   // Fetch fresh data whenever this page mounts or the store changes
   useEffect(() => {
@@ -949,10 +1071,12 @@ export function ProductsPage() {
                       <label className="mb-1.5 block text-sm font-medium">{t('products.sku')}</label>
                       <div className="relative">
                         <input
+                          ref={skuInputRef}
                           type="text"
                           placeholder="e.g. ROSE-001"
                           value={formData.sku}
                           onChange={e => { setSkuTouched(true); setFormData({ ...formData, sku: e.target.value }); }}
+                          onFocus={e => e.target.select()}
                           className="w-full rounded-lg border border-border bg-white py-2 pl-3 pr-9 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                         />
                         <button
@@ -977,10 +1101,19 @@ export function ProductsPage() {
                       </div>
                       <div className="relative flex items-center">
                         <input
+                          ref={barcodeInputRef}
                           type="text"
                           placeholder="Scan QR/barcode or generate"
                           value={formData.barcode}
                           onChange={e => setFormData({ ...formData, barcode: e.target.value })}
+                          onFocus={e => e.target.select()}
+                          onPaste={e => {
+                            const pasted = e.clipboardData.getData('text');
+                            if (pasted && pasted.trim()) {
+                              e.preventDefault();
+                              setFormData(prev => ({ ...prev, barcode: cleanScannedCode(pasted.trim()) }));
+                            }
+                          }}
                           onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); /* scanners send Enter */ }}
                           className={`w-full rounded-lg border bg-white py-2 pl-3 pr-28 font-mono text-sm outline-none transition-all focus:ring-2 ${
                             barcodeConflict ? 'border-amber-400 focus:ring-amber-200' : 'border-border focus:ring-primary/20'
