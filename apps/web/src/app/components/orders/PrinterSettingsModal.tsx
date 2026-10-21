@@ -22,6 +22,9 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
         isBluetoothConnected,
         isScanning,
         lastError,
+        pocketDeviceName,
+        isPocketConnected,
+        pocketBattery,
         networkPrinterIp,
         networkPrinterPort,
         setPrintMode,
@@ -33,6 +36,8 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
         setNetworkPrinterPort,
         connectBluetoothPrinter,
         disconnectBluetoothPrinter,
+        connectPocketPrinter,
+        disconnectPocketPrinter,
         testPrint
     } = usePrinterStore();
 
@@ -71,6 +76,12 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                                     title: t('settings.systemPrint'),
                                     subtitle: t('settings.systemPrintSub'),
                                     icon: Smartphone,
+                                },
+                                {
+                                    id: 'pocket',
+                                    title: t('settings.pocketBle'),
+                                    subtitle: t('settings.pocketBleSub'),
+                                    icon: Zap,
                                 },
                                 {
                                     id: 'bluetooth',
@@ -118,6 +129,77 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                             })}
                         </div>
                     </div>
+
+                    {/* Pocket BLE Device Pairing Section */}
+                    {printMode === 'pocket' && (
+                        <div className="rounded-3xl border border-violet-100 bg-violet-50/40 p-5 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                    <Zap className="size-5 text-violet-600" />
+                                    <div>
+                                        <h4 className="font-bold text-sm text-slate-900">Pocket Printer (Lucky Jingle / DP-L1S)</h4>
+                                        <p className="text-xs text-slate-500">
+                                            {isPocketConnected
+                                                ? `Connected: ${pocketDeviceName || 'Pocket Printer'}`
+                                                : 'No pocket printer connected'}
+                                            {isPocketConnected && pocketBattery !== null && (
+                                                <span className="ml-2 font-semibold text-emerald-600">🔋 {pocketBattery}%</span>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span
+                                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                        isPocketConnected
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-amber-100 text-amber-700'
+                                    }`}
+                                >
+                                    {isPocketConnected ? 'Ready' : 'Not Paired'}
+                                </span>
+                            </div>
+
+                            <p className="text-xs text-slate-500 leading-relaxed">
+                                Portable thermal pocket printer (DP-L1S, C&amp;Co 3128, Action, LuckPrinter).
+                                Uses Web Bluetooth 384-dot raster graphics with Khmer font support.
+                            </p>
+
+                            {lastError && (
+                                <p className="text-xs text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-100 font-medium">
+                                    {lastError}
+                                </p>
+                            )}
+
+                            <div className="flex gap-2">
+                                {isPocketConnected ? (
+                                    <>
+                                        <button
+                                            onClick={testPrint}
+                                            className="flex-1 py-3 px-4 rounded-xl bg-violet-600 text-white font-bold text-xs hover:bg-violet-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+                                        >
+                                            <Zap className="size-4" />
+                                            Test Print
+                                        </button>
+                                        <button
+                                            onClick={disconnectPocketPrinter}
+                                            className="py-3 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition-all"
+                                        >
+                                            Disconnect
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={connectPocketPrinter}
+                                        disabled={isScanning}
+                                        className="w-full py-3.5 px-4 rounded-xl bg-violet-600 text-white font-bold text-xs hover:bg-violet-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-600/20 disabled:opacity-50"
+                                    >
+                                        <RefreshCw className={`size-4 ${isScanning ? 'animate-spin' : ''}`} />
+                                        {isScanning ? 'Connecting Pocket Printer...' : 'Scan & Pair Pocket Printer'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Bluetooth Device Pairing Section */}
                     {printMode === 'bluetooth' && (

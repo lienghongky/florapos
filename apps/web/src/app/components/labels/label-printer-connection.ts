@@ -1,5 +1,12 @@
+import {
+  connectPocketPrinter,
+  disconnectPocketPrinter,
+  getActivePocketConnection,
+  isPocketPrinterSupported,
+} from '@/app/utils/pocket-printer';
+
 /** Connections belong exclusively to label printing, never the receipt printer store. */
-export type DirectLabelMode = 'bluetooth' | 'usb';
+export type DirectLabelMode = 'bluetooth' | 'usb' | 'pocket';
 export interface LabelConnection {
   mode: DirectLabelMode;
   id: string;
@@ -19,10 +26,36 @@ const SERVICES = [
 ];
 export function directLabelSupport(mode: DirectLabelMode): string | null {
   if (!window.isSecureContext) return 'Direct connections require HTTPS. Use System dialog on this page.';
-  if (!(navigator as any)[mode]) return 'This browser does not support direct ' + (mode === 'usb' ? 'USB' : 'Bluetooth') + '. On iPad use System dialog / AirPrint or PDF with your printer app. On Android try Chrome.';
+  if (mode === 'pocket' || mode === 'bluetooth') {
+    if (!isPocketPrinterSupported()) return 'This browser does not support Web Bluetooth. On iOS use Bluefy or System print dialog. On Android / PC use Chrome.';
+    return null;
+  }
+  if (mode === 'usb') {
+    if (!(navigator as any).usb) return 'This browser does not support direct USB. On iPad use System dialog / AirPrint. On Android try Chrome.';
+    return null;
+  }
   return null;
 }
 export function getLabelConnection(mode: DirectLabelMode, id?: string) {
+  if (mode === 'pocket') {
+    const pocket = getActivePocketConnection();
+    if (pocket && pocket.connected()) {
+      if (!connection || connection.mode !== 'pocket' || connection.id !== pocket.id) {
+        connection = {
+          mode: 'pocket',
+          id: pocket.id,
+          name: pocket.name,
+          connected: () => pocket.connected(),
+          send: async () => {},
+          disconnect: async () => {
+            await disconnectPocketPrinter();
+          },
+        };
+      }
+      return connection;
+    }
+    return null;
+  }
   return connection?.mode === mode && (!id || connection.id === id) && connection.connected() ? connection : null;
 }
 export async function disconnectLabelPrinter() {
@@ -37,6 +70,21 @@ export async function chooseLabelPrinter(mode: DirectLabelMode): Promise<LabelCo
   if (connecting) throw new Error('A printer chooser is already open.');
   connecting = true;
   try {
+    if (mode === 'pocket') {
+      const pocket = await connectPocketPrinter();
+      const current: LabelConnection = {
+        mode,
+        id: pocket.id,
+        name: pocket.name,
+        connected: () => pocket.connected(),
+        disconnect: async () => {
+          await disconnectPocketPrinter();
+        },
+        send: async () => {},
+      };
+      connection = current;
+      return current;
+    }
     if (mode === 'bluetooth') {
       const device = await (navigator as any).bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SERVICES });
       await disconnectLabelPrinter();

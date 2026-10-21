@@ -7,8 +7,9 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import {
-  X, Search, Minus, Plus, Printer, Tag, ChevronRight, ChevronLeft, Sparkles, Check, AlertCircle, ZoomIn, ZoomOut, Barcode as BarcodeIcon, Download, Loader2,
+  X, Search, Minus, Plus, Printer, Tag, ChevronRight, ChevronLeft, Sparkles, Check, AlertCircle, ZoomIn, ZoomOut, Barcode as BarcodeIcon, Share2, Loader2,
 } from 'lucide-react';
+import { useAuthStore } from '@/app/store/auth-store';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { Label, LabelProduct } from './Label';
 import {
@@ -34,6 +35,7 @@ const FIELD_LABELS: { key: keyof LabelFields; label: string }[] = [
   { key: 'storeName', label: 'Store name' },
   { key: 'productName', label: 'Product name' },
   { key: 'price', label: 'Price' },
+  { key: 'showKhrPrice', label: 'KH price (៛)' },
   { key: 'sku', label: 'SKU' },
   { key: 'category', label: 'Category' },
   { key: 'barcode', label: 'Barcode' },
@@ -46,12 +48,17 @@ const FIELD_LABELS: { key: keyof LabelFields; label: string }[] = [
 export function PrintLabelsModal({
   isOpen, onClose, products, categories, storeId, storeName, initialProductIds, onSaveBarcode, generateBarcode,
 }: Props) {
+  const currentStore = useAuthStore(s => s.selectedStore);
+  const storeExchangeRate = currentStore?.exchange_rate || 4100;
   const [step, setStep] = useState<1 | 2>(1);
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [onlyMissing, setOnlyMissing] = useState(false);
   const [qty, setQty] = useState<Record<string, number>>({});
-  const [settings, setSettings] = useState<LabelSettings>(() => loadSettings(storeId));
+  const [settings, setSettings] = useState<LabelSettings>(() => {
+    const loaded = loadSettings(storeId);
+    return { ...loaded, exchangeRate: loaded.exchangeRate || 4100 };
+  });
   const [labelPrinter, setLabelPrinter] = useState(() => loadLabelPrinterPreferences(storeId));
   const [showPrinterSettings, setShowPrinterSettings] = useState(false);
   const [pendingPrint, setPendingPrint] = useState(false);
@@ -65,7 +72,6 @@ export function PrintLabelsModal({
   const exportController = useRef<AbortController | null>(null);
   const exportUrl = useRef<string | null>(null);
   const [exportProgress, setExportProgress] = useState({ done: 0, total: 0 });
-  const [readyPdf, setReadyPdf] = useState<{ url: string; name: string; blob: Blob; count: number } | null>(null);
   useEffect(() => () => {
     exportController.current?.abort();
     if (exportUrl.current) URL.revokeObjectURL(exportUrl.current);
@@ -75,7 +81,11 @@ export function PrintLabelsModal({
   // Reset when opened
   useEffect(() => {
     if (!isOpen) return;
-    setSettings(loadSettings(storeId));
+    const loaded = loadSettings(storeId);
+    setSettings({
+      ...loaded,
+      exchangeRate: loaded.exchangeRate || storeExchangeRate,
+    });
     setLabelPrinter(loadLabelPrinterPreferences(storeId));
     setShowPrinterSettings(false);
     setPendingPrint(false);
@@ -84,7 +94,7 @@ export function PrintLabelsModal({
     setQty(init);
     setStep(initialProductIds?.length ? 2 : 1);
     setQuery('');
-  }, [isOpen, storeId]);
+  }, [isOpen, storeId, storeExchangeRate]);
 
   useEffect(() => { if (isOpen) saveSettings(storeId, settings); }, [settings]);
 
@@ -134,9 +144,9 @@ export function PrintLabelsModal({
   const handlePrint = async () => {
     if (!printItems.length || directBusy.current) return;
     if (!labelPrinter.configured) { setPendingPrint(true); setShowPrinterSettings(true); return; }
-    if (labelPrinter.output === 'pdf') { void handleDownload(); return; }
-    if (labelPrinter.output === 'bluetooth' || labelPrinter.output === 'usb') {
-      const connection = labelPrinter.deviceId ? getLabelConnection(labelPrinter.output, labelPrinter.deviceId) : null;
+    if (labelPrinter.output === 'pdf') { void handleShare(); return; }
+    if (labelPrinter.output === 'bluetooth' || labelPrinter.output === 'usb' || labelPrinter.output === 'pocket') {
+      const connection = getLabelConnection(labelPrinter.output, labelPrinter.deviceId);
       if (!connection) { setPendingPrint(true); setShowPrinterSettings(true); return; }
       directBusy.current = true; setDirectPrinting(true); setDirectProgress(0);
       try {
@@ -159,13 +169,18 @@ export function PrintLabelsModal({
     }, 150);
   };
 
-  const handleDownload = async () => {
+  const triggerDownload = (url: string, name: string) => {
+    const link = document.createElement('a');
+    link.href = url; link.download = name; link.target = '_blank'; link.rel = 'noopener';
+    document.body.appendChild(link); link.click(); link.remove();
+  };
+
+  const handleShare = async () => {
     if (!selected.length || exportController.current) return;
     const controller = new AbortController();
     exportController.current = controller;
     setDownloading(true);
     setExportProgress({ done: 0, total: totalLabels });
-    setReadyPdf(null);
     if (exportUrl.current) { URL.revokeObjectURL(exportUrl.current); exportUrl.current = null; }
     try {
       const pdf = await createLabelPdf(selected.map(product => ({ product, quantity: qty[product.id] })), settings, {
@@ -177,29 +192,27 @@ export function PrintLabelsModal({
       const url = URL.createObjectURL(blob);
       exportUrl.current = url;
       const name = 'labels-' + new Date().toISOString().slice(0, 10) + '-' + settings.width + 'x' + settings.height + 'mm.pdf';
-      setReadyPdf({ url, name, blob, count: totalLabels });
-      // Keep a real link available for a fresh user tap on mobile browsers.
-      const link = document.createElement('a');
-      link.href = url; link.download = name; link.target = '_blank'; link.rel = 'noopener';
-      document.body.appendChild(link); link.click(); link.remove();
-      toast.success('PDF ready. If it did not download, tap Download PDF below.');
+
+      // Trigger native share dialog
+      const file = new File([blob], name, { type: 'application/pdf' });
+      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'Barcode labels' });
+        } catch (shareErr: any) {
+          if (shareErr?.name !== 'AbortError') {
+            triggerDownload(url, name);
+          }
+        }
+      } else {
+        triggerDownload(url, name);
+        toast.success('PDF downloaded.');
+      }
     } catch (e: any) {
       if (!controller.signal.aborted) toast.error(e?.message || 'Failed to generate PDF');
     } finally {
       exportController.current = null;
       setDownloading(false);
     }
-  };
-
-  const sharePdf = async () => {
-    if (!readyPdf) return;
-    try {
-      const file = new File([readyPdf.blob], readyPdf.name, { type: 'application/pdf' });
-      if (!navigator.canShare?.({ files: [file] })) {
-        toast.info('Tap Download PDF to open or save the file.'); return;
-      }
-      await navigator.share({ files: [file], title: 'Barcode labels' });
-    } catch (e: any) { if (e?.name !== 'AbortError') toast.error('Could not share PDF. Use Download PDF instead.'); }
   };
 
   useEffect(() => {
@@ -218,7 +231,12 @@ export function PrintLabelsModal({
 
   return (
     <>
-      <AnimatedModal isOpen={isOpen} onClose={downloading || directPrinting || showPrinterSettings ? undefined : onClose} position="center">
+      <AnimatedModal 
+        isOpen={isOpen} 
+        closeOnClickOutside={false}
+        onClose={downloading || directPrinting || showPrinterSettings ? undefined : onClose} 
+        position="center"
+      >
         <div className="flex w-[min(1100px,96vw)] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" style={{ height: 'min(760px, 92dvh)' }}>
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-brand-primary/5 via-white to-white px-6 py-4">
@@ -484,11 +502,7 @@ export function PrintLabelsModal({
             </div>
             <progress className="mt-2 w-full" max={exportProgress.total || 1} value={exportProgress.done} />
           </div>}
-          {readyPdf && <div className="flex flex-wrap items-center gap-3 border-t bg-emerald-50 px-6 py-3 text-sm" role="status">
-            <span className="flex-1">PDF ready · {readyPdf.count} labels</span>
-            <a className="rounded-lg bg-brand-primary px-4 py-2 font-semibold text-white" href={readyPdf.url} download={readyPdf.name} target="_blank" rel="noopener">Download PDF</a>
-            {typeof navigator.share === 'function' && <button onClick={sharePdf} className="rounded-lg border bg-white px-4 py-2">Share / Save to Files</button>}
-          </div>}
+
           {/* Footer */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-white px-4 py-3.5">
             <div className="text-sm">
@@ -519,14 +533,14 @@ export function PrintLabelsModal({
               ) : (
                 <>
                   <motion.button
-                    id="label-download-btn"
+                    id="label-share-btn"
                     whileTap={{ scale: 0.97 }}
                     disabled={!totalLabels || downloading || directPrinting}
-                    onClick={handleDownload}
+                    onClick={handleShare}
                     className="flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-bold text-foreground shadow-sm transition-all hover:border-brand-primary/40 hover:text-brand-primary disabled:opacity-40"
                   >
-                    {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                    {downloading ? 'Generating…' : 'Save PDF'}
+                    {downloading ? <Loader2 className="size-4 animate-spin" /> : <Share2 className="size-4" />}
+                    {downloading ? 'Generating…' : 'Share'}
                   </motion.button>
                   <motion.button
                   id="label-print-btn"

@@ -464,6 +464,8 @@ export const en: TranslationSchema = {
     systemPrintSub: 'Default print dialog (AirPrint/PDF)',
     bluetoothPos: 'Direct Bluetooth POS',
     bluetoothPosSub: 'Direct Web Bluetooth pairing',
+    pocketBle: 'Pocket / Lucky Jingle (BLE)',
+    pocketBleSub: 'Portable mini 57mm (DP-L1S / C&Co)',
     usbThermal: 'USB Thermal Printer',
     usbThermalSub: 'Plug-and-Play USB OTG (No IP needed)',
     networkIp: 'Network IP Printer',

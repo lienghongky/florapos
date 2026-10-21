@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Printer, Bluetooth, Usb, Wifi, FileDown } from 'lucide-react';
+import { Printer, Bluetooth, Usb, Wifi, FileDown, Zap } from 'lucide-react';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { LabelSettings, SHEET_PRESETS } from './label-templates';
 import { validateLabelLayout } from './label-pdf';
 import { chooseLabelPrinter, getLabelConnection, directLabelSupport, disconnectLabelPrinter, DirectLabelMode } from './label-printer-connection';
 
 export interface LabelPrinterPreferences {
-  output: 'system' | 'pdf' | 'bluetooth' | 'usb' | 'network';
+  output: 'system' | 'pdf' | 'bluetooth' | 'usb' | 'network' | 'pocket';
   configured: boolean; deviceId?: string; deviceName?: string;
 }
 export function loadLabelPrinterPreferences(storeId?: string): LabelPrinterPreferences {
   try {
     const value = JSON.parse(localStorage.getItem(`label-printer:${storeId || 'default'}`) || 'null');
-    if (value?.configured === true && ['system', 'pdf', 'bluetooth', 'usb', 'network'].includes(value.output)) return {
+    if (value?.configured === true && ['system', 'pdf', 'bluetooth', 'usb', 'network', 'pocket'].includes(value.output)) return {
       output: value.output, configured: true,
       ...(typeof value.deviceId === 'string' && typeof value.deviceName === 'string' ? { deviceId: value.deviceId, deviceName: value.deviceName } : {}),
     };
@@ -33,7 +33,7 @@ export function LabelPrinterSettingsModal({ preferences, settings, pendingPrint,
   const [connecting, setConnecting] = useState(false);
   const [chosenId, setChosenId] = useState(preferences.deviceId);
   const [, refreshConnection] = useState(0);
-  const direct = output === 'bluetooth' || output === 'usb';
+  const direct = output === 'bluetooth' || output === 'usb' || output === 'pocket';
   const connected = direct ? getLabelConnection(output, chosenId) : null;
   const unsupported = direct ? directLabelSupport(output) : null;
   useEffect(() => { if (!direct) return; const timer = setInterval(() => refreshConnection(n => n + 1), 1000); return () => clearInterval(timer); }, [direct]);
@@ -46,18 +46,19 @@ export function LabelPrinterSettingsModal({ preferences, settings, pendingPrint,
     finally { setConnecting(false); }
   };
   const patch = (next: Partial<LabelSettings>) => { setLayout(previous => ({ ...previous, ...next })); setError(''); };
-  return <AnimatedModal isOpen onClose={connecting ? undefined : onClose} position="center">
-    <div role="dialog" aria-label="Label printer settings" className="w-[min(480px,92vw)] max-h-[85dvh] overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+  return <AnimatedModal isOpen closeOnClickOutside={false} onClose={connecting ? undefined : onClose} position="center">
+    <div role="dialog" aria-label="Label printer settings" className="w-[min(520px,94vw)] max-h-[85dvh] overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
       <h2 className="text-lg font-bold">Choose label printer</h2>
       <p className="mt-1 text-sm text-muted-foreground">For barcode labels only. Receipt printer settings stay separate.</p>
       <fieldset className="mt-5">
         <legend className="mb-2 text-sm font-semibold">Choose printer connection</legend>
         <div className="grid grid-cols-2 gap-2">
           {([
-            ['system', 'System dialog', 'Choose a device printer', Printer],
-            ['network', 'Wi-Fi / network', 'R80A through a print service', Wifi],
-            ['bluetooth', 'Bluetooth', 'Choose a Bluetooth LE printer', Bluetooth],
-            ['usb', 'USB / OTG', 'Choose a plugged-in printer', Usb],
+            ['system', 'System dialog', 'Device printer / AirPrint', Printer],
+            ['network', 'Wi-Fi / network', 'R80A through print service', Wifi],
+            ['bluetooth', 'Bluetooth (ESC/POS)', 'Standard ESC/POS BLE', Bluetooth],
+            ['pocket', 'Lucky Jingle (Pocket)', 'DP-L1S / C&Co / Pocket 57mm', Zap],
+            ['usb', 'USB / OTG', 'Choose plugged-in printer', Usb],
             ['pdf', 'PDF / printer app', 'Save or share labels', FileDown],
           ] as const).map(([mode, title, subtitle, Icon]) => <button key={mode} type="button" aria-pressed={output === mode} disabled={connecting}
             onClick={() => { setOutput(mode); setError(''); setChosenId(preferences.output === mode ? preferences.deviceId : undefined); }}
@@ -78,10 +79,14 @@ export function LabelPrinterSettingsModal({ preferences, settings, pendingPrint,
       {direct && <div className="mt-3 space-y-3 rounded-xl border p-3">
         <p className="text-sm font-semibold">{connected ? 'Connected: ' + connected.name : preferences.output === output && preferences.deviceName ? 'Last chosen: ' + preferences.deviceName + ' — reconnect required' : 'No label printer connected'}</p>
         {unsupported ? <p className="text-sm text-amber-700">{unsupported}</p> : <>
-          <button type="button" disabled={connecting} className="rounded-lg bg-brand-primary px-4 py-3 text-sm font-semibold text-white disabled:opacity-50" onClick={connect}>{connecting ? 'Connecting…' : connected ? 'Choose another printer' : 'Choose ' + (output === 'usb' ? 'USB' : 'Bluetooth') + ' printer'}</button>
+          <button type="button" disabled={connecting} className="rounded-lg bg-brand-primary px-4 py-3 text-sm font-semibold text-white disabled:opacity-50" onClick={connect}>{connecting ? 'Connecting…' : connected ? 'Choose another printer' : 'Choose ' + (output === 'usb' ? 'USB' : output === 'pocket' ? 'Pocket (Lucky Jingle)' : 'Bluetooth') + ' printer'}</button>
           {connected && <button type="button" className="ml-2 text-sm underline" onClick={async () => { try { await disconnectLabelPrinter(); } catch (e) { setError(String(e)); } refreshConnection(n => n + 1); }}>Disconnect</button>}
         </>}
-        <p className="text-xs text-muted-foreground">R80A / ESC/POS profile · 203 dpi · maximum 72 mm print width · continuous roll. Direct printing does not cut paper or control a label-gap sensor.</p>
+        {output === 'pocket' ? (
+          <p className="text-xs text-muted-foreground">Lucky Jingle / LuckPrinter / Crafts & Co / DP-L1S · 203 dpi · 384 dots (48-58mm roll) · direct Web Bluetooth raster output with label gap alignment.</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">R80A / ESC/POS profile · 203 dpi · maximum 72 mm print width · continuous roll. Direct printing does not cut paper or control a label-gap sensor.</p>
+        )}
         {output === 'bluetooth' && <p className="text-xs text-muted-foreground">Requires a Bluetooth LE print service. Classic Bluetooth and Wi-Fi-only R80A models will not connect here.</p>}
       </div>}
       <label className="mt-4 block text-sm font-semibold">Paper
@@ -104,7 +109,9 @@ export function LabelPrinterSettingsModal({ preferences, settings, pendingPrint,
         <button disabled={connecting || (direct && !connected)} className="rounded-lg bg-brand-primary px-4 py-3 font-semibold text-white disabled:opacity-40" onClick={() => {
           try {
             validateLabelLayout(layout);
-            if (direct && (layout.paper !== 'roll' || layout.width > 72)) throw new Error('R80A direct printing requires roll labels no wider than 72 mm.');
+            if (direct && layout.paper !== 'roll') throw new Error('Direct printing requires thermal roll labels.');
+            if (output === 'pocket' && layout.width > 58) throw new Error('Pocket printer supports roll labels up to 58mm width.');
+            if ((output === 'bluetooth' || output === 'usb') && layout.width > 72) throw new Error('R80A direct printing requires roll labels no wider than 72 mm.');
             if (direct && !connected) throw new Error('Choose and connect a printer first.');
             onSave({ output, configured: true, ...(connected ? { deviceId: connected.id, deviceName: connected.name } : {}) }, layout);
           } catch (e) { setError(e instanceof Error ? e.message : 'Check paper settings.'); }

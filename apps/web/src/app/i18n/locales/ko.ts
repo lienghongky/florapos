@@ -464,6 +464,8 @@ export const ko: TranslationSchema = {
     systemPrintSub: '기본 인쇄 대화상자 (AirPrint/PDF)',
     bluetoothPos: '다이렉트 블루투스 POS',
     bluetoothPosSub: '웹 블루투스 직접 페어링',
+    pocketBle: '포켓 프린터 (Lucky Jingle)',
+    pocketBleSub: '휴대용 미니 BLE (DP-L1S / C&Co 57mm)',
     usbThermal: 'USB 감열식 프린터',
     usbThermalSub: '플러그 앤 플레이 USB OTG (IP 불필요)',
     networkIp: '네트워크 IP 프린터',

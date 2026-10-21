@@ -464,6 +464,8 @@ export interface TranslationSchema {
     systemPrintSub: string;
     bluetoothPos: string;
     bluetoothPosSub: string;
+    pocketBle: string;
+    pocketBleSub: string;
     usbThermal: string;
     usbThermalSub: string;
     networkIp: string;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Order, OrderItem } from '@/app/types';
-import { Printer, Download, Settings, FileText, Image as ImageIcon, Bluetooth, Check } from 'lucide-react';
+import { Printer, Download, Settings, FileText, Image as ImageIcon, Bluetooth, Check, Zap } from 'lucide-react';
 import { formatDateTime, formatPaymentMethod } from '@/app/utils/format';
 import { useAuthStore } from '@/app/store/auth-store';
 import { usePrinterStore } from '@/app/store/printer-store';
@@ -32,7 +32,7 @@ export function OrderReceipt({
     showActions = true
 }: OrderReceiptProps) {
     const { user, selectedStore } = useAuthStore();
-    const { printMode, isBluetoothConnected, bluetoothDeviceName } = usePrinterStore();
+    const { printMode, isBluetoothConnected, bluetoothDeviceName, isPocketConnected, pocketDeviceName } = usePrinterStore();
     const [showPrinterSettings, setShowPrinterSettings] = useState(false);
     const [showDownloadMenu, setShowDownloadMenu] = useState(false);
 
@@ -203,6 +203,8 @@ export function OrderReceipt({
                                 >
                                     {printMode === 'bluetooth' ? (
                                         <Bluetooth className="size-4 text-blue-400" />
+                                    ) : printMode === 'pocket' ? (
+                                        <Zap className="size-4 text-amber-400" />
                                     ) : (
                                         <Printer className="size-4" />
                                     )}
@@ -253,6 +255,11 @@ export function OrderReceipt({
                                         <>
                                             <span className="inline-block size-2 rounded-full bg-blue-500 animate-pulse" />
                                             Direct BT: {isBluetoothConnected ? (bluetoothDeviceName || 'Ready') : 'Not Paired'}
+                                        </>
+                                    ) : printMode === 'pocket' ? (
+                                        <>
+                                            <span className="inline-block size-2 rounded-full bg-amber-500 animate-pulse" />
+                                            Lucky Jingle: {isPocketConnected ? (pocketDeviceName || 'Ready') : 'Not Paired'}
                                         </>
                                     ) : (
                                         <>

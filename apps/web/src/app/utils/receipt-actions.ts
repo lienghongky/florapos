@@ -5,6 +5,13 @@ import { domToCanvas } from 'modern-screenshot';
 import { toast } from 'sonner';
 import { usePrinterStore } from '../store/printer-store';
 import { EscPosBuilder } from './escpos-builder';
+import {
+    getActivePocketConnection,
+    generatePocketReceiptCanvas,
+    canvasToPocketRaster,
+    executePocketPrintJob,
+    POCKET_PRINT_WIDTH
+} from './pocket-printer';
 
 export interface PrintReceiptOptions {
     customNote?: string;
@@ -104,6 +111,43 @@ export async function printReceipt(
 ): Promise<boolean> {
     const printerStore = usePrinterStore.getState();
     const { printMode, paperSize, autoCut, openCashDrawer, sendBluetoothBytes } = printerStore;
+
+    // 0. Pocket BLE Printer (Lucky Jingle / DP-L1S / C&Co 3128)
+    if (printMode === 'pocket') {
+        const toastId = toast.loading('Sending receipt to Pocket printer (Lucky Jingle)...');
+        try {
+            let active = getActivePocketConnection();
+            if (!active || !active.connected()) {
+                const connected = await printerStore.connectPocketPrinter();
+                if (!connected) {
+                    toast.dismiss(toastId);
+                    return false;
+                }
+                active = getActivePocketConnection();
+            }
+            if (!active) throw new Error('Pocket printer is not connected.');
+
+            const receiptCanvas = generatePocketReceiptCanvas(order, store, options);
+            const raster = canvasToPocketRaster(receiptCanvas, POCKET_PRINT_WIDTH);
+
+            await executePocketPrintJob(active.writeChar, raster, {
+                labelMode: false,
+                density: 1,
+                feedDots: 80,
+                onProgress: (percent) => {
+                    toast.loading(`Printing receipt: ${percent}%...`, { id: toastId });
+                }
+            });
+
+            toast.dismiss(toastId);
+            toast.success('Receipt printed on Pocket printer!');
+            return true;
+        } catch (err: any) {
+            console.error('Pocket print failed:', err);
+            toast.dismiss(toastId);
+            toast.error(err?.message || 'Pocket printer failed. Falling back to system print...');
+        }
+    }
 
     // 1. Direct Bluetooth Print Mode
     if (printMode === 'bluetooth') {

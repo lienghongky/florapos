@@ -6,6 +6,7 @@ export interface LabelFields {
   storeName: boolean;
   productName: boolean;
   price: boolean;
+  showKhrPrice: boolean;
   sku: boolean;
   barcode: boolean;
   barcodeDigits: boolean;
@@ -33,6 +34,7 @@ export interface LabelSettings {
   bestBeforeDays: number;
   note: string;
   currency: string;
+  exchangeRate?: number;
 }
 
 export interface LabelTemplate {
@@ -48,16 +50,16 @@ export interface LabelTemplate {
 }
 
 const baseFields: LabelFields = {
-  storeName: false, productName: true, price: true, sku: false, barcode: true,
+  storeName: false, productName: true, price: true, showKhrPrice: true, sku: false, barcode: true,
   barcodeDigits: true, category: false, madeOn: false, bestBefore: false, note: false,
 };
 
 export const LABEL_TEMPLATES: LabelTemplate[] = [
-  { id: 'classic', name: 'Classic', description: 'Store · name · price · barcode', width: 50, height: 30, fields: { storeName: true }, barHeight: 10 },
-  { id: 'price', name: 'Price Tag', description: 'Big price, compact barcode', width: 40, height: 30, fields: {}, fontScale: 'lg', align: 'center', barHeight: 8 },
-  { id: 'compact', name: 'Compact', description: 'Name + barcode for small items', width: 38, height: 25, fields: { price: false }, fontScale: 'sm', align: 'center', barHeight: 9 },
-  { id: 'fresh', name: 'Fresh', description: 'With made-on & best-before dates', width: 50, height: 40, fields: { storeName: true, madeOn: true, bestBefore: true }, barHeight: 10 },
-  { id: 'shelf', name: 'Shelf', description: 'Large name, SKU and price', width: 70, height: 38, fields: { sku: true, category: true }, fontScale: 'lg', barHeight: 11 },
+  { id: 'classic', name: 'Classic', description: 'Store · name · price · barcode', width: 50, height: 30, fields: { storeName: true, showKhrPrice: true }, barHeight: 10 },
+  { id: 'price', name: 'Price Tag', description: 'Big price, compact barcode', width: 40, height: 30, fields: { showKhrPrice: true }, fontScale: 'lg', align: 'center', barHeight: 8 },
+  { id: 'compact', name: 'Compact', description: 'Name + barcode for small items', width: 38, height: 25, fields: { price: false, showKhrPrice: false }, fontScale: 'sm', align: 'center', barHeight: 9 },
+  { id: 'fresh', name: 'Fresh', description: 'With made-on & best-before dates', width: 50, height: 40, fields: { storeName: true, madeOn: true, bestBefore: true, showKhrPrice: true }, barHeight: 10 },
+  { id: 'shelf', name: 'Shelf', description: 'Large name, SKU and price', width: 70, height: 38, fields: { sku: true, category: true, showKhrPrice: true }, fontScale: 'lg', barHeight: 11 },
 ];
 
 export const DEFAULT_SETTINGS: LabelSettings = {
@@ -69,7 +71,7 @@ export const DEFAULT_SETTINGS: LabelSettings = {
   sheetRows: 8,
   sheetMargin: 8,
   sheetGap: 2,
-  fields: { ...baseFields, storeName: true },
+  fields: { ...baseFields, storeName: true, showKhrPrice: true },
   fontScale: 'md',
   align: 'left',
   border: false,
@@ -78,6 +80,7 @@ export const DEFAULT_SETTINGS: LabelSettings = {
   bestBeforeDays: 2,
   note: 'Keep refrigerated',
   currency: '$',
+  exchangeRate: 4100,
 };
 
 export function applyTemplate(current: LabelSettings, t: LabelTemplate): LabelSettings {
@@ -106,7 +109,15 @@ export function loadSettings(storeId?: string): LabelSettings {
     const raw = localStorage.getItem(STORAGE_KEY(storeId));
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...DEFAULT_SETTINGS, ...parsed, fields: { ...DEFAULT_SETTINGS.fields, ...parsed.fields } };
+      return { 
+        ...DEFAULT_SETTINGS, 
+        ...parsed, 
+        fields: { 
+          ...DEFAULT_SETTINGS.fields, 
+          ...parsed.fields,
+          showKhrPrice: parsed.fields?.showKhrPrice ?? true,
+        } 
+      };
     }
   } catch { /* ignore */ }
   return DEFAULT_SETTINGS;

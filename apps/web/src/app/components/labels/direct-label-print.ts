@@ -2,6 +2,7 @@ import { LabelProduct } from './Label';
 import { LabelSettings } from './label-templates';
 import { renderLabelCanvas, validateLabelLayout } from './label-pdf';
 import { LabelConnection } from './label-printer-connection';
+import { canvasToPocketRaster, executePocketPrintJob } from '@/app/utils/pocket-printer';
 
 /** ESC/POS GS v 0: each set bit is a black dot, MSB first, row-aligned. */
 export function encodeEscPosRaster(width: number, height: number, rgba: Uint8ClampedArray): Uint8Array {
@@ -21,7 +22,13 @@ export function encodeEscPosRaster(width: number, height: number, rgba: Uint8Cla
 let busy = false;
 export async function printDirectLabels(connection: LabelConnection, items: { product: LabelProduct; quantity: number }[], settings: LabelSettings, storeName?: string, onProgress?: (done: number, total: number) => void) {
   validateLabelLayout(settings);
-  if (settings.paper !== 'roll' || settings.width > 72) throw new Error('R80A direct printing needs roll labels no wider than 72 mm (576 dots).');
+  if (connection.mode === 'pocket') {
+    if (settings.paper !== 'roll' || settings.width > 58) {
+      throw new Error('Pocket printer uses ~57mm roll paper (print width max 48-58mm). Please choose Roll paper with width <= 58mm.');
+    }
+  } else if (settings.paper !== 'roll' || settings.width > 72) {
+    throw new Error('R80A direct printing needs roll labels no wider than 72 mm (576 dots).');
+  }
   if (!items.length || items.some(item => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999)) throw new Error('Choose valid label quantities.');
   if (!connection.connected()) throw new Error('Reconnect your label printer in Printer settings.');
   if (busy) throw new Error('A label print job is already running.');
@@ -29,6 +36,28 @@ export async function printDirectLabels(connection: LabelConnection, items: { pr
   let done = 0;
   const total = items.reduce((sum, item) => sum + item.quantity, 0);
   try {
+    if (connection.mode === 'pocket') {
+      for (const { product, quantity } of items) {
+        for (let copy = 0; copy < quantity; copy++) {
+          const canvas = renderLabelCanvas(product, settings, storeName, 203.2);
+          try {
+            const raster = canvasToPocketRaster(canvas, 384);
+            await executePocketPrintJob(raster, {
+              labelMode: true,
+              density: 0x5a,
+            });
+          } finally {
+            canvas.width = 0;
+            canvas.height = 0;
+          }
+          onProgress?.(++done, total);
+          if (copy < quantity - 1 || items.indexOf(items.find(i => i.product === product)!) < items.length - 1) {
+            await new Promise(r => setTimeout(r, 250));
+          }
+        }
+      }
+      return;
+    }
     for (const { product, quantity } of items) {
       // R80A uses 8 dots/mm. Labels retain their physical dimensions and Unicode text.
       const canvas = renderLabelCanvas(product, settings, storeName, 203.2);

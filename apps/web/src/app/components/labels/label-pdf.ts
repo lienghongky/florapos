@@ -22,12 +22,12 @@ export function renderLabelCanvas(product: LabelProduct, s: LabelSettings, store
   if (!c) throw new Error('This browser cannot render label images.');
   c.scale(density, density);
   c.fillStyle = '#fff'; c.fillRect(0, 0, s.width, s.height); c.fillStyle = '#000';
-  const scale = { sm: .85, md: 1, lg: 1.2 }[s.fontScale] * Math.min(1.25, Math.max(.75, s.height / 30));
+  const scale = ({ sm: 1.7, md: 2.0, lg: 2.4 }[s.fontScale] ?? 2.0) * Math.min(1.25, Math.max(.75, s.height / 30));
   const width = s.width - 4.4;
-  const font = (pt: number, bold = false) => { c.font = `${bold ? 'bold ' : ''}${pt * scale * 25.4 / 72}px Arial, sans-serif`; };
+  const font = (pt: number, bold = false) => { c.font = `${bold ? 'bold ' : ''}${pt * scale * 25.4 / 72}px Arial, 'Noto Sans Khmer', sans-serif`; };
   const f = s.fields;
   const barHeight = Math.max(1, Math.min(s.barHeight, s.height - 5));
-  const digitsHeight = f.barcodeDigits && product.barcode ? 3 * scale : 0;
+  const digitsHeight = f.barcodeDigits && product.barcode ? (s.templateId === 'classic' ? 2.0 : 2.6) * scale : 0;
   const bottom = s.height - 1.8;
   const contentBottom = f.barcode ? bottom - barHeight - digitsHeight - .6 : bottom;
   let y = 1.8;
@@ -49,22 +49,43 @@ export function renderLabelCanvas(product: LabelProduct, s: LabelSettings, store
   };
   const bigPrice = s.templateId === 'price';
   const priceText = `${s.currency}${Number(product.price || 0).toFixed(2)}`;
+  const exchangeRate = s.exchangeRate || 4100;
+  const khrValue = Math.round(Number(product.price || 0) * exchangeRate);
+  const khrText = `${khrValue.toLocaleString()}៛`;
+
   if (f.price && !bigPrice && s.align !== 'center') {
-    font(9, s.boldPrice);
+    font(7.8, s.boldPrice);
     const priceWidth = c.measureText(priceText).width;
-    c.textBaseline = 'top'; c.textAlign = 'right'; c.fillText(priceText, s.width - 2.2, y, width);
+    c.textBaseline = 'top'; c.textAlign = 'right'; c.fillText(priceText, s.width - 2.2, y);
+
+    let priceBlockHeight = 7.8 * scale * 25.4 / 72 * 1.05;
+
+    if (f.showKhrPrice) {
+      font(4.5, true);
+      c.textBaseline = 'top'; c.textAlign = 'right';
+      c.fillText(khrText, s.width - 2.2, y + priceBlockHeight);
+      priceBlockHeight += 4.5 * scale * 25.4 / 72 * 1.05;
+    }
+
     if (f.storeName && storeName) {
-      font(5.5, true); c.textAlign = 'left';
+      font(3.2, true); c.textAlign = 'left'; c.textBaseline = 'top';
       const available = Math.max(0, width - priceWidth - 1);
       let name = storeName.toUpperCase();
       while (name && c.measureText(name).width > available) name = name.slice(0, -1);
-      if (name) c.fillText(name, 2.2, y);
+      if (name) c.fillText(name, 2.2, y + 0.3);
     }
-    y += 9 * scale * 25.4 / 72 * 1.15 + .6;
-  } else if (f.storeName && storeName) text(storeName.toUpperCase(), 5.5, true);
-  if (f.productName) text(product.name, s.templateId === 'price' ? 6.5 : 7.5, true, 2);
+    y += priceBlockHeight + .6;
+  } else if (f.storeName && storeName) {
+    text(storeName.toUpperCase(), 3.2, true);
+  }
+  if (f.productName) text(product.name, s.templateId === 'classic' ? 5.2 : s.templateId === 'price' ? 6.5 : 6.0, true, 2);
   text([f.category && product.category, f.sku && product.sku && `SKU ${product.sku}`].filter(Boolean).join(' · '), 5);
-  if (f.price && (bigPrice || s.align === 'center')) text(priceText, bigPrice ? 16 : 10, s.boldPrice);
+  if (f.price && (bigPrice || s.align === 'center')) {
+    text(priceText, bigPrice ? 14 : 8.5, s.boldPrice);
+    if (f.showKhrPrice) {
+      text(khrText, bigPrice ? 7 : 5, true);
+    }
+  }
   const date = (d: Date) => d.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
   text([f.madeOn && `Made ${date(new Date())}`, f.bestBefore && `Best before ${date(new Date(Date.now() + s.bestBeforeDays * 86400000))}`].filter(Boolean).join('  '), 5);
   if (f.note && s.note) text(s.note, 4.8);
@@ -79,8 +100,8 @@ export function renderLabelCanvas(product: LabelProduct, s: LabelSettings, store
       } catch { throw new Error(`Invalid barcode for ${product.name}. Edit the barcode before exporting.`); }
       finally { barcode.width = 0; barcode.height = 0; }
       if (f.barcodeDigits) {
-        font(5.5); c.textAlign = 'center'; c.textBaseline = 'top';
-        c.fillText(product.barcode, s.width / 2, top + barHeight + .4, width);
+        font(s.templateId === 'classic' ? 3.6 : 4.0); c.textAlign = 'center'; c.textBaseline = 'top';
+        c.fillText(product.barcode, s.width / 2, top + barHeight + .3, width);
       }
     } else { font(5); c.textAlign = 'center'; c.fillText('No barcode', s.width / 2, top + barHeight / 2); }
   }

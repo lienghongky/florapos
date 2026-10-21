@@ -3,7 +3,17 @@ import { persist } from 'zustand/middleware';
 import { EscPosBuilder } from '../utils/escpos-builder';
 import { toast } from 'sonner';
 
-export type PrintMode = 'system' | 'bluetooth' | 'rawbt' | 'network' | 'native_bridge';
+import {
+    connectPocketPrinter as connectPocketBle,
+    disconnectPocketPrinter as disconnectPocketBle,
+    getActivePocketConnection,
+    generatePocketTestCanvas,
+    canvasToPocketRaster,
+    executePocketPrintJob,
+    POCKET_PRINT_WIDTH
+} from '../utils/pocket-printer';
+
+export type PrintMode = 'system' | 'bluetooth' | 'pocket' | 'rawbt' | 'network' | 'native_bridge';
 export type PaperSize = '58mm' | '80mm';
 
 interface PrinterState {
@@ -16,6 +26,11 @@ interface PrinterState {
     isBluetoothConnected: boolean;
     isScanning: boolean;
     lastError: string | null;
+
+    // Pocket BLE Printer (Lucky Jingle / DP-L1S)
+    pocketDeviceName: string | null;
+    isPocketConnected: boolean;
+    pocketBattery: number | null;
 
     // Network Printer state
     networkPrinterIp: string;
@@ -33,6 +48,10 @@ interface PrinterState {
     connectBluetoothPrinter: () => Promise<boolean>;
     disconnectBluetoothPrinter: () => void;
     sendBluetoothBytes: (bytes: Uint8Array) => Promise<boolean>;
+
+    connectPocketPrinter: () => Promise<boolean>;
+    disconnectPocketPrinter: () => void;
+
     testPrint: () => Promise<void>;
 }
 
@@ -62,6 +81,10 @@ export const usePrinterStore = create<PrinterState>()(
             isScanning: false,
             lastError: null,
 
+            pocketDeviceName: null,
+            isPocketConnected: false,
+            pocketBattery: null,
+
             networkPrinterIp: '192.168.1.200',
             networkPrinterPort: 9100,
 
@@ -76,7 +99,7 @@ export const usePrinterStore = create<PrinterState>()(
             connectBluetoothPrinter: async () => {
                 const nav = navigator as any;
                 if (!nav.bluetooth) {
-                    const msg = 'Web Bluetooth API is not supported on this browser or OS. Try Chrome on Android.';
+                    const msg = 'Web Bluetooth API is not supported on this browser or OS. Try Chrome on Android, macOS, or Windows.';
                     toast.error(msg);
                     set({ lastError: msg, isBluetoothConnected: false });
                     return false;
@@ -200,8 +223,70 @@ export const usePrinterStore = create<PrinterState>()(
                 }
             },
 
+            connectPocketPrinter: async () => {
+                set({ isScanning: true, lastError: null });
+                try {
+                    const conn = await connectPocketBle((battery) => {
+                        set({ pocketBattery: battery });
+                    });
+                    set({
+                        isPocketConnected: true,
+                        pocketDeviceName: conn.name,
+                        pocketBattery: conn.battery,
+                        printMode: 'pocket',
+                        isScanning: false,
+                        lastError: null,
+                    });
+                    toast.success(`Connected to ${conn.name}!`);
+                    return true;
+                } catch (err: any) {
+                    console.error('Pocket printer connection error:', err);
+                    const errorMsg = err?.message || 'Failed to connect Pocket printer';
+                    toast.error(errorMsg);
+                    set({ isScanning: false, isPocketConnected: false, lastError: errorMsg });
+                    return false;
+                }
+            },
+
+            disconnectPocketPrinter: () => {
+                disconnectPocketBle().catch(() => {});
+                set({
+                    isPocketConnected: false,
+                    pocketDeviceName: null,
+                    pocketBattery: null,
+                    printMode: 'system'
+                });
+                toast.info('Disconnected from Pocket printer');
+            },
+
             testPrint: async () => {
                 const { paperSize, printMode, sendBluetoothBytes } = get();
+
+                if (printMode === 'pocket') {
+                    let active = getActivePocketConnection();
+                    if (!active || !active.connected()) {
+                        const ok = await get().connectPocketPrinter();
+                        if (!ok) return;
+                        active = getActivePocketConnection();
+                    }
+                    if (!active) return;
+                    const toastId = toast.loading('Sending test print to Pocket printer (Lucky Jingle)...');
+                    try {
+                        const testCanvas = generatePocketTestCanvas();
+                        const raster = canvasToPocketRaster(testCanvas, POCKET_PRINT_WIDTH);
+                        await executePocketPrintJob(active.writeChar, raster, {
+                            labelMode: false,
+                            density: 1,
+                            feedDots: 80,
+                        });
+                        toast.dismiss(toastId);
+                        toast.success('Pocket test receipt printed successfully!');
+                    } catch (err: any) {
+                        toast.dismiss(toastId);
+                        toast.error(err?.message || 'Pocket printer test print failed');
+                    }
+                    return;
+                }
 
                 const builder = new EscPosBuilder(paperSize);
                 builder.align('center');

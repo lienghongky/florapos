@@ -464,6 +464,8 @@ export const km: TranslationSchema = {
     systemPrintSub: 'ផ្ទាំងបោះពុម្ពលំនាំដើម (AirPrint/PDF)',
     bluetoothPos: 'Bluetooth POS ដោយផ្ទាល់',
     bluetoothPosSub: 'ភ្ជាប់ Bluetooth តាមគេហទំព័រដោយផ្ទាល់',
+    pocketBle: 'ម៉ាស៊ីនបោះពុម្ពហោប៉ៅ (Lucky Jingle)',
+    pocketBleSub: 'ម៉ាស៊ីនតូចចល័ត BLE (DP-L1S / C&Co 57mm)',
     usbThermal: 'ម៉ាស៊ីនបោះពុម្ពកម្ដៅ USB',
     usbThermalSub: 'ដោតប្រើភ្លាមៗតាម USB OTG (មិនបាច់ប្រើ IP)',
     networkIp: 'ម៉ាស៊ីនបោះពុម្ពតាមបណ្តាញ IP',
