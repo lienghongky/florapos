@@ -6,6 +6,7 @@ import { domToCanvas } from 'modern-screenshot';
 import { toast } from 'sonner';
 import { usePrinterStore } from '../store/printer-store';
 import { EscPosBuilder } from './escpos-builder';
+import { generateReceiptCanvas } from './receipt-canvas';
 import {
     getActivePocketConnection,
     generatePocketReceiptCanvas,
@@ -282,11 +283,11 @@ export async function printReceipt(
         }
     }
 
-    // 1. Direct Bluetooth Print Mode
+    // 1. Direct Bluetooth Print Mode (Raster Graphic Mode with Khmer font support)
     if (printMode === 'bluetooth') {
-        const toastId = toast.loading('Sending receipt to Bluetooth printer...');
+        const toastId = toast.loading('Sending raster receipt to Bluetooth printer...');
         try {
-            const escPosBytes = EscPosBuilder.generateOrderEscPos(order, store, {
+            const escPosBytes = EscPosBuilder.generateOrderRasterEscPos(order, store, {
                 paperSize,
                 cutPaper: autoCut,
                 openDrawer: openCashDrawer,
@@ -316,35 +317,44 @@ export async function printReceipt(
         }
     }
 
-    // 2. ESC-POS Driver Mode (solyarisoftware/posprinterdriver - com.fidelier.posprinterdriver)
+    // 2. ESC-POS Driver Mode (Ottor Print / com.fidelier.posprinterdriver)
     if (printMode === 'escpos_driver') {
         try {
-            const singleReceipt = generateFidelierReceiptText(order, store, {
+            const canvas = generateReceiptCanvas(order, store, {
                 paperSize,
-                cutPaper: autoCut,
-                openDrawer: openCashDrawer,
                 customNote: options.customNote,
                 customInvoiceCode: options.customInvoiceCode
             });
+            const pngDataUrl = canvas.toDataURL('image/png');
+            const singleReceipt = `${openCashDrawer ? '$drawer$' : ''}$image:${pngDataUrl}$intro$$intro$${autoCut ? '$cut$' : ''}`;
 
             const textToSend = copies > 1
                 ? `${singleReceipt}$intro$$intro$${singleReceipt}`
                 : singleReceipt;
 
-            const intentUrl = `intent:${encodeURIComponent(textToSend)}#Intent;scheme=com.fidelier.printfromweb;package=com.fidelier.posprinterdriver;end;`;
-            window.location.href = intentUrl;
-            toast.success(copies > 1 ? 'Sent 2 receipts to ESC-POS Driver app!' : 'Sent print job to ESC-POS Driver app!');
+            const driverApp = printerStore.driverApp || 'ottor';
+            const scheme = (printerStore.driverScheme || 'ottor-print').trim().replace(/:+$/, '');
+
+            if (driverApp === 'ottor') {
+                const intentUrl = `intent:${encodeURIComponent(textToSend)}#Intent;scheme=${scheme};end;`;
+                window.location.href = intentUrl;
+                toast.success(copies > 1 ? `Sent 2 receipts to Ottor Print (${scheme}:)!` : `Sent print job to Ottor Print (${scheme}:)!`);
+            } else {
+                const intentUrl = `intent:${encodeURIComponent(textToSend)}#Intent;scheme=com.fidelier.printfromweb;package=com.fidelier.posprinterdriver;end;`;
+                window.location.href = intentUrl;
+                toast.success(copies > 1 ? 'Sent 2 receipts to ESC-POS Driver app!' : 'Sent print job to ESC-POS Driver app!');
+            }
             return true;
         } catch (err: any) {
             console.error('ESC-POS Driver Intent print error:', err);
-            toast.error('Failed to trigger ESC-POS Driver app');
+            toast.error('Failed to trigger Android printer app');
         }
     }
 
-    // 3. Android RawBT Intent Mode (Network IP, USB, & Bluetooth driver on Android)
-    if (printMode === 'rawbt' || printMode === 'network') {
+    // 3. Android RawBT Intent Mode (Network IP, USB, & Bluetooth driver on Android via Raster ESC/POS)
+    if (printMode === 'rawbt' || printMode === 'network' || printMode === 'usb') {
         try {
-            const escPosBytes = EscPosBuilder.generateOrderEscPos(order, store, {
+            const escPosBytes = EscPosBuilder.generateOrderRasterEscPos(order, store, {
                 paperSize,
                 cutPaper: autoCut,
                 openDrawer: openCashDrawer,
@@ -377,13 +387,13 @@ export async function printReceipt(
         }
     }
 
-    // 3. Android Native Bridge Mode (For Android WebView/Capacitor apps)
+    // 4. Android Native Bridge Mode (For Android WebView/Capacitor apps)
     const win = window as any;
     if (win.AndroidPrintBridge || win.AndroidBridge || printMode === 'native_bridge') {
         const bridge = win.AndroidPrintBridge || win.AndroidBridge;
         if (bridge && typeof bridge.printReceipt === 'function') {
             try {
-                const escPosBytes = EscPosBuilder.generateOrderEscPos(order, store, {
+                const escPosBytes = EscPosBuilder.generateOrderRasterEscPos(order, store, {
                     paperSize,
                     cutPaper: autoCut,
                     openDrawer: openCashDrawer,
@@ -409,7 +419,10 @@ export async function printReceipt(
     const toastId = toast.loading('Opening system print preview...');
     try {
         const receiptList = copies > 1 ? [order, order] : [order];
-        await printSystemReceipts(receiptList, store, options);
+        await printSystemReceipts(receiptList, store, {
+            ...options,
+            paperSize,
+        });
         return true;
     } catch (error) {
         console.error('System Print Error:', error);

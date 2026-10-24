@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { EscPosBuilder } from '../utils/escpos-builder';
+import { generateTestReceiptCanvas } from '../utils/receipt-canvas';
+import { printSystemReceipts } from '../utils/system-receipt-print';
 import { toast } from 'sonner';
 
 import {
@@ -13,8 +15,9 @@ import {
     POCKET_PRINT_WIDTH
 } from '../utils/pocket-printer';
 
-export type PrintMode = 'system' | 'bluetooth' | 'pocket' | 'rawbt' | 'network' | 'native_bridge' | 'escpos_driver';
+export type PrintMode = 'system' | 'bluetooth' | 'pocket' | 'rawbt' | 'network' | 'native_bridge' | 'escpos_driver' | 'usb';
 export type PaperSize = '58mm' | '80mm';
+export type DriverAppType = 'ottor' | 'fidelier';
 
 interface PrinterState {
     printMode: PrintMode;
@@ -38,9 +41,15 @@ interface PrinterState {
     networkPrinterIp: string;
     networkPrinterPort: number;
 
+    // ESC-POS Driver App Target (Ottor Print vs Fidelier)
+    driverApp: DriverAppType;
+    driverScheme: string;
+
     // Actions
     setPrintMode: (mode: PrintMode) => void;
     setPaperSize: (size: PaperSize) => void;
+    setDriverApp: (app: DriverAppType) => void;
+    setDriverScheme: (scheme: string) => void;
     setAutoPrintOnCheckout: (enabled: boolean) => void;
     setPrintTwoReceipts: (enabled: boolean) => void;
     setReceiptDelaySeconds: (seconds: number) => void;
@@ -94,8 +103,13 @@ export const usePrinterStore = create<PrinterState>()(
             networkPrinterIp: '192.168.1.200',
             networkPrinterPort: 9100,
 
+            driverApp: 'ottor',
+            driverScheme: 'ottor-print',
+
             setPrintMode: (mode) => set({ printMode: mode, lastError: null }),
             setPaperSize: (size) => set({ paperSize: size }),
+            setDriverApp: (app) => set({ driverApp: app }),
+            setDriverScheme: (scheme) => set({ driverScheme: scheme }),
             setAutoPrintOnCheckout: (enabled) => set({ autoPrintOnCheckout: enabled }),
             setPrintTwoReceipts: (enabled) => set({ printTwoReceipts: enabled }),
             setReceiptDelaySeconds: (seconds) => set({ receiptDelaySeconds: Math.max(0, Math.min(30, seconds)) }),
@@ -296,39 +310,35 @@ export const usePrinterStore = create<PrinterState>()(
                     return;
                 }
 
-                const builder = new EscPosBuilder(paperSize);
-                builder.align('center');
-                builder.bold(true);
-                builder.textSize(2, 2);
-                builder.textLine("OTTOR POS TEST");
-                builder.textSize(1, 1);
-                builder.bold(false);
-                builder.lineFeed(1);
-                builder.textLine(`Mode: ${printMode.toUpperCase()}`);
-                builder.textLine(new Date().toLocaleString());
-                builder.divider('-');
-                builder.textLine("Paper Size: " + paperSize);
-                builder.textLine("Status: OK");
-                builder.divider('=');
-                builder.cut();
-
-                const bytes = builder.getBytes();
+                // Generate raster test bytes with Khmer font verification
+                const bytes = EscPosBuilder.generateTestRasterEscPos(printMode, paperSize);
 
                 if (printMode === 'bluetooth') {
-                    const toastId = toast.loading('Sending test print command to Bluetooth...');
+                    const toastId = toast.loading('Sending raster test print to Bluetooth...');
                     const success = await sendBluetoothBytes(bytes);
                     toast.dismiss(toastId);
                     if (success) {
-                        toast.success('Test receipt printed successfully!');
+                        toast.success('Raster test receipt printed successfully (with Khmer font)!');
                     }
                 } else if (printMode === 'escpos_driver') {
-                    // Send test print via ESC-POS Driver (com.fidelier.posprinterdriver)
-                    const testData = `$bighw$OTTOR POS TEST$intro$$intro$$bigh$Mode: ESC-POS DRIVER$intro$$small$App: com.fidelier.posprinterdriver$intro$${new Date().toLocaleString()}$intro$--------------------------------$intro$Paper: ${paperSize}$intro$Status: OK$intro$================================$intro$$intro$$intro$$cut$`;
-                    const intentUrl = `intent:${encodeURIComponent(testData)}#Intent;scheme=com.fidelier.printfromweb;package=com.fidelier.posprinterdriver;end;`;
-                    window.location.href = intentUrl;
-                    toast.success('Test print sent to ESC-POS Driver app!');
-                } else if (printMode === 'rawbt' || printMode === 'network') {
-                    // Send test print via RawBT Intent
+                    // Send test print via ESC-POS Driver image intent
+                    const canvas = generateTestReceiptCanvas('ESC-POS Driver', paperSize);
+                    const pngDataUrl = canvas.toDataURL('image/png');
+                    const testData = `$image:${pngDataUrl}$intro$$intro$$cut$`;
+                    const driverApp = get().driverApp || 'ottor';
+                    const scheme = (get().driverScheme || 'ottor-print').trim().replace(/:+$/, '');
+
+                    if (driverApp === 'ottor') {
+                        const intentUrl = `intent:${encodeURIComponent(testData)}#Intent;scheme=${scheme};end;`;
+                        window.location.href = intentUrl;
+                        toast.success(`Test print sent to Ottor Print app (${scheme}:)!`);
+                    } else {
+                        const intentUrl = `intent:${encodeURIComponent(testData)}#Intent;scheme=com.fidelier.printfromweb;package=com.fidelier.posprinterdriver;end;`;
+                        window.location.href = intentUrl;
+                        toast.success('Test print sent to ESC-POS Driver app!');
+                    }
+                } else if (printMode === 'rawbt' || printMode === 'network' || printMode === 'usb') {
+                    // Send raster bytes via RawBT Intent
                     let binary = '';
                     for (let i = 0; i < bytes.length; i++) {
                         binary += String.fromCharCode(bytes[i]);
@@ -338,8 +348,39 @@ export const usePrinterStore = create<PrinterState>()(
                     window.location.href = intentUrl;
                     toast.success('Test print sent to Android RawBT / Network Printer Driver!');
                 } else {
-                    toast.info('Triggering System Print dialog for test print...');
-                    window.print();
+                    toast.info('Opening System Print test receipt...');
+                    const sampleTestOrder: any = {
+                        id: 'test-print-001',
+                        order_number: 'TEST-001',
+                        created_at: new Date().toISOString(),
+                        payment_method: 'Cash',
+                        staff_name: 'Test Cashier',
+                        exchange_rate: 4100,
+                        tags: 'TABLE-01',
+                        items: [
+                            {
+                                id: 'item-1',
+                                product_name_snapshot: 'Iced Latte (កាហ្វេឡាតេទឹកកក)',
+                                quantity: 1,
+                                unit_price: 2.50,
+                                line_total: 2.50,
+                                addons: [{ name_snapshot: 'Less Sweet 50%', price: 0 }]
+                            },
+                            {
+                                id: 'item-2',
+                                product_name_snapshot: 'Croissant (នំប៉័ង)',
+                                quantity: 2,
+                                unit_price: 1.75,
+                                line_total: 3.50
+                            }
+                        ],
+                        subtotal: 6.00,
+                        tax_total: 0,
+                        discount_total: 0,
+                        grand_total: 6.00,
+                        notes: 'Test print receipt - Khmer & English'
+                    };
+                    await printSystemReceipts([sampleTestOrder], null, { paperSize });
                 }
             },
         }),
@@ -348,6 +389,8 @@ export const usePrinterStore = create<PrinterState>()(
             partialize: (state) => ({
                 printMode: state.printMode,
                 paperSize: state.paperSize,
+                driverApp: state.driverApp,
+                driverScheme: state.driverScheme,
                 autoPrintOnCheckout: state.autoPrintOnCheckout,
                 printTwoReceipts: state.printTwoReceipts,
                 receiptDelaySeconds: state.receiptDelaySeconds,

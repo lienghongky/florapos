@@ -1,5 +1,6 @@
 import { Order, OrderItem, Store } from '../types';
 import { formatDateTime, formatPaymentMethod } from './format';
+import { generateReceiptCanvas, generateTestReceiptCanvas } from './receipt-canvas';
 
 export interface EscPosOptions {
     paperSize?: '58mm' | '80mm'; // 58mm has 32 chars/line; 80mm has 48 chars/line
@@ -119,8 +120,103 @@ export class EscPosBuilder {
         return this;
     }
 
+    /**
+     * Appends an HTML5 Canvas as an ESC/POS GS v 0 raster bit image.
+     * Automatically slices large images into chunks to prevent thermal printer buffer overflows.
+     */
+    public rasterImage(canvas: HTMLCanvasElement, chunkHeight: number = 240): this {
+        const width = canvas.width;
+        const height = canvas.height;
+        const widthBytes = Math.ceil(width / 8);
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return this;
+
+        const imgData = ctx.getImageData(0, 0, width, height).data;
+
+        // Process in vertical slices (chunks)
+        for (let startY = 0; startY < height; startY += chunkHeight) {
+            const currentChunkHeight = Math.min(chunkHeight, height - startY);
+
+            // GS v 0 0 xL xH yL yH
+            const xL = widthBytes & 0xff;
+            const xH = (widthBytes >> 8) & 0xff;
+            const yL = currentChunkHeight & 0xff;
+            const yH = (currentChunkHeight >> 8) & 0xff;
+
+            this.buffer.push(0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH);
+
+            for (let y = startY; y < startY + currentChunkHeight; y++) {
+                for (let xb = 0; xb < widthBytes; xb++) {
+                    let byte = 0;
+                    for (let bit = 0; bit < 8; bit++) {
+                        const x = xb * 8 + bit;
+                        if (x < width) {
+                            const idx = (y * width + x) * 4;
+                            const alpha = imgData[idx + 3] / 255;
+                            const luminance =
+                                (imgData[idx] * 0.299 + imgData[idx + 1] * 0.587 + imgData[idx + 2] * 0.114) * alpha +
+                                255 * (1 - alpha);
+                            if (luminance < 165) {
+                                byte |= 128 >> bit;
+                            }
+                        }
+                    }
+                    this.buffer.push(byte);
+                }
+            }
+        }
+        return this;
+    }
+
     public getBytes(): Uint8Array {
         return new Uint8Array(this.buffer);
+    }
+
+    /**
+     * Generates an ESC/POS Raster Graphic byte stream from an order and store.
+     * Renders Khmer fonts, complex scripts, and graphics with 100% fidelity.
+     */
+    public static generateOrderRasterEscPos(
+        order: Order,
+        store: Store | null,
+        options: EscPosOptions = {}
+    ): Uint8Array {
+        const paperSize = options.paperSize || '58mm';
+        const canvas = generateReceiptCanvas(order, store, {
+            paperSize,
+            customNote: options.customNote,
+            customInvoiceCode: options.customInvoiceCode,
+        });
+
+        const builder = new EscPosBuilder(paperSize);
+        if (options.openDrawer) {
+            builder.openDrawer();
+        }
+
+        builder.rasterImage(canvas);
+        builder.lineFeed(3);
+
+        if (options.cutPaper !== false) {
+            builder.cut();
+        }
+
+        return builder.getBytes();
+    }
+
+    /**
+     * Generates test print ESC/POS Raster Graphic bytes including Khmer font verification.
+     */
+    public static generateTestRasterEscPos(
+        printMode: string,
+        paperSize: '58mm' | '80mm' = '58mm'
+    ): Uint8Array {
+        const canvas = generateTestReceiptCanvas(printMode, paperSize);
+        const builder = new EscPosBuilder(paperSize);
+        builder.rasterImage(canvas);
+        builder.lineFeed(3);
+        builder.cut();
+        return builder.getBytes();
     }
 
     // Static helper to generate full receipt ESC/POS binary data for an order

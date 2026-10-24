@@ -20,6 +20,7 @@ interface OrderReceiptProps {
     customInvoiceCode?: string;
     customNote?: string;
     showActions?: boolean;
+    paperSizeOverride?: '58mm' | '80mm';
 }
 
 export function OrderReceipt({
@@ -29,12 +30,16 @@ export function OrderReceipt({
     storeOverride,
     customInvoiceCode,
     customNote,
-    showActions = true
+    showActions = true,
+    paperSizeOverride
 }: OrderReceiptProps) {
     const { user, selectedStore } = useAuthStore();
-    const { printMode, isBluetoothConnected, bluetoothDeviceName, isPocketConnected, pocketDeviceName } = usePrinterStore();
+    const { printMode, isBluetoothConnected, bluetoothDeviceName, isPocketConnected, pocketDeviceName, paperSize } = usePrinterStore();
     const [showPrinterSettings, setShowPrinterSettings] = useState(false);
     const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+
+    const effectivePaperSize = paperSizeOverride || paperSize || '58mm';
+    const is80mm = effectivePaperSize === '80mm';
 
     const activeStore = storeOverride || selectedStore;
     const storeName = activeStore?.name || "Ottor POS";
@@ -75,22 +80,22 @@ export function OrderReceipt({
 
     return (
         <>
-            <div className="printable-receipt relative mx-auto w-full max-w-[340px] overflow-hidden bg-white text-black font-mono text-sm sm:text-[15px] shadow-sm rounded-xl border border-slate-100" style={{ backgroundColor: '#ffffff', fontFamily: '"Courier New", Courier, monospace', fontWeight: 700 }}>
-                <div className="p-4 sm:p-6 pb-8">
+            <div className={`printable-receipt relative mx-auto w-full ${is80mm ? 'max-w-[480px] text-sm sm:text-base' : 'max-w-[340px] text-xs sm:text-[14px]'} overflow-hidden bg-white text-black font-mono shadow-sm rounded-xl border border-slate-100`} style={{ backgroundColor: '#ffffff', fontFamily: '"Courier New", Courier, monospace', fontWeight: 700 }}>
+                <div className={`${is80mm ? 'p-5 sm:p-7' : 'p-4 sm:p-6'} pb-8`}>
                     {/* Header / Branding */}
                     <div className="text-center mb-4">
                         {storeLogo && (
-                            <img src={storeLogo} alt="Store Logo" className="mx-auto mb-2 max-h-16 object-contain grayscale" />
+                            <img src={storeLogo} alt="Store Logo" className={`mx-auto mb-2 ${is80mm ? 'max-h-20' : 'max-h-16'} object-contain grayscale`} />
                         )}
-                        <h2 className="text-base sm:text-lg font-black uppercase tracking-wider">{storeName}</h2>
+                        <h2 className={`${is80mm ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'} font-black uppercase tracking-wider`}>{storeName}</h2>
                         
                         {!storeLogo && website && (
                             <p className="text-xs font-bold mt-1">{website}</p>
                         )}
                         
-                        <div className="mt-4 font-black text-xl border-b-2 border-black pb-1 mb-2">RECEIPT</div>
+                        <div className={`mt-4 font-black ${is80mm ? 'text-2xl' : 'text-xl'} border-b-2 border-black pb-1 mb-2`}>RECEIPT</div>
                         
-                        <div className="flex flex-col gap-1 text-xs sm:text-[13px] font-bold">
+                        <div className={`flex flex-col gap-1 ${is80mm ? 'text-sm' : 'text-xs sm:text-[13px]'} font-bold`}>
                             {storeAddress && <div className="mb-1 font-bold">{storeAddress}</div>}
                             {storePhone && <div>TEL: {storePhone}</div>}
                             {taxId && <div>VAT TIN : {taxId}</div>}
@@ -102,7 +107,7 @@ export function OrderReceipt({
                             {order.customer_phone && <div>PHONE: {order.customer_phone}</div>}
                             <div>EXCHANGE RATE: 1$ = {exchangeRate.toLocaleString()} ៛</div>
                             {order.tags && (
-                                <div className="text-base sm:text-lg font-black text-black tracking-wide mt-1">
+                                <div className={`${is80mm ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'} font-black text-black tracking-wide mt-1`}>
                                     TAG : {order.tags}
                                 </div>
                             )}
@@ -112,7 +117,7 @@ export function OrderReceipt({
                     <div className="border-t-2 border-dashed border-black my-3"></div>
 
                     {/* Items Table */}
-                    <table className="w-full text-left text-xs sm:text-[13px]">
+                    <table className={`w-full text-left ${is80mm ? 'text-sm' : 'text-xs sm:text-[13px]'}`}>
                         <thead>
                             <tr className="border-b border-black font-black">
                                 <th className="pb-1.5 w-6">#</th>
@@ -145,7 +150,7 @@ export function OrderReceipt({
                     <div className="border-t-2 border-dashed border-black my-3"></div>
 
                     {/* Financial Summary */}
-                    <div className="space-y-1.5 text-xs sm:text-[13px] font-bold">
+                    <div className={`space-y-1.5 ${is80mm ? 'text-sm' : 'text-xs sm:text-[13px]'} font-bold`}>
                         <div className="flex justify-between">
                             <span>Subtotal:</span>
                             <span className="font-black">${parsePrice(order.subtotal).toFixed(2)}</span>
@@ -169,18 +174,18 @@ export function OrderReceipt({
                             </div>
                         )}
                         {order.order_type === 'delivery' && order.delivery_address && (
-                            <div className="pt-2 border-t border-dashed border-black/30 text-xs font-bold">
+                            <div className={`pt-2 border-t border-dashed border-black/30 ${is80mm ? 'text-sm' : 'text-xs'} font-bold`}>
                                 <span className="font-black">DELIVERY TO:</span>
                                 <div className="mt-1 whitespace-pre-wrap">{order.delivery_address}</div>
                             </div>
                         )}
                         
                         <div className="pt-2 border-t-2 border-black mt-2">
-                            <div className="flex justify-between font-black text-base sm:text-lg">
+                            <div className={`flex justify-between font-black ${is80mm ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
                                 <span>GRAND TOTAL:</span>
                                 <span>${parsePrice(order.grand_total).toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-sm sm:text-base font-black mt-1">
+                            <div className={`flex justify-between ${is80mm ? 'text-base sm:text-lg' : 'text-sm sm:text-base'} font-black mt-1`}>
                                 <span>TOTAL (KHR):</span>
                                 <span>{(parsePrice(order.grand_total) * exchangeRate).toLocaleString()}៛</span>
                             </div>
@@ -190,10 +195,10 @@ export function OrderReceipt({
                     <div className="border-t-2 border-dashed border-black my-4"></div>
 
                     {/* Footer Note */}
-                    <div className="text-center text-xs sm:text-[13px] font-bold space-y-1">
+                    <div className={`text-center ${is80mm ? 'text-sm' : 'text-xs sm:text-[13px]'} font-bold space-y-1`}>
                         {customNote && <p className="font-black border-b border-black pb-1 mb-2 italic">Note: {customNote}</p>}
                         <p className="font-black whitespace-pre-wrap">{footerText}</p>
-                        <p className="font-semibold text-xs">Powered by Ottor POS</p>
+                        <p className={`font-semibold ${is80mm ? 'text-xs' : 'text-[11px]'}`}>Powered by Ottor POS</p>
                     </div>
                     
                     {/* Action Bar: Download vs Print (Hidden in screen capture & print mode) */}

@@ -29,8 +29,12 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
         pocketBattery,
         networkPrinterIp,
         networkPrinterPort,
+        driverApp,
+        driverScheme,
         setPrintMode,
         setPaperSize,
+        setDriverApp,
+        setDriverScheme,
         setAutoPrintOnCheckout,
         setPrintTwoReceipts,
         setReceiptDelaySeconds,
@@ -274,34 +278,109 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                         </div>
                     )}
 
-                    {/* ESC-POS Driver Section (solyarisoftware/posprinterdriver) */}
+                    {/* ESC-POS Driver Section (Ottor Print / Fidelier) */}
                     {printMode === 'escpos_driver' && (
-                        <div className="rounded-3xl border border-sky-100 bg-sky-50/40 p-5 space-y-3">
+                        <div className="rounded-3xl border border-sky-100 bg-sky-50/40 p-5 space-y-4">
                             <div className="flex items-center gap-2.5">
                                 <Smartphone className="size-5 text-sky-600" />
                                 <div>
                                     <h4 className="font-bold text-sm text-slate-900">ESC-POS Driver (Android App)</h4>
-                                    <p className="text-xs text-slate-500">
-                                        Package: <code className="font-mono bg-sky-100/60 px-1.5 py-0.5 rounded text-[11px]">com.fidelier.posprinterdriver</code>
-                                    </p>
+                                    <p className="text-xs text-slate-500">Choose your target Android printing application</p>
                                 </div>
                             </div>
 
-                            <p className="text-xs text-slate-600 leading-relaxed">
-                                Sends formatted receipts directly to the <strong>ESC POS Printer Driver</strong> Android app using the <code>com.fidelier.printfromweb</code> intent scheme. Supports USB, Wi-Fi, and Bluetooth printers linked in the app.
-                            </p>
-
-                            <div className="pt-2 border-t border-sky-200/50 flex items-center justify-between text-xs">
-                                <span className="font-semibold text-slate-700">App Reference:</span>
-                                <a
-                                    href="https://github.com/solyarisoftware/posprinterdriver"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="font-bold text-sky-600 hover:underline flex items-center gap-1"
+                            {/* Driver Selection Pills */}
+                            <div className="grid grid-cols-2 gap-2.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setDriverApp('ottor')}
+                                    className={`p-3 rounded-2xl border-2 text-left transition-all ${
+                                        driverApp === 'ottor'
+                                            ? 'border-sky-600 bg-white shadow-sm ring-2 ring-sky-500/20'
+                                            : 'border-slate-200 bg-white/70 hover:border-slate-300'
+                                    }`}
                                 >
-                                    solyarisoftware/posprinterdriver ↗
-                                </a>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="font-bold text-xs text-slate-900">Ottor Print (Your App)</span>
+                                        {driverApp === 'ottor' && (
+                                            <div className="size-4 rounded-full bg-sky-600 text-white flex items-center justify-center">
+                                                <Check className="size-2.5" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <code className="text-[10px] font-mono text-sky-700 bg-sky-100/60 px-1.5 py-0.5 rounded block w-fit">
+                                        ottor-print:
+                                    </code>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setDriverApp('fidelier')}
+                                    className={`p-3 rounded-2xl border-2 text-left transition-all ${
+                                        driverApp === 'fidelier'
+                                            ? 'border-sky-600 bg-white shadow-sm ring-2 ring-sky-500/20'
+                                            : 'border-slate-200 bg-white/70 hover:border-slate-300'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="font-bold text-xs text-slate-900">Fidelier POS Driver</span>
+                                        {driverApp === 'fidelier' && (
+                                            <div className="size-4 rounded-full bg-sky-600 text-white flex items-center justify-center">
+                                                <Check className="size-2.5" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <code className="text-[10px] font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded block w-fit">
+                                        posprinterdriver
+                                    </code>
+                                </button>
                             </div>
+
+                            {/* App Specific Details */}
+                            {driverApp === 'ottor' ? (
+                                <div className="space-y-3 pt-2 border-t border-sky-200/50">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black uppercase text-slate-600">Android Deep Link URI Scheme</label>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={driverScheme}
+                                                onChange={(e) => setDriverScheme(e.target.value)}
+                                                placeholder="ottor-print"
+                                                className="flex-1 h-9 px-3 rounded-xl border border-slate-200 text-xs font-mono outline-none focus:ring-2 focus:ring-sky-500/20 bg-white"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={testPrint}
+                                                className="h-9 px-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm shrink-0"
+                                            >
+                                                <Smartphone className="size-3.5" />
+                                                Test App
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        Points directly to your Android app using the <code>{driverScheme || 'ottor-print'}:</code> custom intent scheme. Receipts will open in your app with full Khmer, English, and graphic support.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 pt-2 border-t border-sky-200/50">
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        Sends formatted receipts directly to the <strong>ESC POS Printer Driver</strong> Android app using the <code>com.fidelier.printfromweb</code> intent scheme (Package: <code>com.fidelier.posprinterdriver</code>).
+                                    </p>
+                                    <div className="flex items-center justify-between text-xs pt-1">
+                                        <span className="font-semibold text-slate-700">App Reference:</span>
+                                        <a
+                                            href="https://github.com/solyarisoftware/posprinterdriver"
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="font-bold text-sky-600 hover:underline flex items-center gap-1"
+                                        >
+                                            solyarisoftware/posprinterdriver ↗
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
