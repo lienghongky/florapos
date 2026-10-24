@@ -9,7 +9,7 @@ export interface BarcodeScannerOptions {
 }
 
 /** Exported listener makes the same detection logic testable without mounting React. */
-export function attachBarcodeScanner({ onScan, onMultiplier, minLength = 4, maxAvgGapMs = 35 }: BarcodeScannerOptions) {
+export function attachBarcodeScanner({ onScan, onMultiplier, minLength = 4, maxAvgGapMs = 55 }: BarcodeScannerOptions) {
   let buffer = '';
   let firstAt = 0;
   let lastAt = 0;
@@ -58,13 +58,13 @@ export function attachBarcodeScanner({ onScan, onMultiplier, minLength = 4, maxA
       if (!digits || now - digitsAt >= 3000) { digits = ''; digitsOriginal = input?.value || ''; }
       digits += e.key; digitsAt = now;
     } else digits = '';
-    if (buffer && now - lastAt >= 80) reset();
+    if (buffer && now - lastAt >= 120) reset();
     if (!buffer) { firstAt = now; originalValue = input?.value || ''; }
     buffer += e.key; lastAt = now;
     clearTimeout(timer);
     timer = setTimeout(() => {
       if (!paused() && fast()) emit(); else reset();
-    }, 80);
+    }, 120);
   };
   window.addEventListener('keydown', listener, true);
   return () => { reset(); window.removeEventListener('keydown', listener, true); };
