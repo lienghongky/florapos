@@ -323,7 +323,7 @@ export async function executePocketPrintJob(
 export function generatePocketReceiptCanvas(
   order: Order,
   store: Store | null,
-  options: { customNote?: string; customInvoiceCode?: string } = {}
+  options: { customNote?: string; customInvoiceCode?: string; receiptCurrency?: 'USD' | 'KHR' } = {}
 ): HTMLCanvasElement {
   return generateReceiptCanvas(order, store, { paperSize: '58mm', ...options });
 }

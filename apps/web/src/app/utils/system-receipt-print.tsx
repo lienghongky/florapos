@@ -11,6 +11,7 @@ export interface PrintSystemReceiptsOptions {
   customNote?: string;
   customInvoiceCode?: string;
   paperSize?: '58mm' | '80mm';
+  receiptCurrency?: 'USD' | 'KHR';
 }
 
 /** Print actual receipt HTML in the current tab: dynamically formatted for 58mm or 80mm roll paper */
@@ -115,6 +116,7 @@ export async function printSystemReceipts(
         storeOverride={store}
         showActions={false}
         paperSizeOverride={paperSize}
+        receiptCurrencyOverride={options.receiptCurrency || usePrinterStore.getState().receiptCurrency}
         customNote={options.customNote}
         customInvoiceCode={options.customInvoiceCode}
       />

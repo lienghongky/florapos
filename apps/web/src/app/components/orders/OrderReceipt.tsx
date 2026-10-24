@@ -21,6 +21,7 @@ interface OrderReceiptProps {
     customNote?: string;
     showActions?: boolean;
     paperSizeOverride?: '58mm' | '80mm';
+    receiptCurrencyOverride?: 'USD' | 'KHR';
 }
 
 export function OrderReceipt({
@@ -31,12 +32,16 @@ export function OrderReceipt({
     customInvoiceCode,
     customNote,
     showActions = true,
-    paperSizeOverride
+    paperSizeOverride,
+    receiptCurrencyOverride
 }: OrderReceiptProps) {
     const { user, selectedStore } = useAuthStore();
-    const { printMode, isBluetoothConnected, bluetoothDeviceName, isPocketConnected, pocketDeviceName, paperSize } = usePrinterStore();
+    const { printMode, isBluetoothConnected, bluetoothDeviceName, isPocketConnected, pocketDeviceName, paperSize, receiptCurrency: storeCurrency } = usePrinterStore();
     const [showPrinterSettings, setShowPrinterSettings] = useState(false);
     const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+
+    const effectiveReceiptCurrency = receiptCurrencyOverride || storeCurrency || 'USD';
+    const isKhr = effectiveReceiptCurrency === 'KHR';
 
     const effectivePaperSize = paperSizeOverride || paperSize || '58mm';
     const is80mm = effectivePaperSize === '80mm';
@@ -127,23 +132,40 @@ export function OrderReceipt({
                             </tr>
                         </thead>
                         <tbody className="border-t border-dashed border-black">
-                            {order.items.map((item: OrderItem, idx: number) => (
-                                <React.Fragment key={idx}>
-                                    <tr>
-                                        <td className="py-1.5 align-top font-bold">{idx + 1}</td>
-                                        <td className="py-1.5 pr-1 font-black text-black">{item.product_name_snapshot}</td>
-                                        <td className="py-1.5 text-right align-top whitespace-nowrap font-bold">{item.quantity}x{parsePrice(item.unit_price).toFixed(2)}</td>
-                                        <td className="py-1.5 text-right align-top font-black">${parsePrice(item.line_total).toFixed(2)}</td>
-                                    </tr>
-                                    {item.addons && item.addons.length > 0 && item.addons.map((addon: any, aIdx: number) => (
-                                        <tr key={`addon-${idx}-${aIdx}`}>
-                                            <td></td>
-                                            <td colSpan={2} className="pl-2 pb-1 text-xs font-bold">+ {addon.name_snapshot}</td>
-                                            <td className="pb-1 text-right text-xs font-black">${parsePrice(addon.price || 0).toFixed(2)}</td>
+                            {order.items.map((item: OrderItem, idx: number) => {
+                                const rawUnitPrice = parsePrice(item.unit_price);
+                                const rawLineTotal = parsePrice(item.line_total);
+                                const unitPriceStr = isKhr
+                                    ? `${Math.round(rawUnitPrice * exchangeRate).toLocaleString()}៛`
+                                    : `$${rawUnitPrice.toFixed(2)}`;
+                                const lineTotalStr = isKhr
+                                    ? `${Math.round(rawLineTotal * exchangeRate).toLocaleString()}៛`
+                                    : `$${rawLineTotal.toFixed(2)}`;
+
+                                return (
+                                    <React.Fragment key={idx}>
+                                        <tr>
+                                            <td className="py-1.5 align-top font-bold">{idx + 1}</td>
+                                            <td className="py-1.5 pr-1 font-black text-black">{item.product_name_snapshot}</td>
+                                            <td className="py-1.5 text-right align-top whitespace-nowrap font-bold">{item.quantity}x{unitPriceStr}</td>
+                                            <td className="py-1.5 text-right align-top font-black">{lineTotalStr}</td>
                                         </tr>
-                                    ))}
-                                </React.Fragment>
-                            ))}
+                                        {item.addons && item.addons.length > 0 && item.addons.map((addon: any, aIdx: number) => {
+                                            const rawAddonPrice = parsePrice(addon.price || 0);
+                                            const addonStr = isKhr
+                                                ? `+${Math.round(rawAddonPrice * exchangeRate).toLocaleString()}៛`
+                                                : `$${rawAddonPrice.toFixed(2)}`;
+                                            return (
+                                                <tr key={`addon-${idx}-${aIdx}`}>
+                                                    <td></td>
+                                                    <td colSpan={2} className="pl-2 pb-1 text-xs font-bold">+ {addon.name_snapshot}</td>
+                                                    <td className="pb-1 text-right text-xs font-black">{addonStr}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </React.Fragment>
+                                );
+                            })}
                         </tbody>
                     </table>
 
@@ -153,24 +175,40 @@ export function OrderReceipt({
                     <div className={`space-y-1.5 ${is80mm ? 'text-sm' : 'text-xs sm:text-[13px]'} font-bold`}>
                         <div className="flex justify-between">
                             <span>Subtotal:</span>
-                            <span className="font-black">${parsePrice(order.subtotal).toFixed(2)}</span>
+                            <span className="font-black">
+                                {isKhr
+                                    ? `${Math.round(parsePrice(order.subtotal) * exchangeRate).toLocaleString()} ៛`
+                                    : `$${parsePrice(order.subtotal).toFixed(2)}`}
+                            </span>
                         </div>
                         {(activeStore?.enable_tax !== false) && (
                             <div className="flex justify-between">
                                 <span>Tax ({order.tax_rate || activeStore?.tax_rate || 0}%):</span>
-                                <span className="font-black">${parsePrice(order.tax_total).toFixed(2)}</span>
+                                <span className="font-black">
+                                    {isKhr
+                                        ? `${Math.round(parsePrice(order.tax_total) * exchangeRate).toLocaleString()} ៛`
+                                        : `$${parsePrice(order.tax_total).toFixed(2)}`}
+                                </span>
                             </div>
                         )}
                         {parsePrice(order.discount_total) > 0 && (
                             <div className="flex justify-between">
                                 <span>Discount:</span>
-                                <span className="font-black">-${parsePrice(order.discount_total).toFixed(2)}</span>
+                                <span className="font-black">
+                                    {isKhr
+                                        ? `-${Math.round(parsePrice(order.discount_total) * exchangeRate).toLocaleString()} ៛`
+                                        : `-$${parsePrice(order.discount_total).toFixed(2)}`}
+                                </span>
                             </div>
                         )}
                         {order.order_type === 'delivery' && (
                             <div className="flex justify-between">
                                 <span>Delivery Fee:</span>
-                                <span className="font-black">${parsePrice(order.delivery_fee || 0).toFixed(2)}</span>
+                                <span className="font-black">
+                                    {isKhr
+                                        ? `${Math.round(parsePrice(order.delivery_fee || 0) * exchangeRate).toLocaleString()} ៛`
+                                        : `$${parsePrice(order.delivery_fee || 0).toFixed(2)}`}
+                                </span>
                             </div>
                         )}
                         {order.order_type === 'delivery' && order.delivery_address && (
@@ -181,14 +219,29 @@ export function OrderReceipt({
                         )}
                         
                         <div className="pt-2 border-t-2 border-black mt-2">
-                            <div className={`flex justify-between font-black ${is80mm ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
-                                <span>GRAND TOTAL:</span>
-                                <span>${parsePrice(order.grand_total).toFixed(2)}</span>
-                            </div>
-                            <div className={`flex justify-between ${is80mm ? 'text-base sm:text-lg' : 'text-sm sm:text-base'} font-black mt-1`}>
-                                <span>TOTAL (KHR):</span>
-                                <span>{(parsePrice(order.grand_total) * exchangeRate).toLocaleString()}៛</span>
-                            </div>
+                            {isKhr ? (
+                                <>
+                                    <div className={`flex justify-between font-black ${is80mm ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
+                                        <span>GRAND TOTAL (KHR):</span>
+                                        <span>{Math.round(parsePrice(order.grand_total) * exchangeRate).toLocaleString()} ៛</span>
+                                    </div>
+                                    <div className={`flex justify-between ${is80mm ? 'text-base sm:text-lg' : 'text-sm sm:text-base'} font-black mt-1`}>
+                                        <span>TOTAL (USD):</span>
+                                        <span>${parsePrice(order.grand_total).toFixed(2)}</span>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className={`flex justify-between font-black ${is80mm ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'}`}>
+                                        <span>GRAND TOTAL:</span>
+                                        <span>${parsePrice(order.grand_total).toFixed(2)}</span>
+                                    </div>
+                                    <div className={`flex justify-between ${is80mm ? 'text-base sm:text-lg' : 'text-sm sm:text-base'} font-black mt-1`}>
+                                        <span>TOTAL (KHR):</span>
+                                        <span>{Math.round(parsePrice(order.grand_total) * exchangeRate).toLocaleString()} ៛</span>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
 

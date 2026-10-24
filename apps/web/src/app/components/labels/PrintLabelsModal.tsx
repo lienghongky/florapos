@@ -49,15 +49,15 @@ export function PrintLabelsModal({
   isOpen, onClose, products, categories, storeId, storeName, initialProductIds, onSaveBarcode, generateBarcode,
 }: Props) {
   const currentStore = useAuthStore(s => s.selectedStore);
-  const storeExchangeRate = currentStore?.exchange_rate || 4100;
+  const storeExchangeRate = currentStore?.exchange_rate ? Number(currentStore.exchange_rate) : 4100;
   const [step, setStep] = useState<1 | 2>(1);
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [onlyMissing, setOnlyMissing] = useState(false);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [settings, setSettings] = useState<LabelSettings>(() => {
-    const loaded = loadSettings(storeId);
-    return { ...loaded, exchangeRate: loaded.exchangeRate || 4100 };
+    const loaded = loadSettings(storeId, storeExchangeRate);
+    return { ...loaded, exchangeRate: storeExchangeRate };
   });
   const [labelPrinter, setLabelPrinter] = useState(() => loadLabelPrinterPreferences(storeId));
   const [showPrinterSettings, setShowPrinterSettings] = useState(false);
@@ -81,10 +81,10 @@ export function PrintLabelsModal({
   // Reset when opened
   useEffect(() => {
     if (!isOpen) return;
-    const loaded = loadSettings(storeId);
+    const loaded = loadSettings(storeId, storeExchangeRate);
     setSettings({
       ...loaded,
-      exchangeRate: loaded.exchangeRate || storeExchangeRate,
+      exchangeRate: storeExchangeRate,
     });
     setLabelPrinter(loadLabelPrinterPreferences(storeId));
     setShowPrinterSettings(false);
@@ -454,9 +454,42 @@ export function PrintLabelsModal({
                           <Check2 label="Border" checked={settings.border} onChange={v => update({ border: v })} />
                           <Check2 label="Bold price" checked={settings.boldPrice} onChange={v => update({ boldPrice: v })} />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">Currency</span>
-                          <input value={settings.currency} onChange={e => update({ currency: e.target.value })} className="w-16 rounded-md border border-border px-2 py-1 text-sm" />
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <div>
+                            <span className="text-xs text-muted-foreground block mb-1">Currency</span>
+                            <input
+                              value={settings.currency}
+                              onChange={e => update({ currency: e.target.value })}
+                              className="w-full rounded-md border border-border px-2.5 py-1.5 text-sm font-mono"
+                            />
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-muted-foreground">Exchange Rate</span>
+                              {settings.exchangeRate !== storeExchangeRate && (
+                                <button
+                                  type="button"
+                                  onClick={() => update({ exchangeRate: storeExchangeRate })}
+                                  className="text-[10px] text-brand-primary hover:underline font-semibold"
+                                  title={`Reset to store setting: ${storeExchangeRate.toLocaleString()} ៛`}
+                                >
+                                  Reset ({storeExchangeRate})
+                                </button>
+                              )}
+                            </div>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                value={settings.exchangeRate ?? storeExchangeRate}
+                                onChange={e => update({ exchangeRate: Number(e.target.value) || storeExchangeRate })}
+                                placeholder={String(storeExchangeRate)}
+                                className="w-full rounded-md border border-border px-2.5 py-1.5 text-sm font-mono pr-7"
+                              />
+                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold pointer-events-none">
+                                ៛
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </section>

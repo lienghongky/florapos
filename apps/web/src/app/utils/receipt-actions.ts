@@ -111,6 +111,7 @@ export function generateFidelierReceiptText(
     store: Store | null,
     options: {
         paperSize?: '58mm' | '80mm';
+        receiptCurrency?: 'USD' | 'KHR';
         cutPaper?: boolean;
         openDrawer?: boolean;
         customNote?: string;
@@ -160,6 +161,8 @@ export function generateFidelierReceiptText(
     if (order.tags) out += `$bighw$TAG: ${order.tags}$intro$$small$`;
     out += divider('-');
 
+    const isKhr = options.receiptCurrency === 'KHR';
+
     // Items
     out += `$bigh$ITEMS$intro$$small$`;
     out += divider('-');
@@ -167,10 +170,22 @@ export function generateFidelierReceiptText(
         const unitPrice = parsePrice(item.unit_price);
         const lineTotal = parsePrice(item.line_total);
         out += `$bigh$${idx + 1}. ${item.product_name_snapshot}$intro$$small$`;
-        out += padRow(`  ${item.quantity} x $${unitPrice.toFixed(2)}`, `$${lineTotal.toFixed(2)}`);
+        if (isKhr) {
+            const khrUnit = Math.round(unitPrice * exchangeRate).toLocaleString();
+            const khrTotal = Math.round(lineTotal * exchangeRate).toLocaleString();
+            out += padRow(`  ${item.quantity} x ${khrUnit} KHR`, `${khrTotal} KHR`);
+        } else {
+            out += padRow(`  ${item.quantity} x $${unitPrice.toFixed(2)}`, `$${lineTotal.toFixed(2)}`);
+        }
+
         if (item.addons && item.addons.length > 0) {
             item.addons.forEach((a: any) => {
-                out += padRow(`   + ${a.name_snapshot}`, `$${parsePrice(a.price || 0).toFixed(2)}`);
+                const addonPrice = parsePrice(a.price || 0);
+                if (isKhr) {
+                    out += padRow(`   + ${a.name_snapshot}`, `+${Math.round(addonPrice * exchangeRate).toLocaleString()} KHR`);
+                } else {
+                    out += padRow(`   + ${a.name_snapshot}`, `$${addonPrice.toFixed(2)}`);
+                }
             });
         }
     });
@@ -185,21 +200,39 @@ export function generateFidelierReceiptText(
     const grandTotal = parsePrice(order.grand_total);
     const khrTotal = Math.round(grandTotal * exchangeRate);
 
-    out += padRow('Subtotal:', `$${subtotal.toFixed(2)}`);
-    if (store?.enable_tax !== false && taxTotal > 0) {
-        out += padRow(`Tax (${order.tax_rate || store?.tax_rate || 0}%):`, `$${taxTotal.toFixed(2)}`);
-    }
-    if (discountTotal > 0) {
-        out += padRow('Discount:', `-$${discountTotal.toFixed(2)}`);
-    }
-    if (order.order_type === 'delivery' && deliveryFee > 0) {
-        out += padRow('Delivery Fee:', `$${deliveryFee.toFixed(2)}`);
-    }
+    if (isKhr) {
+        out += padRow('Subtotal:', `${Math.round(subtotal * exchangeRate).toLocaleString()} KHR`);
+        if (store?.enable_tax !== false && taxTotal > 0) {
+            out += padRow(`Tax (${order.tax_rate || store?.tax_rate || 0}%):`, `${Math.round(taxTotal * exchangeRate).toLocaleString()} KHR`);
+        }
+        if (discountTotal > 0) {
+            out += padRow('Discount:', `-${Math.round(discountTotal * exchangeRate).toLocaleString()} KHR`);
+        }
+        if (order.order_type === 'delivery' && deliveryFee > 0) {
+            out += padRow('Delivery Fee:', `${Math.round(deliveryFee * exchangeRate).toLocaleString()} KHR`);
+        }
 
-    out += divider('=');
-    out += `$bighw$` + padRow('GRAND TOTAL:', `$${grandTotal.toFixed(2)}`) + `$small$`;
-    out += `$bigh$` + padRow('TOTAL (KHR):', `${khrTotal.toLocaleString()} KHR`) + `$small$`;
-    out += divider('-');
+        out += divider('=');
+        out += `$bighw$` + padRow('GRAND TOTAL (KHR):', `${khrTotal.toLocaleString()} KHR`) + `$small$`;
+        out += `$bigh$` + padRow('TOTAL (USD):', `$${grandTotal.toFixed(2)}`) + `$small$`;
+        out += divider('-');
+    } else {
+        out += padRow('Subtotal:', `$${subtotal.toFixed(2)}`);
+        if (store?.enable_tax !== false && taxTotal > 0) {
+            out += padRow(`Tax (${order.tax_rate || store?.tax_rate || 0}%):`, `$${taxTotal.toFixed(2)}`);
+        }
+        if (discountTotal > 0) {
+            out += padRow('Discount:', `-$${discountTotal.toFixed(2)}`);
+        }
+        if (order.order_type === 'delivery' && deliveryFee > 0) {
+            out += padRow('Delivery Fee:', `$${deliveryFee.toFixed(2)}`);
+        }
+
+        out += divider('=');
+        out += `$bighw$` + padRow('GRAND TOTAL:', `$${grandTotal.toFixed(2)}`) + `$small$`;
+        out += `$bigh$` + padRow('TOTAL (KHR):', `${khrTotal.toLocaleString()} KHR`) + `$small$`;
+        out += divider('-');
+    }
 
     // Footer Note
     if (options.customNote || order.notes) {
@@ -230,6 +263,7 @@ export async function printReceipt(
     const {
         printMode,
         paperSize,
+        receiptCurrency,
         autoCut,
         openCashDrawer,
         sendBluetoothBytes,
@@ -255,7 +289,10 @@ export async function printReceipt(
             }
             if (!active) throw new Error('Pocket printer is not connected.');
 
-            const receiptCanvas = generatePocketReceiptCanvas(order, store, options);
+            const receiptCanvas = generatePocketReceiptCanvas(order, store, {
+                ...options,
+                receiptCurrency,
+            });
             const raster = canvasToPocketRaster(receiptCanvas, POCKET_PRINT_WIDTH);
 
             for (let copy = 1; copy <= copies; copy++) {
@@ -289,6 +326,7 @@ export async function printReceipt(
         try {
             const escPosBytes = EscPosBuilder.generateOrderRasterEscPos(order, store, {
                 paperSize,
+                receiptCurrency,
                 cutPaper: autoCut,
                 openDrawer: openCashDrawer,
                 customNote: options.customNote,
@@ -322,6 +360,7 @@ export async function printReceipt(
         try {
             const canvas = generateReceiptCanvas(order, store, {
                 paperSize,
+                receiptCurrency,
                 customNote: options.customNote,
                 customInvoiceCode: options.customInvoiceCode
             });
@@ -356,6 +395,7 @@ export async function printReceipt(
         try {
             const escPosBytes = EscPosBuilder.generateOrderRasterEscPos(order, store, {
                 paperSize,
+                receiptCurrency,
                 cutPaper: autoCut,
                 openDrawer: openCashDrawer,
                 customNote: options.customNote,
@@ -395,6 +435,7 @@ export async function printReceipt(
             try {
                 const escPosBytes = EscPosBuilder.generateOrderRasterEscPos(order, store, {
                     paperSize,
+                    receiptCurrency,
                     cutPaper: autoCut,
                     openDrawer: openCashDrawer,
                     customNote: options.customNote,
@@ -422,6 +463,7 @@ export async function printReceipt(
         await printSystemReceipts(receiptList, store, {
             ...options,
             paperSize,
+            receiptCurrency,
         });
         return true;
     } catch (error) {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Printer, Bluetooth, Settings, Check, RefreshCw, Scissors, DollarSign, Smartphone, Zap, Wifi, Usb, Copy, Clock } from 'lucide-react';
-import { usePrinterStore, PrintMode, PaperSize } from '@/app/store/printer-store';
+import { X, Printer, Bluetooth, Settings, Check, RefreshCw, Scissors, DollarSign, Smartphone, Zap, Wifi, Usb, Copy, Clock, Coins } from 'lucide-react';
+import { usePrinterStore, PrintMode, PaperSize, ReceiptCurrency } from '@/app/store/printer-store';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { useTranslation } from '@/app/i18n';
 
@@ -15,6 +15,7 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
     const {
         printMode,
         paperSize,
+        receiptCurrency,
         autoPrintOnCheckout,
         printTwoReceipts,
         receiptDelaySeconds,
@@ -33,6 +34,7 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
         driverScheme,
         setPrintMode,
         setPaperSize,
+        setReceiptCurrency,
         setDriverApp,
         setDriverScheme,
         setAutoPrintOnCheckout,
@@ -461,6 +463,64 @@ export function PrinterSettingsModal({ isOpen, onClose }: PrinterSettingsModalPr
                                     {paper.label}
                                 </button>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Receipt Currency Mode */}
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                <Coins className="size-4 text-brand-primary" />
+                                <span>Receipt Currency / រូបិយប័ណ្ណវិក្កយបត្រ</span>
+                            </label>
+                            <span className="text-[11px] font-semibold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">
+                                {receiptCurrency === 'KHR' ? 'KHR ៛ (Khmer Main)' : 'USD $ (US Dollar Main)'}
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setReceiptCurrency('USD')}
+                                className={`p-3.5 rounded-2xl border-2 text-left transition-all ${
+                                    receiptCurrency === 'USD'
+                                        ? 'border-brand-primary bg-brand-primary/5 text-brand-primary shadow-sm ring-2 ring-brand-primary/20'
+                                        : 'border-border bg-white text-slate-600 hover:border-slate-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <span className="font-black text-xs text-slate-900">USD ($ Main)</span>
+                                    {receiptCurrency === 'USD' && (
+                                        <div className="size-4 rounded-full bg-brand-primary text-white flex items-center justify-center">
+                                            <Check className="size-2.5" />
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-[11px] text-muted-foreground leading-tight">
+                                    List each item in <strong>USD ($)</strong>. Exchanged Riel (៛) shown in Total.
+                                </p>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setReceiptCurrency('KHR')}
+                                className={`p-3.5 rounded-2xl border-2 text-left transition-all ${
+                                    receiptCurrency === 'KHR'
+                                        ? 'border-brand-primary bg-brand-primary/5 text-brand-primary shadow-sm ring-2 ring-brand-primary/20'
+                                        : 'border-border bg-white text-slate-600 hover:border-slate-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <span className="font-black text-xs text-slate-900">KHR (៛ Main)</span>
+                                    {receiptCurrency === 'KHR' && (
+                                        <div className="size-4 rounded-full bg-brand-primary text-white flex items-center justify-center">
+                                            <Check className="size-2.5" />
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-[11px] text-muted-foreground leading-tight">
+                                    List each item in <strong>KHR (៛)</strong> using exchange rate. Total shows both KHR & USD together.
+                                </p>
+                            </button>
                         </div>
                     </div>
 

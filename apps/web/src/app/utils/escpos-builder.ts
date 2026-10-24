@@ -4,6 +4,7 @@ import { generateReceiptCanvas, generateTestReceiptCanvas } from './receipt-canv
 
 export interface EscPosOptions {
     paperSize?: '58mm' | '80mm'; // 58mm has 32 chars/line; 80mm has 48 chars/line
+    receiptCurrency?: 'USD' | 'KHR';
     cutPaper?: boolean;
     openDrawer?: boolean;
     customNote?: string;
@@ -185,6 +186,7 @@ export class EscPosBuilder {
         const paperSize = options.paperSize || '58mm';
         const canvas = generateReceiptCanvas(order, store, {
             paperSize,
+            receiptCurrency: options.receiptCurrency,
             customNote: options.customNote,
             customInvoiceCode: options.customInvoiceCode,
         });
@@ -278,13 +280,20 @@ export class EscPosBuilder {
         builder.bold(false);
         builder.divider('-');
 
+        const isKhr = options.receiptCurrency === 'KHR';
+
         // Items List
         order.items.forEach((item: OrderItem, idx: number) => {
             const unitPrice = parsePrice(item.unit_price);
             const lineTotal = parsePrice(item.line_total);
             const name = `${idx + 1}. ${item.product_name_snapshot}`;
-            const qtyPrice = `${item.quantity} x $${unitPrice.toFixed(2)}`;
-            const totalStr = `$${lineTotal.toFixed(2)}`;
+
+            const qtyPrice = isKhr
+                ? `${item.quantity} x ${Math.round(unitPrice * exchangeRate).toLocaleString()} KHR`
+                : `${item.quantity} x $${unitPrice.toFixed(2)}`;
+            const totalStr = isKhr
+                ? `${Math.round(lineTotal * exchangeRate).toLocaleString()} KHR`
+                : `$${lineTotal.toFixed(2)}`;
 
             builder.itemRow(name, qtyPrice, totalStr);
 
@@ -292,7 +301,10 @@ export class EscPosBuilder {
             if (item.addons && item.addons.length > 0) {
                 item.addons.forEach((addon: any) => {
                     const addonPrice = parsePrice(addon.price || 0);
-                    builder.twoColumn(`   + ${addon.name_snapshot}`, `$${addonPrice.toFixed(2)}`);
+                    const addonStr = isKhr
+                        ? `+${Math.round(addonPrice * exchangeRate).toLocaleString()} KHR`
+                        : `$${addonPrice.toFixed(2)}`;
+                    builder.twoColumn(`   + ${addon.name_snapshot}`, addonStr);
                 });
             }
         });
@@ -305,27 +317,49 @@ export class EscPosBuilder {
         const discountTotal = parsePrice(order.discount_total);
         const deliveryFee = parsePrice(order.delivery_fee || 0);
         const grandTotal = parsePrice(order.grand_total);
-        const grandTotalKhr = (grandTotal * exchangeRate).toLocaleString();
+        const grandTotalKhr = Math.round(grandTotal * exchangeRate).toLocaleString();
 
-        builder.twoColumn("Subtotal:", `$${subtotal.toFixed(2)}`);
-        if (store?.enable_tax !== false && taxTotal > 0) {
-            builder.twoColumn(`Tax (${order.tax_rate || store?.tax_rate || 0}%):`, `$${taxTotal.toFixed(2)}`);
-        }
-        if (discountTotal > 0) {
-            builder.twoColumn("Discount:", `-$${discountTotal.toFixed(2)}`);
-        }
-        if (order.order_type === 'delivery' && deliveryFee > 0) {
-            builder.twoColumn("Delivery Fee:", `$${deliveryFee.toFixed(2)}`);
-        }
+        if (isKhr) {
+            builder.twoColumn("Subtotal:", `${Math.round(subtotal * exchangeRate).toLocaleString()} KHR`);
+            if (store?.enable_tax !== false && taxTotal > 0) {
+                builder.twoColumn(`Tax (${order.tax_rate || store?.tax_rate || 0}%):`, `${Math.round(taxTotal * exchangeRate).toLocaleString()} KHR`);
+            }
+            if (discountTotal > 0) {
+                builder.twoColumn("Discount:", `-${Math.round(discountTotal * exchangeRate).toLocaleString()} KHR`);
+            }
+            if (order.order_type === 'delivery' && deliveryFee > 0) {
+                builder.twoColumn("Delivery Fee:", `${Math.round(deliveryFee * exchangeRate).toLocaleString()} KHR`);
+            }
 
-        builder.divider('=');
-        builder.bold(true);
-        builder.textSize(1, 2);
-        builder.twoColumn("GRAND TOTAL:", `$${grandTotal.toFixed(2)}`);
-        builder.textSize(1, 1);
-        builder.twoColumn("TOTAL (KHR):", `${grandTotalKhr} KHR`);
-        builder.bold(false);
-        builder.divider('-');
+            builder.divider('=');
+            builder.bold(true);
+            builder.textSize(1, 2);
+            builder.twoColumn("GRAND TOTAL (KHR):", `${grandTotalKhr} KHR`);
+            builder.textSize(1, 1);
+            builder.twoColumn("TOTAL (USD):", `$${grandTotal.toFixed(2)}`);
+            builder.bold(false);
+            builder.divider('-');
+        } else {
+            builder.twoColumn("Subtotal:", `$${subtotal.toFixed(2)}`);
+            if (store?.enable_tax !== false && taxTotal > 0) {
+                builder.twoColumn(`Tax (${order.tax_rate || store?.tax_rate || 0}%):`, `$${taxTotal.toFixed(2)}`);
+            }
+            if (discountTotal > 0) {
+                builder.twoColumn("Discount:", `-$${discountTotal.toFixed(2)}`);
+            }
+            if (order.order_type === 'delivery' && deliveryFee > 0) {
+                builder.twoColumn("Delivery Fee:", `$${deliveryFee.toFixed(2)}`);
+            }
+
+            builder.divider('=');
+            builder.bold(true);
+            builder.textSize(1, 2);
+            builder.twoColumn("GRAND TOTAL:", `$${grandTotal.toFixed(2)}`);
+            builder.textSize(1, 1);
+            builder.twoColumn("TOTAL (KHR):", `${grandTotalKhr} KHR`);
+            builder.bold(false);
+            builder.divider('-');
+        }
 
         // Footer Note
         builder.align('center');

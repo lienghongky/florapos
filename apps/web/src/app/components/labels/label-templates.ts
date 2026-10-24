@@ -104,13 +104,14 @@ export const SHEET_PRESETS = [
 
 const STORAGE_KEY = (storeId?: string) => `label-settings:${storeId || 'default'}`;
 
-export function loadSettings(storeId?: string): LabelSettings {
+export function loadSettings(storeId?: string, defaultExchangeRate: number = 4100): LabelSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY(storeId));
     if (raw) {
       const parsed = JSON.parse(raw);
       return { 
         ...DEFAULT_SETTINGS, 
+        exchangeRate: defaultExchangeRate,
         ...parsed, 
         fields: { 
           ...DEFAULT_SETTINGS.fields, 
@@ -120,7 +121,7 @@ export function loadSettings(storeId?: string): LabelSettings {
       };
     }
   } catch { /* ignore */ }
-  return DEFAULT_SETTINGS;
+  return { ...DEFAULT_SETTINGS, exchangeRate: defaultExchangeRate };
 }
 
 export function saveSettings(storeId: string | undefined, s: LabelSettings) {

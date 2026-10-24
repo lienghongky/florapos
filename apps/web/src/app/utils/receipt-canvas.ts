@@ -3,6 +3,7 @@ import { formatDateTime, formatPaymentMethod } from './format';
 
 export interface ReceiptCanvasOptions {
   paperSize?: '58mm' | '80mm';
+  receiptCurrency?: 'USD' | 'KHR';
   customNote?: string;
   customInvoiceCode?: string;
 }
@@ -25,6 +26,7 @@ export function generateReceiptCanvas(
   const width = is80mm ? 576 : 384;
   const padding = is80mm ? 20 : 12;
   const exchangeRate = order.exchange_rate || store?.exchange_rate || 4100;
+  const isKhr = options.receiptCurrency === 'KHR';
 
   const fontSans = "'Noto Sans Khmer', 'Inter', 'Battambang', -apple-system, BlinkMacSystemFont, Arial, sans-serif";
   const fontMono = "'SF Mono', Menlo, 'Noto Sans Khmer', monospace";
@@ -164,22 +166,34 @@ export function generateReceiptCanvas(
     // Qty x Price
     ctx.textAlign = 'right';
     ctx.font = `bold ${is80mm ? 16 : 12}px ${fontSans}`;
-    const unitPrice = parsePrice(item.unit_price).toFixed(2);
-    ctx.fillText(`${item.quantity}x$${unitPrice}`, qtyColX, y);
+    const rawUnitPrice = parsePrice(item.unit_price);
+    const rawLineTotal = parsePrice(item.line_total);
 
-    // Line Total
-    const lineTotal = parsePrice(item.line_total).toFixed(2);
-    ctx.fillText(`$${lineTotal}`, totalColX, y);
+    if (isKhr) {
+      const khrUnitPrice = Math.round(rawUnitPrice * exchangeRate);
+      const khrLineTotal = Math.round(rawLineTotal * exchangeRate);
+      ctx.fillText(`${item.quantity}x${khrUnitPrice.toLocaleString()}៛`, qtyColX, y);
+      ctx.fillText(`${khrLineTotal.toLocaleString()}៛`, totalColX, y);
+    } else {
+      ctx.fillText(`${item.quantity}x$${rawUnitPrice.toFixed(2)}`, qtyColX, y);
+      ctx.fillText(`$${rawLineTotal.toFixed(2)}`, totalColX, y);
+    }
     y += is80mm ? 25 : 18;
 
     // Addons
     if (item.addons && item.addons.length > 0) {
       ctx.font = `bold ${is80mm ? 15 : 11}px ${fontSans}`;
       item.addons.forEach((addon: any) => {
+        const rawAddonPrice = parsePrice(addon.price || 0);
         ctx.textAlign = 'left';
         ctx.fillText(`   + ${addon.name_snapshot}`, padding, y);
         ctx.textAlign = 'right';
-        ctx.fillText(`$${parsePrice(addon.price || 0).toFixed(2)}`, totalColX, y);
+        if (isKhr) {
+          const khrAddonPrice = Math.round(rawAddonPrice * exchangeRate);
+          ctx.fillText(`+${khrAddonPrice.toLocaleString()}៛`, totalColX, y);
+        } else {
+          ctx.fillText(`$${rawAddonPrice.toFixed(2)}`, totalColX, y);
+        }
         y += is80mm ? 20 : 15;
       });
     }
@@ -189,57 +203,93 @@ export function generateReceiptCanvas(
 
   // Financial Summary
   ctx.font = `bold ${is80mm ? 17 : 13}px ${fontSans}`;
-  const subtotal = parsePrice(order.subtotal).toFixed(2);
+  const rawSubtotal = parsePrice(order.subtotal);
+  const rawTax = parsePrice(order.tax_total);
+  const rawDiscount = parsePrice(order.discount_total);
+  const rawDelivery = parsePrice(order.delivery_fee || 0);
+  const grandTotal = parsePrice(order.grand_total);
+  const khrTotal = Math.round(grandTotal * exchangeRate);
+
   ctx.textAlign = 'left';
   ctx.fillText('Subtotal:', padding, y);
   ctx.textAlign = 'right';
-  ctx.fillText(`$${subtotal}`, totalColX, y);
+  if (isKhr) {
+    ctx.fillText(`${Math.round(rawSubtotal * exchangeRate).toLocaleString()} ៛`, totalColX, y);
+  } else {
+    ctx.fillText(`$${rawSubtotal.toFixed(2)}`, totalColX, y);
+  }
   y += is80mm ? 25 : 18;
 
-  if (store?.enable_tax !== false && parsePrice(order.tax_total) > 0) {
+  if (store?.enable_tax !== false && rawTax > 0) {
     ctx.textAlign = 'left';
     ctx.fillText(`Tax (${order.tax_rate || store?.tax_rate || 0}%):`, padding, y);
     ctx.textAlign = 'right';
-    ctx.fillText(`$${parsePrice(order.tax_total).toFixed(2)}`, totalColX, y);
+    if (isKhr) {
+      ctx.fillText(`${Math.round(rawTax * exchangeRate).toLocaleString()} ៛`, totalColX, y);
+    } else {
+      ctx.fillText(`$${rawTax.toFixed(2)}`, totalColX, y);
+    }
     y += is80mm ? 25 : 18;
   }
 
-  if (parsePrice(order.discount_total) > 0) {
-    const discount = parsePrice(order.discount_total).toFixed(2);
+  if (rawDiscount > 0) {
     ctx.textAlign = 'left';
     ctx.fillText('Discount:', padding, y);
     ctx.textAlign = 'right';
-    ctx.fillText(`-$${discount}`, totalColX, y);
+    if (isKhr) {
+      ctx.fillText(`-${Math.round(rawDiscount * exchangeRate).toLocaleString()} ៛`, totalColX, y);
+    } else {
+      ctx.fillText(`-$${rawDiscount.toFixed(2)}`, totalColX, y);
+    }
     y += is80mm ? 25 : 18;
   }
 
-  if (order.order_type === 'delivery' && parsePrice(order.delivery_fee || 0) > 0) {
+  if (order.order_type === 'delivery' && rawDelivery > 0) {
     ctx.textAlign = 'left';
     ctx.fillText('Delivery Fee:', padding, y);
     ctx.textAlign = 'right';
-    ctx.fillText(`$${parsePrice(order.delivery_fee || 0).toFixed(2)}`, totalColX, y);
+    if (isKhr) {
+      ctx.fillText(`${Math.round(rawDelivery * exchangeRate).toLocaleString()} ៛`, totalColX, y);
+    } else {
+      ctx.fillText(`$${rawDelivery.toFixed(2)}`, totalColX, y);
+    }
     y += is80mm ? 25 : 18;
   }
 
   drawDivider(false);
 
-  // Grand Total & Khmer Total
-  const grandTotal = parsePrice(order.grand_total);
-  const khrTotal = Math.round(grandTotal * exchangeRate);
+  // Grand Total & Currency Combinations
+  if (isKhr) {
+    // KHR Main: Total shows KHR and USD together
+    ctx.font = `bold ${is80mm ? 26 : 18}px ${fontSans}`;
+    ctx.textAlign = 'left';
+    ctx.fillText('GRAND TOTAL (KHR):', padding, y);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${khrTotal.toLocaleString()} ៛`, totalColX, y);
+    y += is80mm ? 32 : 23;
 
-  ctx.font = `bold ${is80mm ? 26 : 18}px ${fontSans}`;
-  ctx.textAlign = 'left';
-  ctx.fillText('GRAND TOTAL:', padding, y);
-  ctx.textAlign = 'right';
-  ctx.fillText(`$${grandTotal.toFixed(2)}`, totalColX, y);
-  y += is80mm ? 32 : 23;
+    ctx.font = `bold ${is80mm ? 22 : 16}px ${fontSans}`;
+    ctx.textAlign = 'left';
+    ctx.fillText('TOTAL (USD):', padding, y);
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${grandTotal.toFixed(2)}`, totalColX, y);
+    y += is80mm ? 30 : 24;
+  } else {
+    // USD Main: USD total first, and exchanged to riel in total
+    ctx.font = `bold ${is80mm ? 26 : 18}px ${fontSans}`;
+    ctx.textAlign = 'left';
+    ctx.fillText('GRAND TOTAL:', padding, y);
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${grandTotal.toFixed(2)}`, totalColX, y);
+    y += is80mm ? 32 : 23;
 
-  ctx.font = `bold ${is80mm ? 22 : 16}px ${fontSans}`;
-  ctx.textAlign = 'left';
-  ctx.fillText('TOTAL (KHR):', padding, y);
-  ctx.textAlign = 'right';
-  ctx.fillText(`${khrTotal.toLocaleString()} ៛`, totalColX, y);
-  y += is80mm ? 30 : 24;
+    ctx.font = `bold ${is80mm ? 22 : 16}px ${fontSans}`;
+    ctx.textAlign = 'left';
+    ctx.fillText('TOTAL (KHR):', padding, y);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${khrTotal.toLocaleString()} ៛`, totalColX, y);
+    y += is80mm ? 30 : 24;
+  }
 
   drawDivider(true);
 

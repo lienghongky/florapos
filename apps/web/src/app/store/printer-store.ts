@@ -18,10 +18,12 @@ import {
 export type PrintMode = 'system' | 'bluetooth' | 'pocket' | 'rawbt' | 'network' | 'native_bridge' | 'escpos_driver' | 'usb';
 export type PaperSize = '58mm' | '80mm';
 export type DriverAppType = 'ottor' | 'fidelier';
+export type ReceiptCurrency = 'USD' | 'KHR';
 
 interface PrinterState {
     printMode: PrintMode;
     paperSize: PaperSize;
+    receiptCurrency: ReceiptCurrency;
     autoPrintOnCheckout: boolean;
     printTwoReceipts: boolean;
     receiptDelaySeconds: number;
@@ -48,6 +50,7 @@ interface PrinterState {
     // Actions
     setPrintMode: (mode: PrintMode) => void;
     setPaperSize: (size: PaperSize) => void;
+    setReceiptCurrency: (currency: ReceiptCurrency) => void;
     setDriverApp: (app: DriverAppType) => void;
     setDriverScheme: (scheme: string) => void;
     setAutoPrintOnCheckout: (enabled: boolean) => void;
@@ -86,6 +89,7 @@ export const usePrinterStore = create<PrinterState>()(
         (set, get) => ({
             printMode: 'system',
             paperSize: '58mm',
+            receiptCurrency: 'USD',
             autoPrintOnCheckout: false,
             printTwoReceipts: false,
             receiptDelaySeconds: 2,
@@ -108,6 +112,7 @@ export const usePrinterStore = create<PrinterState>()(
 
             setPrintMode: (mode) => set({ printMode: mode, lastError: null }),
             setPaperSize: (size) => set({ paperSize: size }),
+            setReceiptCurrency: (currency) => set({ receiptCurrency: currency }),
             setDriverApp: (app) => set({ driverApp: app }),
             setDriverScheme: (scheme) => set({ driverScheme: scheme }),
             setAutoPrintOnCheckout: (enabled) => set({ autoPrintOnCheckout: enabled }),
@@ -380,7 +385,7 @@ export const usePrinterStore = create<PrinterState>()(
                         grand_total: 6.00,
                         notes: 'Test print receipt - Khmer & English'
                     };
-                    await printSystemReceipts([sampleTestOrder], null, { paperSize });
+                    await printSystemReceipts([sampleTestOrder], null, { paperSize, receiptCurrency: get().receiptCurrency });
                 }
             },
         }),
@@ -389,6 +394,7 @@ export const usePrinterStore = create<PrinterState>()(
             partialize: (state) => ({
                 printMode: state.printMode,
                 paperSize: state.paperSize,
+                receiptCurrency: state.receiptCurrency,
                 driverApp: state.driverApp,
                 driverScheme: state.driverScheme,
                 autoPrintOnCheckout: state.autoPrintOnCheckout,
