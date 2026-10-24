@@ -35,6 +35,13 @@ export function PublicEMenuPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [cartTab, setCartTab] = useState<'cart' | 'history'>('cart');
+  const [activeCurrency, setActiveCurrency] = useState<'USD' | 'KHR' | 'BOTH'>('BOTH');
+
+  useEffect(() => {
+    if (publicData?.settings?.currency) {
+      setActiveCurrency(publicData.settings.currency as any);
+    }
+  }, [publicData?.settings?.currency]);
 
   useEffect(() => {
     if (storeId) {
@@ -89,6 +96,7 @@ export function PublicEMenuPage() {
   const allowOrdering = settings.allow_ordering;
   const showPrices = settings.show_prices;
   const templateId = settings.template_id || 'default';
+  const exchangeRate = Number(store?.exchange_rate) || 4100;
 
   const { component: TemplateComponent } = getTemplate(templateId);
 
@@ -282,6 +290,45 @@ export function PublicEMenuPage() {
 
   return (
     <div className="relative">
+      {/* Customer Currency Switcher (Top Right Pill) */}
+      {showPrices && (
+        <div className="fixed top-4 right-4 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-1 rounded-2xl shadow-xl border border-slate-200/50 dark:border-white/10 flex items-center gap-1 text-[10px] font-black">
+          <button
+            type="button"
+            onClick={() => setActiveCurrency('BOTH')}
+            className={`px-3 py-1.5 rounded-xl transition-all ${
+              activeCurrency === 'BOTH'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+            }`}
+          >
+            Dual
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveCurrency('USD')}
+            className={`px-3 py-1.5 rounded-xl transition-all ${
+              activeCurrency === 'USD'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+            }`}
+          >
+            $ USD
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveCurrency('KHR')}
+            className={`px-3 py-1.5 rounded-xl transition-all ${
+              activeCurrency === 'KHR'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+            }`}
+          >
+            ៛ KHR
+          </button>
+        </div>
+      )}
+
       <TemplateComponent
         store={store}
         settings={settings}
@@ -291,6 +338,8 @@ export function PublicEMenuPage() {
         onAddToCart={onTemplateAddToCart}
         onOpenCart={() => setIsCartOpen(true)}
         isScrolled={isScrolled}
+        currencyMode={activeCurrency}
+        exchangeRate={exchangeRate}
       />
 
       {/* Hidden POS-Style Receipts for Capture */}
@@ -411,7 +460,7 @@ export function PublicEMenuPage() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold', marginTop: '2px' }}>
                     <span>TOTAL (KHR):</span>
-                    <span>{(grandTotal * 4100).toLocaleString()}៛</span>
+                    <span>{(grandTotal * exchangeRate).toLocaleString()} ៛</span>
                   </div>
                 </div>
               </div>
@@ -453,6 +502,7 @@ export function PublicEMenuPage() {
         onClose={() => setSelectedProductForOptions(null)}
         product={selectedProductForOptions}
         onAddToCart={handleAddToCart}
+        exchangeRate={exchangeRate}
       />
 
       {/* Floating Cart Island (Shared across templates) */}
@@ -481,7 +531,18 @@ export function PublicEMenuPage() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                {showPrices && <span className="text-2xl tracking-tighter">${cartTotal.toFixed(2)}</span>}
+                {showPrices && (
+                  <div className="flex flex-col items-end leading-tight">
+                    {activeCurrency !== 'KHR' && (
+                      <span className="text-2xl tracking-tighter tabular-nums">${cartTotal.toFixed(2)}</span>
+                    )}
+                    {activeCurrency !== 'USD' && (
+                      <span className={`font-bold tabular-nums ${activeCurrency === 'KHR' ? 'text-2xl' : 'text-xs text-brand-primary'}`}>
+                        {Math.round(cartTotal * exchangeRate).toLocaleString()} ៛
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className={`size-10 rounded-full flex items-center justify-center ${templateId === 'modern' ? 'bg-slate-100' : 'bg-white/10'}`}>
                   <ChevronRight className="size-5" />
                 </div>
@@ -619,9 +680,18 @@ export function PublicEMenuPage() {
                                 )}
                               </div>
                               {showPrices && (
-                                <span className="font-black text-lg tracking-tighter tabular-nums text-brand-primary">
-                                  ${(calculateItemPrice(item) * item.quantity).toFixed(2)}
-                                </span>
+                                <div className="flex flex-col items-end">
+                                  {activeCurrency !== 'KHR' && (
+                                    <span className="font-black text-lg tracking-tighter tabular-nums text-brand-primary">
+                                      ${(calculateItemPrice(item) * item.quantity).toFixed(2)}
+                                    </span>
+                                  )}
+                                  {activeCurrency !== 'USD' && (
+                                    <span className={`font-bold tabular-nums ${templateId === 'modern' ? 'text-white/60' : 'text-slate-500'} ${activeCurrency === 'KHR' ? 'text-lg text-brand-primary font-black' : 'text-xs'}`}>
+                                      {Math.round(calculateItemPrice(item) * item.quantity * exchangeRate).toLocaleString()} ៛
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
 
@@ -686,9 +756,18 @@ export function PublicEMenuPage() {
                                   <span className="font-black truncate max-w-[150px]">{item.product_name_snapshot || 'Product'}</span>
                                 </div>
                                 {showPrices && (
-                                  <span className="font-black tabular-nums">
-                                    ${Number(item.line_total).toFixed(2)}
-                                  </span>
+                                  <div className="flex flex-col items-end">
+                                    {activeCurrency !== 'KHR' && (
+                                      <span className="font-black tabular-nums">
+                                        ${Number(item.line_total).toFixed(2)}
+                                      </span>
+                                    )}
+                                    {activeCurrency !== 'USD' && (
+                                      <span className={`font-bold tabular-nums ${activeCurrency === 'KHR' ? 'text-sm' : 'text-[10px] text-brand-primary'}`}>
+                                        {Math.round(Number(item.line_total) * exchangeRate).toLocaleString()} ៛
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                               {item.addons && item.addons.length > 0 && (
@@ -716,7 +795,14 @@ export function PublicEMenuPage() {
                           </div>
                           <div className="text-right">
                             <span className="text-[10px] font-black uppercase tracking-widest opacity-40 block mb-1">Total Paid</span>
-                            <span className="text-2xl font-black tracking-tighter tabular-nums">${Number(order.grand_total).toFixed(2)}</span>
+                            {activeCurrency !== 'KHR' && (
+                              <span className="text-2xl font-black tracking-tighter tabular-nums block">${Number(order.grand_total).toFixed(2)}</span>
+                            )}
+                            {activeCurrency !== 'USD' && (
+                              <span className={`font-bold tabular-nums text-brand-primary ${activeCurrency === 'KHR' ? 'text-2xl font-black' : 'text-xs block'}`}>
+                                {Math.round(Number(order.grand_total) * exchangeRate).toLocaleString()} ៛
+                              </span>
+                            )}
                           </div>
                         </div>
                       </motion.div>
@@ -731,9 +817,18 @@ export function PublicEMenuPage() {
                     <div className="flex justify-between items-center px-2">
                       <div className="flex flex-col">
                         <span className="text-slate-400 font-black uppercase tracking-[0.3em] text-[9px]">Grand Total</span>
-                        <span className="text-sm font-bold text-slate-300">Inc. Service & Tax</span>
+                        <span className="text-xs font-bold text-slate-400">1$ = {exchangeRate.toLocaleString()} ៛</span>
                       </div>
-                      <span className="text-4xl font-black tracking-tighter tabular-nums">${cartTotal.toFixed(2)}</span>
+                      <div className="flex flex-col items-end">
+                        {activeCurrency !== 'KHR' && (
+                          <span className="text-3xl font-black tracking-tighter tabular-nums">${cartTotal.toFixed(2)}</span>
+                        )}
+                        {activeCurrency !== 'USD' && (
+                          <span className={`font-black tabular-nums ${activeCurrency === 'KHR' ? 'text-3xl' : 'text-base text-brand-primary'}`}>
+                            {Math.round(cartTotal * exchangeRate).toLocaleString()} ៛
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
 

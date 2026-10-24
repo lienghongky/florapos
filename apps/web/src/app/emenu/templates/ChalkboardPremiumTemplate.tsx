@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ShoppingBag, ChevronRight, Info, Heart, Flame, Star, Mail } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
 import { SocialLinks } from './components/SocialLinks';
+import { EMenuPrice } from '../utils/emenu-currency';
 
 export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
    store,
@@ -10,7 +11,9 @@ export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
    products,
    tags,
    onAddToCart,
-   isScrolled
+   isScrolled,
+   currencyMode,
+   exchangeRate
 }) => {
    const [activeCategory, setActiveCategory] = useState<string>('');
 
@@ -133,9 +136,13 @@ export const ChalkboardPremiumTemplate: React.FC<EMenuTemplateProps> = ({
                                        {product.tags?.includes('Best') && <Star className="size-3 text-yellow-400" />}
                                     </h3>
                                     {settings.show_prices && (
-                                       <span className="text-lg font-bold tracking-tighter tabular-nums">
-                                          {Number(product.base_price).toFixed(0)}
-                                       </span>
+                                       <EMenuPrice
+                                          price={product.base_price}
+                                          exchangeRate={exchangeRate || store?.exchange_rate}
+                                          currencyMode={currencyMode || settings?.currency}
+                                          usdClassName="text-lg font-bold tracking-tighter tabular-nums text-white"
+                                          khrClassName="text-yellow-400/90 text-xs font-bold"
+                                       />
                                     )}
                                  </div>
                                  

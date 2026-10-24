@@ -337,6 +337,10 @@ export function EMenuPage() {
     updateSettings(selectedStore.id, { require_customer_phone: checked });
   };
 
+  const handleCurrencyChange = (currency: 'USD' | 'KHR' | 'BOTH') => {
+    updateSettings(selectedStore.id, { currency });
+  };
+
   const handleToggleProduct = (productId: string) => {
     const isVisible = emenuProductIds.includes(productId);
     toggleProductVisibility(selectedStore.id, productId, !isVisible);
@@ -413,6 +417,50 @@ export function EMenuPage() {
                     <input type="checkbox" checked={!!settings?.allow_ordering} onChange={(e) => handleToggleOrdering(e.target.checked)} className="sr-only peer" />
                     <div className="w-7 h-3.5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-indigo-600"></div>
                   </label>
+                </div>
+              </div>
+
+              <div className="rounded-xl p-2.5 border bg-slate-50 border-slate-200 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Currency</span>
+                  <span className="text-[8px] font-black text-brand-primary uppercase">
+                    {settings?.currency === 'KHR' ? '៛ KHR' : settings?.currency === 'USD' ? '$ USD' : 'Dual ($ / ៛)'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-lg text-[9px] font-black">
+                  <button
+                    type="button"
+                    onClick={() => handleCurrencyChange('BOTH')}
+                    className={`py-1 rounded-md transition-all ${
+                      (!settings?.currency || settings.currency === 'BOTH')
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    Dual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCurrencyChange('USD')}
+                    className={`py-1 rounded-md transition-all ${
+                      settings?.currency === 'USD'
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    $ USD
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCurrencyChange('KHR')}
+                    className={`py-1 rounded-md transition-all ${
+                      settings?.currency === 'KHR'
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    ៛ KHR
+                  </button>
                 </div>
               </div>
 
@@ -508,6 +556,49 @@ export function EMenuPage() {
                       <input type="checkbox" checked={!!settings?.show_prices} onChange={(e) => handleTogglePrices(e.target.checked)} className="sr-only peer" />
                       <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-primary"></div>
                     </label>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-600">Currency</span>
+                      <span className="text-[10px] font-black text-brand-primary uppercase">
+                        {settings?.currency === 'KHR' ? '៛ KHR' : settings?.currency === 'USD' ? '$ USD' : 'Dual ($ & ៛)'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl text-[10px] font-black">
+                      <button
+                        type="button"
+                        onClick={() => handleCurrencyChange('BOTH')}
+                        className={`py-1.5 rounded-lg transition-all ${
+                          (!settings?.currency || settings.currency === 'BOTH')
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        Dual
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCurrencyChange('USD')}
+                        className={`py-1.5 rounded-lg transition-all ${
+                          settings?.currency === 'USD'
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        $ USD
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCurrencyChange('KHR')}
+                        className={`py-1.5 rounded-lg transition-all ${
+                          settings?.currency === 'KHR'
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        ៛ KHR
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between">

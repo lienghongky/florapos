@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Store, ShoppingBag, Plus, ChevronRight, Info, MapPin, Clock } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
 import { EMenuFooter } from './components/EMenuFooter';
+import { EMenuPrice } from '../utils/emenu-currency';
 
 export const ModernTemplate: React.FC<EMenuTemplateProps> = ({
   store,
@@ -12,7 +13,9 @@ export const ModernTemplate: React.FC<EMenuTemplateProps> = ({
   cart,
   onAddToCart,
   onOpenCart,
-  isScrolled
+  isScrolled,
+  currencyMode,
+  exchangeRate
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('');
 
@@ -152,9 +155,14 @@ export const ModernTemplate: React.FC<EMenuTemplateProps> = ({
                         )}
                         <div className="mt-4 flex items-center justify-between">
                           {settings.show_prices && (
-                            <span className="text-2xl font-black tracking-tighter text-white">
-                              ${Number(product.base_price).toFixed(2)}
-                            </span>
+                            <EMenuPrice
+                              price={product.base_price}
+                              exchangeRate={exchangeRate || store?.exchange_rate}
+                              currencyMode={currencyMode || settings?.currency}
+                              align="left"
+                              usdClassName="text-2xl font-black tracking-tighter text-white"
+                              khrClassName="text-slate-400 text-xs font-bold"
+                            />
                           )}
                           <div className="text-[10px] font-black uppercase tracking-widest opacity-30 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                             {isOutOfStock ? 'Sold Out' : 'View Details'} <ChevronRight className="size-3" />

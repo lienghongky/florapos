@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Store, Plus, ChevronRight, Crown } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
 import { EMenuFooter } from './components/EMenuFooter';
+import { EMenuPrice } from '../utils/emenu-currency';
 
 // Simple SVG Kbach Pattern
 const KbachPattern = () => (
@@ -17,6 +18,8 @@ export const RoyalBlueTemplate: React.FC<EMenuTemplateProps> = ({
   products,
   tags,
   onAddToCart,
+  currencyMode,
+  exchangeRate
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('');
 
@@ -137,9 +140,13 @@ export const RoyalBlueTemplate: React.FC<EMenuTemplateProps> = ({
                         <div className="flex justify-between items-start mb-4">
                           <h3 className="text-xl font-bold text-white uppercase tracking-wider">{product.name}</h3>
                           {settings.show_prices && (
-                            <span className={`text-xl font-black tracking-tighter ${isOutOfStock ? 'text-[#5E6A7D]' : 'text-[#C5A059]'}`}>
-                              ${Number(product.base_price).toFixed(2)}
-                            </span>
+                            <EMenuPrice
+                              price={product.base_price}
+                              exchangeRate={exchangeRate || store?.exchange_rate}
+                              currencyMode={currencyMode || settings?.currency}
+                              usdClassName={`text-xl font-black tracking-tighter ${isOutOfStock ? 'text-[#5E6A7D]' : 'text-[#C5A059]'}`}
+                              khrClassName="text-[#C5A059]/75 text-xs font-bold"
+                            />
                           )}
                         </div>
                         {product.description && (

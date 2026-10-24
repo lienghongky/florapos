@@ -9,6 +9,8 @@ export interface EMenuTemplateProps {
   onAddToCart: (product: any) => void;
   onOpenCart: () => void;
   isScrolled: boolean;
+  currencyMode?: 'USD' | 'KHR' | 'BOTH';
+  exchangeRate?: number;
 }
 
 export interface EMenuTemplateMetadata {

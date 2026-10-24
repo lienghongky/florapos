@@ -10,6 +10,7 @@ interface ProductCustomizationModalProps {
     initialVariantId?: string;
     initialQuantity?: number;
     product: Product | null;
+    exchangeRate?: number;
     onAddToCart: (
         product: Product, 
         selectedVariant?: ProductVariant, 
@@ -20,7 +21,7 @@ interface ProductCustomizationModalProps {
 }
 
 
-export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCart, initialVariantId, initialQuantity = 1 }: ProductCustomizationModalProps) {
+export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCart, initialVariantId, initialQuantity = 1, exchangeRate }: ProductCustomizationModalProps) {
     const [selectedModifiers, setSelectedModifiers] = useState<{ [groupId: string]: ModifierOption[] }>({});
     const [variantId, setVariantId] = useState('');
     const [addons, setAddons] = useState<Addon[]>([]);
@@ -265,8 +266,13 @@ export function ProductCustomizationModal({ isOpen, onClose, product, onAddToCar
                                             {isOutOfStock ? 'Out of Stock' : `Add ${quantity > 1 ? `${quantity} Items` : 'Item'} to Cart`}
                                         </span>
                                         {!isOutOfStock && (
-                                            <div className="ml-2 bg-white/10 px-3 py-1.5 rounded-lg text-sm font-bold border border-white/10">
-                                                ${totalPrice.toFixed(2)}
+                                            <div className="ml-2 bg-white/10 px-3 py-1.5 rounded-lg text-sm font-bold border border-white/10 flex items-baseline gap-1.5">
+                                                <span>${totalPrice.toFixed(2)}</span>
+                                                {exchangeRate ? (
+                                                    <span className="text-[11px] font-medium opacity-80">
+                                                        ({Math.round(totalPrice * exchangeRate).toLocaleString()} ៛)
+                                                    </span>
+                                                ) : null}
                                             </div>
                                         )}
                                     </motion.button>

@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Store, Plus, Leaf, Cloud, Sun } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
 import { SocialLinks } from './components/SocialLinks';
+import { EMenuPrice } from '../utils/emenu-currency';
 
 export const NatureTemplate: React.FC<EMenuTemplateProps> = ({
   store,
@@ -11,7 +12,9 @@ export const NatureTemplate: React.FC<EMenuTemplateProps> = ({
   tags,
   onAddToCart,
   isScrolled,
-  cart
+  cart,
+  currencyMode,
+  exchangeRate
 }) => {
   // ... existing logic ...
   const [activeCategory, setActiveCategory] = useState<string>('');
@@ -231,9 +234,13 @@ export const NatureTemplate: React.FC<EMenuTemplateProps> = ({
                       <div className="flex justify-between items-start gap-4">
                         <h3 className="text-xl font-black text-[#2D3A24] leading-tight group-hover:text-[#3E4A35] transition-colors uppercase tracking-tight">{product.name}</h3>
                         {settings.show_prices && (
-                          <span className="text-xl font-black text-[#7E8F6F] tracking-tighter tabular-nums whitespace-nowrap">
-                            ${Number(product.base_price).toFixed(2)}
-                          </span>
+                          <EMenuPrice
+                            price={product.base_price}
+                            exchangeRate={exchangeRate || store?.exchange_rate}
+                            currencyMode={currencyMode || settings?.currency}
+                            usdClassName="text-xl font-black text-[#7E8F6F] tracking-tighter tabular-nums whitespace-nowrap"
+                            khrClassName="text-[#4F5E44] text-xs font-bold"
+                          />
                         )}
                       </div>
                       

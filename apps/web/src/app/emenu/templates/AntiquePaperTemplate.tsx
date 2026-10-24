@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ShoppingBag, ChevronRight, Info, Minus, Plus } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
 import { SocialLinks } from './components/SocialLinks';
+import { EMenuPrice } from '../utils/emenu-currency';
 
 export const AntiquePaperTemplate: React.FC<EMenuTemplateProps> = ({
    store,
@@ -10,7 +11,9 @@ export const AntiquePaperTemplate: React.FC<EMenuTemplateProps> = ({
    products,
    tags,
    onAddToCart,
-   isScrolled
+   isScrolled,
+   currencyMode,
+   exchangeRate
 }) => {
    const [activeCategory, setActiveCategory] = useState<string>('');
 
@@ -125,9 +128,13 @@ export const AntiquePaperTemplate: React.FC<EMenuTemplateProps> = ({
                                        <h3 className="text-xl font-bold tracking-wide">{product.name}</h3>
                                        <div className="flex-1 border-b border-dotted border-[#D1CFCA] h-px" />
                                        {settings.show_prices && (
-                                          <span className="text-lg font-medium tracking-tighter">
-                                             ${Number(product.base_price).toFixed(2)}
-                                          </span>
+                                          <EMenuPrice
+                                             price={product.base_price}
+                                             exchangeRate={exchangeRate || store?.exchange_rate}
+                                             currencyMode={currencyMode || settings?.currency}
+                                             usdClassName="text-lg font-medium tracking-tighter text-[#2D2A26]"
+                                             khrClassName="text-[#8C6D46] text-xs font-bold"
+                                          />
                                        )}
                                     </div>
                                     

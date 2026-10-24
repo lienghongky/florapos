@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ShoppingBag, Star, Download, Apple, Play } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
 import { SocialLinks } from './components/SocialLinks';
+import { EMenuPrice } from '../utils/emenu-currency';
 
 export const MarbleLuxuryTemplate: React.FC<EMenuTemplateProps> = ({
    store,
@@ -10,7 +11,9 @@ export const MarbleLuxuryTemplate: React.FC<EMenuTemplateProps> = ({
    products,
    tags,
    onAddToCart,
-   isScrolled
+   isScrolled,
+   currencyMode,
+   exchangeRate
 }) => {
    const [activeCategory, setActiveCategory] = useState<string>('');
 
@@ -126,9 +129,12 @@ export const MarbleLuxuryTemplate: React.FC<EMenuTemplateProps> = ({
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#0A1A14]/80 via-transparent to-transparent opacity-60" />
                                     
                                     {/* Price Badge on Mobile */}
-                                    <div className="absolute top-6 right-6 lg:hidden px-4 py-2 bg-emerald-500 rounded-full font-black text-sm shadow-xl">
-                                       ${Number(product.base_price).toFixed(0)}
-                                    </div>
+                                    {settings.show_prices && (
+                                       <div className="absolute top-6 right-6 lg:hidden px-3.5 py-1.5 bg-emerald-500 rounded-full font-black text-xs shadow-xl text-white flex flex-col items-end leading-tight">
+                                          <span>${Number(product.base_price).toFixed(2)}</span>
+                                          <span className="text-[10px] opacity-80">{Math.round(Number(product.base_price) * (exchangeRate || store?.exchange_rate || 4100)).toLocaleString()} ៛</span>
+                                       </div>
+                                    )}
                                  </div>
                                  
                                  {/* Decorative Elements around image */}
@@ -164,9 +170,14 @@ export const MarbleLuxuryTemplate: React.FC<EMenuTemplateProps> = ({
                                              <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Price Selection</p>
                                              <div className="flex items-center gap-4">
                                                 {settings.show_prices && (
-                                                   <span className="text-3xl lg:text-4xl font-black tracking-tighter text-white">
-                                                      ${Number(product.base_price).toFixed(0)}<span className="text-lg text-emerald-500 ml-1">++</span>
-                                                   </span>
+                                                   <EMenuPrice
+                                                      price={product.base_price}
+                                                      exchangeRate={exchangeRate || store?.exchange_rate}
+                                                      currencyMode={currencyMode || settings?.currency}
+                                                      align="left"
+                                                      usdClassName="text-3xl lg:text-4xl font-black tracking-tighter text-white"
+                                                      khrClassName="text-emerald-400 text-sm font-bold"
+                                                   />
                                                 )}
                                              </div>
                                           </div>

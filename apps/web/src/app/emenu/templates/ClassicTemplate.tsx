@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Store, Plus, ChevronRight, MapPin, Clock } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
 import { EMenuFooter } from './components/EMenuFooter';
+import { EMenuPrice } from '../utils/emenu-currency';
 
 export const ClassicTemplate: React.FC<EMenuTemplateProps> = ({
   store,
@@ -10,7 +11,9 @@ export const ClassicTemplate: React.FC<EMenuTemplateProps> = ({
   products,
   tags,
   onAddToCart,
-  isScrolled
+  isScrolled,
+  currencyMode,
+  exchangeRate
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('');
 
@@ -117,9 +120,14 @@ export const ClassicTemplate: React.FC<EMenuTemplateProps> = ({
                         <div className="flex justify-between items-start">
                           <h3 className="text-lg font-black leading-tight text-slate-900">{product.name}</h3>
                           {settings.show_prices && (
-                            <span className={`text-lg font-black tracking-tighter ml-4 ${isOutOfStock ? 'text-slate-300' : 'text-slate-900'}`}>
-                              ${Number(product.base_price).toFixed(2)}
-                            </span>
+                            <EMenuPrice
+                              price={product.base_price}
+                              exchangeRate={exchangeRate || store?.exchange_rate}
+                              currencyMode={currencyMode || settings?.currency}
+                              className="ml-4 shrink-0"
+                              usdClassName={isOutOfStock ? 'text-slate-300 text-lg' : 'text-slate-900 text-lg'}
+                              khrClassName={isOutOfStock ? 'text-slate-300' : 'text-brand-primary'}
+                            />
                           )}
                         </div>
                         {product.description && (

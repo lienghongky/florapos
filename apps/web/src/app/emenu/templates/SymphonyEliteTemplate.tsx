@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ShoppingBag, ChevronRight, Info, Star, MapPin, Phone, Clock, ArrowRight } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
 import { SocialLinks } from './components/SocialLinks';
+import { EMenuPrice } from '../utils/emenu-currency';
 
 export const SymphonyEliteTemplate: React.FC<EMenuTemplateProps> = ({
 // ... existing props ...
@@ -11,7 +12,9 @@ export const SymphonyEliteTemplate: React.FC<EMenuTemplateProps> = ({
    products,
    tags,
    onAddToCart,
-   isScrolled
+   isScrolled,
+   currencyMode,
+   exchangeRate
 }) => {
    const [activeCategory, setActiveCategory] = useState<string>('');
    const [heroImage, setHeroImage] = useState<string>('');
@@ -213,9 +216,14 @@ export const SymphonyEliteTemplate: React.FC<EMenuTemplateProps> = ({
                                        )}
                                     </div>
                                     {settings.show_prices && (
-                                       <span className="text-xl font-light tracking-widest text-[#C5A059]">
-                                          ${Number(product.base_price).toFixed(2)}
-                                       </span>
+                                       <EMenuPrice
+                                          price={product.base_price}
+                                          exchangeRate={exchangeRate || store?.exchange_rate}
+                                          currencyMode={currencyMode || settings?.currency}
+                                          align="right"
+                                          usdClassName="text-xl font-light tracking-widest text-[#C5A059]"
+                                          khrClassName="text-xs font-bold text-[#C5A059]/80"
+                                       />
                                     )}
                                  </div>
 

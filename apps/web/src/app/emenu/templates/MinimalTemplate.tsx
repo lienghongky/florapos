@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ShoppingBag, ChevronRight, Info } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
 import { EMenuFooter } from './components/EMenuFooter';
+import { EMenuPrice } from '../utils/emenu-currency';
 
 export const MinimalTemplate: React.FC<EMenuTemplateProps> = ({
    store,
@@ -10,7 +11,9 @@ export const MinimalTemplate: React.FC<EMenuTemplateProps> = ({
    products,
    tags,
    onAddToCart,
-   isScrolled
+   isScrolled,
+   currencyMode,
+   exchangeRate
 }) => {
    const [activeCategory, setActiveCategory] = useState<string>('');
 
@@ -115,8 +118,15 @@ export const MinimalTemplate: React.FC<EMenuTemplateProps> = ({
                                  </div>
                               )}
                               {settings.show_prices && (
-                                 <div className="flex flex-col items-center gap-2 mb-8">
-                                    <span className="text-lg font-light tracking-widest">${Number(product.base_price).toFixed(2)}</span>
+                                 <div className="flex flex-col items-center gap-1 mb-8">
+                                    <EMenuPrice
+                                       price={product.base_price}
+                                       exchangeRate={exchangeRate || store?.exchange_rate}
+                                       currencyMode={currencyMode || settings?.currency}
+                                       align="center"
+                                       usdClassName="text-lg font-light tracking-widest text-[#1A1A1A]"
+                                       khrClassName="text-stone-500 text-xs font-medium"
+                                    />
                                     {isOutOfStock && <span className="text-[9px] uppercase tracking-widest text-red-400 font-sans font-bold">Sold Out</span>}
                                  </div>
                               )}

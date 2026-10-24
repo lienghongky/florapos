@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Store, ShoppingBag, Plus, ChevronRight, Crown } from 'lucide-react';
 import { EMenuTemplateProps } from './types';
 import { EMenuFooter } from './components/EMenuFooter';
+import { EMenuPrice } from '../utils/emenu-currency';
 
 export const RoyalWhiteTemplate: React.FC<EMenuTemplateProps> = ({
   store,
@@ -10,6 +11,8 @@ export const RoyalWhiteTemplate: React.FC<EMenuTemplateProps> = ({
   products,
   tags,
   onAddToCart,
+  currencyMode,
+  exchangeRate,
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('');
 
@@ -125,9 +128,15 @@ export const RoyalWhiteTemplate: React.FC<EMenuTemplateProps> = ({
                           </div>
                         )}
                         {settings.show_prices && (
-                          <div className={`text-xl font-black pt-2 ${isOutOfStock ? 'text-[#B5A48B]' : 'text-[#2D2416]'}`}>
-                            ${Number(product.base_price).toFixed(2)}
-                          </div>
+                          <EMenuPrice
+                            price={product.base_price}
+                            exchangeRate={exchangeRate || store?.exchange_rate}
+                            currencyMode={currencyMode || settings?.currency}
+                            align="center"
+                            className="pt-2"
+                            usdClassName={`text-xl font-black ${isOutOfStock ? 'text-[#B5A48B]' : 'text-[#2D2416]'}`}
+                            khrClassName={`text-xs font-bold ${isOutOfStock ? 'text-[#B5A48B]' : 'text-[#8C7654]'}`}
+                          />
                         )}
                         {settings.allow_ordering && (
                           <button

@@ -14,6 +14,11 @@ export class UpdateEmenuSettingDto {
 
     @ApiProperty({ required: false })
     @IsOptional()
+    @IsString()
+    currency?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
     @IsBoolean()
     allow_ordering?: boolean;
 

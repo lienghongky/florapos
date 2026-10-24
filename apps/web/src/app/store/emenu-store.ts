@@ -8,6 +8,7 @@ export interface EmenuSetting {
   store_id?: string;
   is_enabled: boolean;
   show_prices: boolean;
+  currency?: 'USD' | 'KHR' | 'BOTH';
   allow_ordering: boolean;
   banner_image?: string;
   theme_color?: string;

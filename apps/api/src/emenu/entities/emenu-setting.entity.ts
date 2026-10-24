@@ -19,6 +19,9 @@ export class EmenuSetting {
     @Column({ default: true })
     show_prices: boolean;
 
+    @Column({ default: 'BOTH' })
+    currency: string;
+
     @Column({ default: false })
     allow_ordering: boolean;
 
