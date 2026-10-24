@@ -13,7 +13,7 @@ import { useAuthStore } from '@/app/store/auth-store';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { Label, LabelProduct } from './Label';
 import {
-  LABEL_TEMPLATES, LabelSettings, LabelFields, SHEET_PRESETS, applyTemplate, loadSettings, saveSettings,
+  LABEL_TEMPLATES, LabelSettings, LabelFields, LabelFontSizes, SHEET_PRESETS, applyTemplate, loadSettings, saveSettings,
 } from './label-templates';
 
 interface Props {
@@ -53,6 +53,7 @@ export function PrintLabelsModal({
   const [step, setStep] = useState<1 | 2>(1);
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'created_desc' | 'created_asc' | 'name_asc'>('created_desc');
   const [onlyMissing, setOnlyMissing] = useState(false);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [settings, setSettings] = useState<LabelSettings>(() => {
@@ -110,13 +111,32 @@ export function PrintLabelsModal({
     raw: p,
   })), [products, categories]);
 
-  const filtered = labelProducts.filter(p => {
+  const filtered = useMemo(() => {
     const q = query.toLowerCase();
-    const matchQ = !q || p.name.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q) || p.barcode?.includes(q);
-    const matchC = categoryFilter === 'all' || p.raw.category_id === categoryFilter;
-    const matchM = !onlyMissing || !p.barcode;
-    return matchQ && matchC && matchM;
-  });
+    const list = labelProducts.filter(p => {
+      const matchQ = !q || p.name.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q) || p.barcode?.includes(q);
+      const matchC = categoryFilter === 'all' || p.raw.category_id === categoryFilter;
+      const matchM = !onlyMissing || !p.barcode;
+      return matchQ && matchC && matchM;
+    });
+
+    const getCreatedTime = (p: typeof labelProducts[0]) => {
+      const t = p.raw?.created_at ? new Date(p.raw.created_at).getTime() : 0;
+      return isNaN(t) ? 0 : t;
+    };
+
+    return list.sort((a, b) => {
+      if (sortBy === 'created_desc') {
+        const diff = getCreatedTime(b) - getCreatedTime(a);
+        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      }
+      if (sortBy === 'created_asc') {
+        const diff = getCreatedTime(a) - getCreatedTime(b);
+        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [labelProducts, query, categoryFilter, onlyMissing, sortBy]);
 
   const selected = labelProducts.filter(p => (qty[p.id] || 0) > 0);
   const totalLabels = selected.reduce((n, p) => n + qty[p.id], 0);
@@ -127,6 +147,15 @@ export function PrintLabelsModal({
   const toggle = (id: string) => setQ(id, qty[id] ? 0 : 1);
   const update = (patch: Partial<LabelSettings>) => setSettings(s => ({ ...s, ...patch, templateId: patch.templateId ?? (patch.width || patch.height ? 'custom' : s.templateId) }));
   const toggleField = (k: keyof LabelFields) => setSettings(s => ({ ...s, fields: { ...s.fields, [k]: !s.fields[k] } }));
+  const updateFontSize = (key: keyof LabelFontSizes, val: number) => {
+    setSettings(s => ({
+      ...s,
+      fontSizes: {
+        ...(s.fontSizes || {}),
+        [key]: val > 0 ? val : undefined,
+      },
+    }));
+  };
 
   const generateFor = async (list: typeof labelProducts) => {
     const ids = new Set(savingIds);
@@ -294,6 +323,15 @@ export function PrintLabelsModal({
                       <option value="all">All categories</option>
                       {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
+                    <select
+                      value={sortBy}
+                      onChange={e => setSortBy(e.target.value as any)}
+                      className="h-9 rounded-lg border border-border bg-muted/30 px-3 text-sm outline-none font-medium"
+                    >
+                      <option value="created_desc">Created: Newest</option>
+                      <option value="created_asc">Created: Oldest</option>
+                      <option value="name_asc">Name: A-Z</option>
+                    </select>
                     <button
                       onClick={() => setOnlyMissing(v => !v)}
                       className={`flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-all ${onlyMissing ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-border text-muted-foreground hover:bg-muted'}`}
@@ -332,6 +370,11 @@ export function PrintLabelsModal({
                               <span>${p.price.toFixed(2)}</span>
                               {p.category && <span>· {p.category}</span>}
                               {p.sku && <span className="font-mono">· {p.sku}</span>}
+                              {p.raw.created_at && (
+                                <span className="text-[11px] text-muted-foreground/80">
+                                  · {new Date(p.raw.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="hidden w-36 shrink-0 text-right sm:block" onClick={e => e.stopPropagation()}>
@@ -423,15 +466,22 @@ export function PrintLabelsModal({
                     <section>
                       <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Show on label</h3>
                       <div className="flex flex-wrap gap-1.5">
-                        {FIELD_LABELS.map(({ key, label }) => (
-                          <button
-                            key={key}
-                            onClick={() => toggleField(key)}
-                            className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all ${settings.fields[key] ? 'bg-brand-primary text-white shadow-sm' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
-                          >
-                            {label}
-                          </button>
-                        ))}
+                        {FIELD_LABELS.map(({ key, label }) => {
+                          const displayLabel = key === 'barcode'
+                            ? (settings.codeType === 'qr' ? 'QR code' : 'Barcode')
+                            : key === 'barcodeDigits'
+                            ? (settings.codeType === 'qr' ? 'Code digits' : 'Barcode digits')
+                            : label;
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => toggleField(key)}
+                              className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all ${settings.fields[key] ? 'bg-brand-primary text-white shadow-sm' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
+                            >
+                              {displayLabel}
+                            </button>
+                          );
+                        })}
                       </div>
                       {settings.fields.bestBefore && (
                         <div className="mt-3"><NumField label="Best before (+days)" value={settings.bestBeforeDays} onChange={v => update({ bestBeforeDays: v })} /></div>
@@ -444,10 +494,27 @@ export function PrintLabelsModal({
                     <section>
                       <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Style</h3>
                       <div className="space-y-3">
-                        <Segmented label="Text size" value={settings.fontScale} options={[['sm', 'S'], ['md', 'M'], ['lg', 'L']]} onChange={v => update({ fontScale: v as any })} />
-                        <Segmented label="Align" value={settings.align} options={[['left', 'Left'], ['center', 'Center']]} onChange={v => update({ align: v as any })} />
+                        <Segmented
+                          label="Code type"
+                          value={settings.codeType || 'barcode'}
+                          options={[['barcode', 'Barcode'], ['qr', 'QR Code']]}
+                          onChange={v => update({ codeType: v as any })}
+                        />
+                        {settings.codeType === 'qr' && (
+                          <Segmented
+                            label="QR Alignment"
+                            value={settings.codeAlign || 'center'}
+                            options={[['left', 'Left'], ['center', 'Center'], ['right', 'Right']]}
+                            onChange={v => update({ codeAlign: v as any })}
+                          />
+                        )}
+                        <Segmented label="Overall scale" value={settings.fontScale} options={[['sm', 'S'], ['md', 'M'], ['lg', 'L']]} onChange={v => update({ fontScale: v as any })} />
+                        <Segmented label="Text align" value={settings.align} options={[['left', 'Left'], ['center', 'Center']]} onChange={v => update({ align: v as any })} />
                         <div>
-                          <div className="mb-1 flex justify-between text-xs text-muted-foreground"><span>Barcode height</span><span className="font-mono">{settings.barHeight}mm</span></div>
+                          <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+                            <span>{settings.codeType === 'qr' ? 'QR size' : 'Barcode height'}</span>
+                            <span className="font-mono">{settings.barHeight}mm</span>
+                          </div>
                           <input type="range" min={5} max={Math.max(6, Math.floor(settings.height * 0.6))} value={settings.barHeight} onChange={e => update({ barHeight: Number(e.target.value) })} className="w-full accent-[var(--color-brand-primary,#7c3aed)]" />
                         </div>
                         <div className="flex gap-4 text-sm">
@@ -491,6 +558,79 @@ export function PrintLabelsModal({
                             </div>
                           </div>
                         </div>
+                      </div>
+                    </section>
+
+                    <section>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Text Sizes (pt)</h3>
+                        {settings.fontSizes && Object.values(settings.fontSizes).some(v => v !== undefined) && (
+                          <button
+                            type="button"
+                            onClick={() => update({ fontSizes: {} })}
+                            className="text-[10px] text-brand-primary hover:underline font-semibold"
+                          >
+                            Reset sizes
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {settings.fields.productName && (
+                          <NumField
+                            label="Product name"
+                            value={settings.fontSizes?.productName ?? (settings.templateId === 'classic' ? 5.2 : settings.templateId === 'price' ? 6.5 : 6.0)}
+                            onChange={v => updateFontSize('productName', v)}
+                          />
+                        )}
+                        {settings.fields.price && (
+                          <NumField
+                            label="USD price"
+                            value={settings.fontSizes?.price ?? (settings.templateId === 'price' ? 14 : settings.align === 'center' ? 8.5 : 7.8)}
+                            onChange={v => updateFontSize('price', v)}
+                          />
+                        )}
+                        {settings.fields.price && settings.fields.showKhrPrice && (
+                          <NumField
+                            label="KHR price (៛)"
+                            value={settings.fontSizes?.khrPrice ?? (settings.templateId === 'price' ? 7 : settings.align === 'center' ? 5 : 4.5)}
+                            onChange={v => updateFontSize('khrPrice', v)}
+                          />
+                        )}
+                        {settings.fields.storeName && (
+                          <NumField
+                            label="Store name"
+                            value={settings.fontSizes?.storeName ?? 3.2}
+                            onChange={v => updateFontSize('storeName', v)}
+                          />
+                        )}
+                        {(settings.fields.sku || settings.fields.category) && (
+                          <NumField
+                            label="SKU / Category"
+                            value={settings.fontSizes?.sku ?? 5.0}
+                            onChange={v => updateFontSize('sku', v)}
+                          />
+                        )}
+                        {settings.fields.barcode && settings.fields.barcodeDigits && (
+                          <NumField
+                            label={settings.codeType === 'qr' ? 'QR digits' : 'Barcode digits'}
+                            value={settings.fontSizes?.barcodeDigits ?? (settings.templateId === 'classic' ? 3.6 : 4.0)}
+                            onChange={v => updateFontSize('barcodeDigits', v)}
+                          />
+                        )}
+                        {(settings.fields.madeOn || settings.fields.bestBefore) && (
+                          <NumField
+                            label="Dates"
+                            value={settings.fontSizes?.dates ?? 5.0}
+                            onChange={v => updateFontSize('dates', v)}
+                          />
+                        )}
+                        {settings.fields.note && (
+                          <NumField
+                            label="Custom note"
+                            value={settings.fontSizes?.note ?? 4.8}
+                            onChange={v => updateFontSize('note', v)}
+                          />
+                        )}
                       </div>
                     </section>
                   </div>

@@ -1,6 +1,8 @@
 export type PaperMode = 'roll' | 'sheet';
 export type FontScale = 'sm' | 'md' | 'lg';
 export type Align = 'left' | 'center';
+export type CodeType = 'barcode' | 'qr';
+export type CodeAlign = 'left' | 'center' | 'right';
 
 export interface LabelFields {
   storeName: boolean;
@@ -16,6 +18,17 @@ export interface LabelFields {
   note: boolean;
 }
 
+export interface LabelFontSizes {
+  productName?: number;
+  price?: number;
+  khrPrice?: number;
+  storeName?: number;
+  sku?: number;
+  barcodeDigits?: number;
+  dates?: number;
+  note?: number;
+}
+
 export interface LabelSettings {
   templateId: string;
   width: number; // mm
@@ -27,9 +40,12 @@ export interface LabelSettings {
   sheetGap: number; // mm
   fields: LabelFields;
   fontScale: FontScale;
+  fontSizes?: LabelFontSizes;
   align: Align;
   border: boolean;
   boldPrice: boolean;
+  codeType: CodeType;
+  codeAlign: CodeAlign;
   barHeight: number; // mm
   bestBeforeDays: number;
   note: string;
@@ -47,6 +63,8 @@ export interface LabelTemplate {
   align?: Align;
   fontScale?: FontScale;
   barHeight?: number;
+  codeType?: CodeType;
+  codeAlign?: CodeAlign;
 }
 
 const baseFields: LabelFields = {
@@ -55,11 +73,12 @@ const baseFields: LabelFields = {
 };
 
 export const LABEL_TEMPLATES: LabelTemplate[] = [
-  { id: 'classic', name: 'Classic', description: 'Store · name · price · barcode', width: 50, height: 30, fields: { storeName: true, showKhrPrice: true }, barHeight: 10 },
-  { id: 'price', name: 'Price Tag', description: 'Big price, compact barcode', width: 40, height: 30, fields: { showKhrPrice: true }, fontScale: 'lg', align: 'center', barHeight: 8 },
-  { id: 'compact', name: 'Compact', description: 'Name + barcode for small items', width: 38, height: 25, fields: { price: false, showKhrPrice: false }, fontScale: 'sm', align: 'center', barHeight: 9 },
-  { id: 'fresh', name: 'Fresh', description: 'With made-on & best-before dates', width: 50, height: 40, fields: { storeName: true, madeOn: true, bestBefore: true, showKhrPrice: true }, barHeight: 10 },
-  { id: 'shelf', name: 'Shelf', description: 'Large name, SKU and price', width: 70, height: 38, fields: { sku: true, category: true, showKhrPrice: true }, fontScale: 'lg', barHeight: 11 },
+  { id: 'classic', name: 'Classic', description: 'Store · name · price · barcode', width: 50, height: 30, fields: { storeName: true, showKhrPrice: true }, barHeight: 10, codeType: 'barcode', codeAlign: 'center' },
+  { id: 'qr_clean', name: 'QR Label', description: 'Name · price · QR code', width: 40, height: 30, fields: { showKhrPrice: true }, fontScale: 'md', align: 'center', barHeight: 12, codeType: 'qr', codeAlign: 'center' },
+  { id: 'price', name: 'Price Tag', description: 'Big price, compact barcode', width: 40, height: 30, fields: { showKhrPrice: true }, fontScale: 'lg', align: 'center', barHeight: 8, codeType: 'barcode', codeAlign: 'center' },
+  { id: 'compact', name: 'Compact', description: 'Name + barcode for small items', width: 38, height: 25, fields: { price: false, showKhrPrice: false }, fontScale: 'sm', align: 'center', barHeight: 9, codeType: 'barcode', codeAlign: 'center' },
+  { id: 'fresh', name: 'Fresh', description: 'With made-on & best-before dates', width: 50, height: 40, fields: { storeName: true, madeOn: true, bestBefore: true, showKhrPrice: true }, barHeight: 10, codeType: 'barcode', codeAlign: 'center' },
+  { id: 'shelf', name: 'Shelf', description: 'Large name, SKU and price', width: 70, height: 38, fields: { sku: true, category: true, showKhrPrice: true }, fontScale: 'lg', barHeight: 11, codeType: 'barcode', codeAlign: 'center' },
 ];
 
 export const DEFAULT_SETTINGS: LabelSettings = {
@@ -73,9 +92,12 @@ export const DEFAULT_SETTINGS: LabelSettings = {
   sheetGap: 2,
   fields: { ...baseFields, storeName: true, showKhrPrice: true },
   fontScale: 'md',
+  fontSizes: {},
   align: 'left',
   border: false,
   boldPrice: true,
+  codeType: 'barcode',
+  codeAlign: 'center',
   barHeight: 10,
   bestBeforeDays: 2,
   note: 'Keep refrigerated',
@@ -92,7 +114,10 @@ export function applyTemplate(current: LabelSettings, t: LabelTemplate): LabelSe
     fields: { ...baseFields, ...t.fields },
     align: t.align ?? 'left',
     fontScale: t.fontScale ?? 'md',
+    fontSizes: {},
     barHeight: t.barHeight ?? 10,
+    codeType: t.codeType ?? current.codeType ?? 'barcode',
+    codeAlign: t.codeAlign ?? current.codeAlign ?? 'center',
   };
 }
 
@@ -113,6 +138,9 @@ export function loadSettings(storeId?: string, defaultExchangeRate: number = 410
         ...DEFAULT_SETTINGS, 
         exchangeRate: defaultExchangeRate,
         ...parsed, 
+        codeType: parsed.codeType || 'barcode',
+        codeAlign: parsed.codeAlign || 'center',
+        fontSizes: parsed.fontSizes || {},
         fields: { 
           ...DEFAULT_SETTINGS.fields, 
           ...parsed.fields,

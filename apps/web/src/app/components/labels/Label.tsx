@@ -1,5 +1,6 @@
 import { useEffect, useRef, CSSProperties } from 'react';
 import JsBarcode from 'jsbarcode';
+import { QRCodeSVG } from 'qrcode.react';
 import { LabelSettings, isUpcA, isEan13 } from './label-templates';
 
 export interface LabelProduct {
@@ -30,6 +31,19 @@ export function BarcodeSvg({ value, heightMm }: { value: string; heightMm: numbe
     ref.current.setAttribute('preserveAspectRatio', 'none');
   }, [value]);
   return <svg ref={ref} style={{ width: '100%', height: `${heightMm}mm`, display: 'block' }} />;
+}
+
+export function QrCodeSvg({ value, sizeMm }: { value: string; sizeMm: number }) {
+  return (
+    <div style={{ width: `${sizeMm}mm`, height: `${sizeMm}mm`, display: 'inline-block' }}>
+      <QRCodeSVG
+        value={value}
+        size={Math.round(sizeMm * 3.78)}
+        level="M"
+        style={{ width: '100%', height: '100%', display: 'block' }}
+      />
+    </div>
+  );
 }
 
 const fmtDate = (d: Date) => d.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
@@ -71,20 +85,23 @@ export function Label({ product, settings, storeName }: { product: LabelProduct;
 
   const clamp2: CSSProperties = { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' };
 
+  const qrAlign = s.codeAlign || (center ? 'center' : 'left');
+  const qrJustify = qrAlign === 'center' ? 'center' : qrAlign === 'right' ? 'flex-end' : 'flex-start';
+
   return (
     <div style={root} className="label-item">
       {(f.storeName && storeName) || (f.price && !bigPrice && !center) ? (
         <div style={{ display: 'flex', justifyContent: center ? 'center' : 'space-between', alignItems: 'flex-start', gap: '1mm' }}>
           {f.storeName && storeName && (
-            <span style={{ fontSize: pt(3.2), fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.75, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingTop: '0.2mm' }}>
+            <span style={{ fontSize: pt(s.fontSizes?.storeName ?? 3.2), fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.75, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingTop: '0.2mm' }}>
               {storeName}
             </span>
           )}
           {f.price && !bigPrice && !center && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: 'auto', lineHeight: 1.05 }}>
-              <span style={{ fontSize: pt(7.8), fontWeight: s.boldPrice ? 800 : 700, whiteSpace: 'nowrap' }}>{priceText}</span>
+              <span style={{ fontSize: pt(s.fontSizes?.price ?? 7.8), fontWeight: s.boldPrice ? 800 : 700, whiteSpace: 'nowrap' }}>{priceText}</span>
               {f.showKhrPrice && (
-                <span style={{ fontSize: pt(4.5), fontWeight: 600, opacity: 0.85, whiteSpace: 'nowrap', color: '#000' }}>
+                <span style={{ fontSize: pt(s.fontSizes?.khrPrice ?? 4.5), fontWeight: 600, opacity: 0.85, whiteSpace: 'nowrap', color: '#000' }}>
                   {khrText}
                 </span>
               )}
@@ -94,11 +111,11 @@ export function Label({ product, settings, storeName }: { product: LabelProduct;
       ) : null}
 
       {f.productName && (
-        <div style={{ fontSize: pt(s.templateId === 'classic' ? 5.2 : bigPrice ? 6.5 : 6.0), fontWeight: 600, lineHeight: 1.15, ...clamp2 }}>{product.name}</div>
+        <div style={{ fontSize: pt(s.fontSizes?.productName ?? (s.templateId === 'classic' ? 5.2 : bigPrice ? 6.5 : 6.0)), fontWeight: 600, lineHeight: 1.15, ...clamp2 }}>{product.name}</div>
       )}
 
       {(f.category || f.sku) && (
-        <div style={{ fontSize: pt(5), opacity: 0.7, display: 'flex', gap: '1.5mm', justifyContent: center ? 'center' : 'flex-start' }}>
+        <div style={{ fontSize: pt(s.fontSizes?.sku ?? 5), opacity: 0.7, display: 'flex', gap: '1.5mm', justifyContent: center ? 'center' : 'flex-start' }}>
           {f.category && product.category && <span>{product.category}</span>}
           {f.sku && product.sku && <span style={{ fontFamily: 'monospace' }}>SKU {product.sku}</span>}
         </div>
@@ -106,35 +123,46 @@ export function Label({ product, settings, storeName }: { product: LabelProduct;
 
       {f.price && (bigPrice || center) && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: center ? 'center' : 'flex-start', gap: '0.2mm', lineHeight: 1.05 }}>
-          <div style={{ fontSize: pt(bigPrice ? 14 : 8.5), fontWeight: s.boldPrice ? 800 : 700, letterSpacing: '-0.02em' }}>{priceText}</div>
+          <div style={{ fontSize: pt(s.fontSizes?.price ?? (bigPrice ? 14 : 8.5)), fontWeight: s.boldPrice ? 800 : 700, letterSpacing: '-0.02em' }}>{priceText}</div>
           {f.showKhrPrice && (
-            <div style={{ fontSize: pt(bigPrice ? 7 : 5), fontWeight: 600, opacity: 0.85, color: '#000' }}>{khrText}</div>
+            <div style={{ fontSize: pt(s.fontSizes?.khrPrice ?? (bigPrice ? 7 : 5)), fontWeight: 600, opacity: 0.85, color: '#000' }}>{khrText}</div>
           )}
         </div>
       )}
 
       {(f.madeOn || f.bestBefore) && (
-        <div style={{ fontSize: pt(5), display: 'flex', gap: '2mm', justifyContent: center ? 'center' : 'flex-start' }}>
+        <div style={{ fontSize: pt(s.fontSizes?.dates ?? 5), display: 'flex', gap: '2mm', justifyContent: center ? 'center' : 'flex-start' }}>
           {f.madeOn && <span>Made <b>{fmtDate(today)}</b></span>}
           {f.bestBefore && <span>Best before <b>{fmtDate(best)}</b></span>}
         </div>
       )}
 
-      {f.note && s.note && <div style={{ fontSize: pt(4.8), fontStyle: 'italic', opacity: 0.8 }}>{s.note}</div>}
+      {f.note && s.note && <div style={{ fontSize: pt(s.fontSizes?.note ?? 4.8), fontStyle: 'italic', opacity: 0.8 }}>{s.note}</div>}
 
-      <div style={{ marginTop: 'auto' }}>
+      <div style={{ marginTop: 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: s.codeType === 'qr' ? qrJustify : (center ? 'center' : 'flex-start') }}>
         {hasBarcode ? (
-          <>
-            <BarcodeSvg value={product.barcode!} heightMm={s.barHeight} />
-            {f.barcodeDigits && (
-              <div style={{ fontSize: pt(s.templateId === 'classic' ? 3.6 : 4.0), fontFamily: "'SF Mono', Menlo, monospace", letterSpacing: '0.14em', textAlign: 'center', marginTop: '0.3mm' }}>
-                {product.barcode}
-              </div>
-            )}
-          </>
+          s.codeType === 'qr' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: qrJustify }}>
+              <QrCodeSvg value={product.barcode!} sizeMm={s.barHeight} />
+              {f.barcodeDigits && (
+                <div style={{ fontSize: pt(s.fontSizes?.barcodeDigits ?? (s.templateId === 'classic' ? 3.6 : 4.0)), fontFamily: "'SF Mono', Menlo, monospace", letterSpacing: '0.1em', textAlign: qrAlign, marginTop: '0.3mm' }}>
+                  {product.barcode}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ width: '100%' }}>
+              <BarcodeSvg value={product.barcode!} heightMm={s.barHeight} />
+              {f.barcodeDigits && (
+                <div style={{ fontSize: pt(s.fontSizes?.barcodeDigits ?? (s.templateId === 'classic' ? 3.6 : 4.0)), fontFamily: "'SF Mono', Menlo, monospace", letterSpacing: '0.14em', textAlign: 'center', marginTop: '0.3mm' }}>
+                  {product.barcode}
+                </div>
+              )}
+            </div>
+          )
         ) : f.barcode ? (
-          <div style={{ height: `${s.barHeight}mm`, border: '0.3mm dashed #999', borderRadius: '1mm', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: pt(5), color: '#999' }}>
-            No barcode
+          <div style={{ height: `${s.barHeight}mm`, width: s.codeType === 'qr' ? `${s.barHeight}mm` : '100%', border: '0.3mm dashed #999', borderRadius: '1mm', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: pt(5), color: '#999' }}>
+            {s.codeType === 'qr' ? 'No QR' : 'No barcode'}
           </div>
         ) : null}
       </div>

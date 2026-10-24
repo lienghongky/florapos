@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import JsBarcode from 'jsbarcode';
+import QRCode from 'qrcode';
 import { LabelSettings, isUpcA, isEan13 } from './label-templates';
 import type { LabelProduct } from './Label';
 
@@ -53,22 +54,31 @@ export function renderLabelCanvas(product: LabelProduct, s: LabelSettings, store
   const khrValue = Math.round(Number(product.price || 0) * exchangeRate);
   const khrText = `${khrValue.toLocaleString()}៛`;
 
+  const pricePt = s.fontSizes?.price ?? (bigPrice ? 14 : (s.align !== 'center' ? 7.8 : 8.5));
+  const khrPt = s.fontSizes?.khrPrice ?? (bigPrice ? 7 : (s.align !== 'center' ? 4.5 : 5));
+  const storeNamePt = s.fontSizes?.storeName ?? 3.2;
+  const productNamePt = s.fontSizes?.productName ?? (s.templateId === 'classic' ? 5.2 : bigPrice ? 6.5 : 6.0);
+  const skuPt = s.fontSizes?.sku ?? 5;
+  const datesPt = s.fontSizes?.dates ?? 5;
+  const notePt = s.fontSizes?.note ?? 4.8;
+  const digitsPt = s.fontSizes?.barcodeDigits ?? (s.templateId === 'classic' ? 3.6 : 4.0);
+
   if (f.price && !bigPrice && s.align !== 'center') {
-    font(7.8, s.boldPrice);
+    font(pricePt, s.boldPrice);
     const priceWidth = c.measureText(priceText).width;
     c.textBaseline = 'top'; c.textAlign = 'right'; c.fillText(priceText, s.width - 2.2, y);
 
-    let priceBlockHeight = 7.8 * scale * 25.4 / 72 * 1.05;
+    let priceBlockHeight = pricePt * scale * 25.4 / 72 * 1.05;
 
     if (f.showKhrPrice) {
-      font(4.5, true);
+      font(khrPt, true);
       c.textBaseline = 'top'; c.textAlign = 'right';
       c.fillText(khrText, s.width - 2.2, y + priceBlockHeight);
-      priceBlockHeight += 4.5 * scale * 25.4 / 72 * 1.05;
+      priceBlockHeight += khrPt * scale * 25.4 / 72 * 1.05;
     }
 
     if (f.storeName && storeName) {
-      font(3.2, true); c.textAlign = 'left'; c.textBaseline = 'top';
+      font(storeNamePt, true); c.textAlign = 'left'; c.textBaseline = 'top';
       const available = Math.max(0, width - priceWidth - 1);
       let name = storeName.toUpperCase();
       while (name && c.measureText(name).width > available) name = name.slice(0, -1);
@@ -76,34 +86,70 @@ export function renderLabelCanvas(product: LabelProduct, s: LabelSettings, store
     }
     y += priceBlockHeight + .6;
   } else if (f.storeName && storeName) {
-    text(storeName.toUpperCase(), 3.2, true);
+    text(storeName.toUpperCase(), storeNamePt, true);
   }
-  if (f.productName) text(product.name, s.templateId === 'classic' ? 5.2 : s.templateId === 'price' ? 6.5 : 6.0, true, 2);
-  text([f.category && product.category, f.sku && product.sku && `SKU ${product.sku}`].filter(Boolean).join(' · '), 5);
+  if (f.productName) text(product.name, productNamePt, true, 2);
+  text([f.category && product.category, f.sku && product.sku && `SKU ${product.sku}`].filter(Boolean).join(' · '), skuPt);
   if (f.price && (bigPrice || s.align === 'center')) {
-    text(priceText, bigPrice ? 14 : 8.5, s.boldPrice);
+    text(priceText, pricePt, s.boldPrice);
     if (f.showKhrPrice) {
-      text(khrText, bigPrice ? 7 : 5, true);
+      text(khrText, khrPt, true);
     }
   }
   const date = (d: Date) => d.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
-  text([f.madeOn && `Made ${date(new Date())}`, f.bestBefore && `Best before ${date(new Date(Date.now() + s.bestBeforeDays * 86400000))}`].filter(Boolean).join('  '), 5);
-  if (f.note && s.note) text(s.note, 4.8);
+  text([f.madeOn && `Made ${date(new Date())}`, f.bestBefore && `Best before ${date(new Date(Date.now() + s.bestBeforeDays * 86400000))}`].filter(Boolean).join('  '), datesPt);
+  if (f.note && s.note) text(s.note, notePt);
   if (f.barcode) {
     const top = bottom - barHeight - digitsHeight;
     if (product.barcode) {
-      const barcode = document.createElement('canvas');
-      try {
-        JsBarcode(barcode, product.barcode, { format: isUpcA(product.barcode) ? 'UPC' : isEan13(product.barcode) ? 'EAN13' : 'CODE128', displayValue: false, margin: 0, height: 120, width: 3 });
-        c.imageSmoothingEnabled = false;
-        c.drawImage(barcode, 2.2, top, width, barHeight);
-      } catch { throw new Error(`Invalid barcode for ${product.name}. Edit the barcode before exporting.`); }
-      finally { barcode.width = 0; barcode.height = 0; }
-      if (f.barcodeDigits) {
-        font(s.templateId === 'classic' ? 3.6 : 4.0); c.textAlign = 'center'; c.textBaseline = 'top';
-        c.fillText(product.barcode, s.width / 2, top + barHeight + .3, width);
+      if (s.codeType === 'qr') {
+        try {
+          const qr = QRCode.create(product.barcode, { errorCorrectionLevel: 'M' });
+          const qrSize = qr.modules.size;
+          const qrSideMm = Math.min(barHeight, width);
+          const qrAlign = s.codeAlign || (s.align === 'center' ? 'center' : 'left');
+          const qrLeft = qrAlign === 'center'
+            ? (s.width - qrSideMm) / 2
+            : qrAlign === 'right'
+            ? s.width - 2.2 - qrSideMm
+            : 2.2;
+          const cellSize = qrSideMm / qrSize;
+          c.fillStyle = '#000';
+          for (let row = 0; row < qrSize; row++) {
+            for (let col = 0; col < qrSize; col++) {
+              if (qr.modules.get(row, col)) {
+                c.fillRect(
+                  qrLeft + col * cellSize,
+                  top + row * cellSize,
+                  cellSize + 0.04,
+                  cellSize + 0.04
+                );
+              }
+            }
+          }
+        } catch { throw new Error(`Invalid code for ${product.name}. Edit the code before exporting.`); }
+        if (f.barcodeDigits) {
+          const qrAlign = s.codeAlign || (s.align === 'center' ? 'center' : 'left');
+          font(digitsPt);
+          c.textAlign = qrAlign;
+          c.textBaseline = 'top';
+          const textX = qrAlign === 'center' ? s.width / 2 : qrAlign === 'right' ? s.width - 2.2 : 2.2;
+          c.fillText(product.barcode, textX, top + barHeight + .3, width);
+        }
+      } else {
+        const barcode = document.createElement('canvas');
+        try {
+          JsBarcode(barcode, product.barcode, { format: isUpcA(product.barcode) ? 'UPC' : isEan13(product.barcode) ? 'EAN13' : 'CODE128', displayValue: false, margin: 0, height: 120, width: 3 });
+          c.imageSmoothingEnabled = false;
+          c.drawImage(barcode, 2.2, top, width, barHeight);
+        } catch { throw new Error(`Invalid barcode for ${product.name}. Edit the barcode before exporting.`); }
+        finally { barcode.width = 0; barcode.height = 0; }
+        if (f.barcodeDigits) {
+          font(digitsPt); c.textAlign = 'center'; c.textBaseline = 'top';
+          c.fillText(product.barcode, s.width / 2, top + barHeight + .3, width);
+        }
       }
-    } else { font(5); c.textAlign = 'center'; c.fillText('No barcode', s.width / 2, top + barHeight / 2); }
+    } else { font(5); c.textAlign = 'center'; c.fillText(s.codeType === 'qr' ? 'No QR' : 'No barcode', s.width / 2, top + barHeight / 2); }
   }
   if (s.border) { c.lineWidth = .3; c.strokeRect(.15, .15, s.width - .3, s.height - .3); }
   return canvas;
