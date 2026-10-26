@@ -184,6 +184,7 @@ export function CartPanel({ onClose }: { onClose?: () => void }) {
         tags: tags || undefined,
         exchange_rate: selectedStore.exchange_rate || 4100,
         tax_rate: (selectedStore?.enable_tax !== false) ? (selectedStore?.tax_rate || 0) : 0,
+        status: 'completed',
       };
 
       const createdOrder = await checkoutOrder(payload);

@@ -135,7 +135,7 @@ export class OrdersService {
                 tax_total: taxAmount,
                 discount_total: discountAmount,
                 grand_total: grandTotal,
-                status: orderData.status || OrderStatus.PENDING,
+                status: orderData.status || OrderStatus.COMPLETED,
                 staff_name: salespersonName,
                 staff_id: orderData.staff_id || userId,
             });
