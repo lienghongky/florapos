@@ -78,6 +78,14 @@ export class ProductsController {
     }
 
 
+    @Delete('modifier-groups/:id')
+    @ApiOperation({ summary: 'Delete a modifier/option group' })
+    @ApiResponse({ status: 200, description: 'Option group deleted successfully' })
+    async removeModifierGroup(@Request() req: any, @Param('id') id: string) {
+        await this.productsService.removeModifierGroup(req.user.userId, id);
+        return { success: true };
+    }
+
     @Delete(':id')
     @ApiOperation({ summary: 'Delete a product' })
     @ApiResponse({ status: 200, description: 'Product deleted successfully' })

@@ -49,5 +49,17 @@ export const productsService = {
             console.error("Delete Product API Error:", error);
             throw error;
         }
+    },
+
+    deleteModifierGroup: async (token: string, groupId: string): Promise<void> => {
+        try {
+            await request(`/products/modifier-groups/${groupId}`, {
+                method: 'DELETE',
+                token
+            });
+        } catch (error) {
+            console.error("Delete Modifier Group API Error:", error);
+            throw error;
+        }
     }
 };

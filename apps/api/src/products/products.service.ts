@@ -28,6 +28,10 @@ export class ProductsService {
         private productAddonRepository: Repository<ProductAddon>,
         @InjectRepository(InventoryItem)
         private inventoryRepository: Repository<InventoryItem>,
+        @InjectRepository(ModifierGroup)
+        private modifierGroupRepository: Repository<ModifierGroup>,
+        @InjectRepository(ModifierOption)
+        private modifierOptionRepository: Repository<ModifierOption>,
         private storesService: StoresService,
         private dataSource: DataSource,
     ) { }
@@ -468,12 +472,19 @@ export class ProductsService {
 
             // Sync Modifier Groups
             if (updateProductDto.modifier_groups !== undefined) {
-                // Since orphanRemoval seems to have type issues, we'll use our robust manual delete
-                await manager.createQueryBuilder()
-                    .delete()
-                    .from(ModifierGroup)
-                    .where("product_id = :id", { id })
-                    .execute();
+                // Find and cleanly remove existing modifier groups and their options
+                const existingGroups = await manager.find(ModifierGroup, {
+                    where: { product_id: id },
+                    relations: ['options'],
+                });
+                if (existingGroups.length > 0) {
+                    for (const eg of existingGroups) {
+                        if (eg.options && eg.options.length > 0) {
+                            await manager.remove(ModifierOption, eg.options);
+                        }
+                    }
+                    await manager.remove(ModifierGroup, existingGroups);
+                }
 
                 const modifierGroupsDto = Array.isArray(updateProductDto.modifier_groups) ? updateProductDto.modifier_groups : [];
 
@@ -528,6 +539,23 @@ export class ProductsService {
             }
             throw error;
         }
+    }
+
+    async removeModifierGroup(userId: string, groupId: string): Promise<void> {
+        const group = await this.modifierGroupRepository.findOne({
+            where: { id: groupId },
+            relations: ['options'],
+        });
+        if (!group) throw new NotFoundException('Option group not found');
+
+        if (group.store_id) {
+            await this.storesService.findOne(userId, group.store_id);
+        }
+
+        if (group.options && group.options.length > 0) {
+            await this.modifierOptionRepository.remove(group.options);
+        }
+        await this.modifierGroupRepository.remove(group);
     }
 
     /**
@@ -650,7 +678,9 @@ export class ProductsService {
     private parseJsonFields(dto: any) {
         const safeParse = (val: any) => {
             if (typeof val !== 'string') return val;
-            if (!val || val === 'undefined' || val === 'null' || val === '[]' || val === '{}') return undefined;
+            if (!val || val === 'undefined' || val === 'null') return undefined;
+            if (val === '[]') return [];
+            if (val === '{}') return {};
             try {
                 return JSON.parse(val);
             } catch (e) {

@@ -43,7 +43,7 @@ const generateSku = (name: string) => {
 export function ProductsPage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { products, addProduct, updateProduct, deleteProduct, categories, addProductCategory, refreshProducts, refreshProductCategories } = useProductStore();
+  const { products, addProduct, updateProduct, deleteProduct, deleteModifierGroup, categories, addProductCategory, refreshProducts, refreshProductCategories } = useProductStore();
   const { refreshInventory } = useInventoryStore();
   const { user, selectedStore } = useAuthStore();
   const [showModal, setShowModal] = useState(false);
@@ -57,6 +57,35 @@ export function ProductsPage() {
     isOpen: boolean;
     mode: 'form-barcode' | 'page-quick-scan';
   }>({ isOpen: false, mode: 'form-barcode' });
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+
+  const handleRemoveModifierGroup = async (groupIndex: number) => {
+    const group = formData.modifierGroups[groupIndex];
+    if (!group) return;
+
+    const groupTitle = group.name ? `"${group.name}"` : 'this option group';
+    if (!window.confirm(`Are you sure you want to remove ${groupTitle}?`)) {
+      return;
+    }
+
+    if (group.id && group.id.length > 30) {
+      setDeletingGroupId(group.id);
+      try {
+        await deleteModifierGroup(group.id);
+        toast.success(`Option group removed successfully!`);
+      } catch (err: any) {
+        toast.error(err?.message || 'Failed to remove option group');
+        setDeletingGroupId(null);
+        return;
+      }
+      setDeletingGroupId(null);
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      modifierGroups: prev.modifierGroups.filter((_, i) => i !== groupIndex),
+    }));
+  };
 
   // Search, Filter, Sort State
   const [searchQuery, setSearchQuery] = useState('');
@@ -1443,11 +1472,10 @@ export function ProductsPage() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => {
-                            const newGroups = formData.modifierGroups.filter((_, i) => i !== groupIndex);
-                            setFormData({ ...formData, modifierGroups: newGroups });
-                          }}
-                          className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                          disabled={Boolean(group.id && deletingGroupId === group.id)}
+                          onClick={() => handleRemoveModifierGroup(groupIndex)}
+                          className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-40"
+                          title="Remove option group"
                         >
                           <Trash2 className="size-5" />
                         </button>

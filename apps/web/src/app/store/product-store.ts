@@ -14,6 +14,7 @@ interface ProductState {
   addProduct: (product: any) => Promise<void>;
   updateProduct: (id: string, product: any) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  deleteModifierGroup: (groupId: string) => Promise<void>;
   
   refreshProductCategories: () => Promise<void>;
   addProductCategory: (category: Omit<Category, 'id'>) => Promise<void>;
@@ -86,6 +87,13 @@ export const useProductStore = create<ProductState>((set, get) => ({
     const { token } = useAuthStore.getState();
     if (!token) return;
     await productsService.deleteProduct(token, id);
+    await get().refreshProducts();
+  },
+
+  deleteModifierGroup: async (groupId) => {
+    const { token } = useAuthStore.getState();
+    if (!token) return;
+    await productsService.deleteModifierGroup(token, groupId);
     await get().refreshProducts();
   },
 
