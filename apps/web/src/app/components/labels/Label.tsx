@@ -88,84 +88,153 @@ export function Label({ product, settings, storeName }: { product: LabelProduct;
   const qrAlign = s.codeAlign || (center ? 'center' : 'left');
   const qrJustify = qrAlign === 'center' ? 'center' : qrAlign === 'right' ? 'flex-end' : 'flex-start';
 
+  const isQrRight = s.codeType === 'qr' && (qrAlign === 'right' || !s.codeAlign || s.templateId === 'qr_clean');
+
   return (
     <div style={root} className="label-item">
-      {(f.storeName && storeName) || (f.price && !bigPrice && !center) ? (
-        <div style={{ display: 'flex', justifyContent: center ? 'center' : 'space-between', alignItems: 'flex-start', gap: '1mm' }}>
-          {f.storeName && storeName && (
-            <span style={{ fontSize: pt(s.fontSizes?.storeName ?? 3.2), fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.75, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingTop: '0.2mm' }}>
-              {storeName}
+      {/* Row 1: 2 columns { store name, Price } */}
+      {(f.storeName || (f.price && !bigPrice)) ? (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1mm', width: '100%' }}>
+          {f.storeName ? (
+            <span style={{ fontSize: pt(s.fontSizes?.storeName ?? 3.4), fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: f.price ? '56%' : '100%', paddingTop: '0.2mm' }}>
+              {storeName || 'STORE'}
             </span>
-          )}
-          {f.price && !bigPrice && !center && (
+          ) : <div />}
+          {f.price && !bigPrice ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: 'auto', lineHeight: 1.05 }}>
-              <span style={{ fontSize: pt(s.fontSizes?.price ?? 7.8), fontWeight: s.boldPrice ? 800 : 700, whiteSpace: 'nowrap' }}>{priceText}</span>
+              <span style={{ fontSize: pt(s.fontSizes?.price ?? 8.0), fontWeight: s.boldPrice ? 800 : 700, whiteSpace: 'nowrap' }}>{priceText}</span>
               {f.showKhrPrice && (
-                <span style={{ fontSize: pt(s.fontSizes?.khrPrice ?? 4.5), fontWeight: 600, opacity: 0.85, whiteSpace: 'nowrap', color: '#000' }}>
+                <span style={{ fontSize: pt(s.fontSizes?.khrPrice ?? 4.6), fontWeight: 600, opacity: 0.85, whiteSpace: 'nowrap', color: '#000' }}>
                   {khrText}
                 </span>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       ) : null}
 
-      {f.productName && (
-        <div style={{ fontSize: pt(s.fontSizes?.productName ?? (s.templateId === 'classic' ? 5.2 : bigPrice ? 6.5 : 6.0)), fontWeight: 600, lineHeight: 1.15, ...clamp2 }}>{product.name}</div>
-      )}
+      {isQrRight ? (
+        /* Body: Left side expands (Product Name, Details) | Right side QR Code & Code Digits */
+        <div style={{ display: 'flex', gap: '2mm', flex: 1, minHeight: 0, alignItems: 'flex-end', justifyContent: 'space-between', width: '100%', marginTop: '0.4mm' }}>
+          {/* Left Column (Expands) */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.4mm', height: '100%', justifyContent: 'flex-start' }}>
+            {f.productName && (
+              <div style={{
+                fontSize: pt(s.fontSizes?.productName ?? (bigPrice ? 6.5 : 5.8)),
+                fontWeight: 600,
+                lineHeight: 1.18,
+                textAlign: 'left',
+                wordBreak: 'break-word',
+                display: '-webkit-box',
+                WebkitLineClamp: 4,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}>
+                {product.name}
+              </div>
+            )}
 
-      {(f.category || f.sku) && (
-        <div style={{ fontSize: pt(s.fontSizes?.sku ?? 5), opacity: 0.7, display: 'flex', gap: '1.5mm', justifyContent: center ? 'center' : 'flex-start' }}>
-          {f.category && product.category && <span>{product.category}</span>}
-          {f.sku && product.sku && <span style={{ fontFamily: 'monospace' }}>SKU {product.sku}</span>}
-        </div>
-      )}
+            {(f.category || f.sku) && (
+              <div style={{ fontSize: pt(s.fontSizes?.sku ?? 4.5), opacity: 0.7, display: 'flex', gap: '1mm', flexWrap: 'wrap' }}>
+                {f.category && product.category && <span>{product.category}</span>}
+                {f.sku && product.sku && <span style={{ fontFamily: 'monospace' }}>SKU {product.sku}</span>}
+              </div>
+            )}
 
-      {f.price && (bigPrice || center) && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: center ? 'center' : 'flex-start', gap: '0.2mm', lineHeight: 1.05 }}>
-          <div style={{ fontSize: pt(s.fontSizes?.price ?? (bigPrice ? 14 : 8.5)), fontWeight: s.boldPrice ? 800 : 700, letterSpacing: '-0.02em' }}>{priceText}</div>
-          {f.showKhrPrice && (
-            <div style={{ fontSize: pt(s.fontSizes?.khrPrice ?? (bigPrice ? 7 : 5)), fontWeight: 600, opacity: 0.85, color: '#000' }}>{khrText}</div>
-          )}
-        </div>
-      )}
+            {(f.madeOn || f.bestBefore) && (
+              <div style={{ fontSize: pt(s.fontSizes?.dates ?? 4.5), display: 'flex', gap: '1.5mm', flexWrap: 'wrap' }}>
+                {f.madeOn && <span>Made {fmtDate(today)}</span>}
+                {f.bestBefore && <span>Best {fmtDate(best)}</span>}
+              </div>
+            )}
 
-      {(f.madeOn || f.bestBefore) && (
-        <div style={{ fontSize: pt(s.fontSizes?.dates ?? 5), display: 'flex', gap: '2mm', justifyContent: center ? 'center' : 'flex-start' }}>
-          {f.madeOn && <span>Made <b>{fmtDate(today)}</b></span>}
-          {f.bestBefore && <span>Best before <b>{fmtDate(best)}</b></span>}
-        </div>
-      )}
-
-      {f.note && s.note && <div style={{ fontSize: pt(s.fontSizes?.note ?? 4.8), fontStyle: 'italic', opacity: 0.8 }}>{s.note}</div>}
-
-      <div style={{ marginTop: 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: s.codeType === 'qr' ? qrJustify : (center ? 'center' : 'flex-start') }}>
-        {hasBarcode ? (
-          s.codeType === 'qr' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: qrJustify }}>
-              <QrCodeSvg value={product.barcode!} sizeMm={s.barHeight} />
-              {f.barcodeDigits && (
-                <div style={{ fontSize: pt(s.fontSizes?.barcodeDigits ?? (s.templateId === 'classic' ? 3.6 : 4.0)), fontFamily: "'SF Mono', Menlo, monospace", letterSpacing: '0.1em', textAlign: qrAlign, marginTop: '0.3mm' }}>
-                  {product.barcode}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ width: '100%' }}>
-              <BarcodeSvg value={product.barcode!} heightMm={s.barHeight} />
-              {f.barcodeDigits && (
-                <div style={{ fontSize: pt(s.fontSizes?.barcodeDigits ?? (s.templateId === 'classic' ? 3.6 : 4.0)), fontFamily: "'SF Mono', Menlo, monospace", letterSpacing: '0.14em', textAlign: 'center', marginTop: '0.3mm' }}>
-                  {product.barcode}
-                </div>
-              )}
-            </div>
-          )
-        ) : f.barcode ? (
-          <div style={{ height: `${s.barHeight}mm`, width: s.codeType === 'qr' ? `${s.barHeight}mm` : '100%', border: '0.3mm dashed #999', borderRadius: '1mm', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: pt(5), color: '#999' }}>
-            {s.codeType === 'qr' ? 'No QR' : 'No barcode'}
+            {f.note && s.note && <div style={{ fontSize: pt(s.fontSizes?.note ?? 4.5), fontStyle: 'italic', opacity: 0.8 }}>{s.note}</div>}
           </div>
-        ) : null}
-      </div>
+
+          {/* Right Column (QR & Code Digits) */}
+          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            {hasBarcode ? (
+              <>
+                <QrCodeSvg value={product.barcode!} sizeMm={s.barHeight} />
+                {f.barcodeDigits && (
+                  <div style={{
+                    fontSize: pt(s.fontSizes?.barcodeDigits ?? 2.8),
+                    fontFamily: "'SF Mono', Menlo, monospace",
+                    letterSpacing: '0.08em',
+                    textAlign: 'center',
+                    marginTop: '0.3mm',
+                    opacity: 0.85,
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {product.barcode}
+                  </div>
+                )}
+              </>
+            ) : f.barcode ? (
+              <div style={{ height: `${s.barHeight}mm`, width: `${s.barHeight}mm`, border: '0.3mm dashed #999', borderRadius: '1mm', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: pt(4.5), color: '#999' }}>
+                No QR
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Row 2: Product Name (Left-aligned) */}
+          {f.productName && (
+            <div style={{
+              fontSize: pt(s.fontSizes?.productName ?? (s.templateId === 'classic' ? 5.2 : bigPrice ? 6.5 : 5.8)),
+              fontWeight: 600,
+              lineHeight: 1.15,
+              textAlign: s.align === 'center' ? 'center' : s.align === 'right' ? 'right' : 'left',
+              width: '100%',
+              ...clamp2
+            }}>{product.name}</div>
+          )}
+
+          {(f.category || f.sku) && (
+            <div style={{ fontSize: pt(s.fontSizes?.sku ?? 5), opacity: 0.7, display: 'flex', gap: '1.5mm', justifyContent: s.align === 'center' ? 'center' : s.align === 'right' ? 'flex-end' : 'flex-start' }}>
+              {f.category && product.category && <span>{product.category}</span>}
+              {f.sku && product.sku && <span style={{ fontFamily: 'monospace' }}>SKU {product.sku}</span>}
+            </div>
+          )}
+
+          {/* Big Price only when bigPrice template is chosen */}
+          {f.price && bigPrice && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: center ? 'center' : 'flex-start', gap: '0.2mm', lineHeight: 1.05 }}>
+              <div style={{ fontSize: pt(s.fontSizes?.price ?? 14), fontWeight: s.boldPrice ? 800 : 700, letterSpacing: '-0.02em' }}>{priceText}</div>
+              {f.showKhrPrice && (
+                <div style={{ fontSize: pt(s.fontSizes?.khrPrice ?? 7), fontWeight: 600, opacity: 0.85, color: '#000' }}>{khrText}</div>
+              )}
+            </div>
+          )}
+
+          {(f.madeOn || f.bestBefore) && (
+            <div style={{ fontSize: pt(s.fontSizes?.dates ?? 5), display: 'flex', gap: '2mm', justifyContent: s.align === 'center' ? 'center' : s.align === 'right' ? 'flex-end' : 'flex-start' }}>
+              {f.madeOn && <span>Made <b>{fmtDate(today)}</b></span>}
+              {f.bestBefore && <span>Best before <b>{fmtDate(best)}</b></span>}
+            </div>
+          )}
+
+          {f.note && s.note && <div style={{ fontSize: pt(s.fontSizes?.note ?? 4.8), fontStyle: 'italic', opacity: 0.8, textAlign: s.align === 'center' ? 'center' : s.align === 'right' ? 'right' : 'left' }}>{s.note}</div>}
+
+          <div style={{ marginTop: 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: qrJustify }}>
+            {hasBarcode ? (
+              <div style={{ width: '100%' }}>
+                <BarcodeSvg value={product.barcode!} heightMm={s.barHeight} />
+                {f.barcodeDigits && (
+                  <div style={{ fontSize: pt(s.fontSizes?.barcodeDigits ?? (s.templateId === 'classic' ? 3.6 : 4.0)), fontFamily: "'SF Mono', Menlo, monospace", letterSpacing: '0.14em', textAlign: 'center', marginTop: '0.3mm' }}>
+                    {product.barcode}
+                  </div>
+                )}
+              </div>
+            ) : f.barcode ? (
+              <div style={{ height: `${s.barHeight}mm`, width: '100%', border: '0.3mm dashed #999', borderRadius: '1mm', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: pt(5), color: '#999' }}>
+                No barcode
+              </div>
+            ) : null}
+          </div>
+        </>
+      )}
     </div>
   );
 }

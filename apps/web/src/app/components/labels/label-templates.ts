@@ -1,6 +1,6 @@
 export type PaperMode = 'roll' | 'sheet';
 export type FontScale = 'sm' | 'md' | 'lg';
-export type Align = 'left' | 'center';
+export type Align = 'left' | 'center' | 'right';
 export type CodeType = 'barcode' | 'qr';
 export type CodeAlign = 'left' | 'center' | 'right';
 
@@ -73,8 +73,8 @@ const baseFields: LabelFields = {
 };
 
 export const LABEL_TEMPLATES: LabelTemplate[] = [
+  { id: 'qr_clean', name: 'QR Label', description: 'Store · price · name · QR', width: 50, height: 30, fields: { storeName: true, showKhrPrice: true }, fontScale: 'md', align: 'left', barHeight: 14.5, codeType: 'qr', codeAlign: 'right' },
   { id: 'classic', name: 'Classic', description: 'Store · name · price · barcode', width: 50, height: 30, fields: { storeName: true, showKhrPrice: true }, barHeight: 10, codeType: 'barcode', codeAlign: 'center' },
-  { id: 'qr_clean', name: 'QR Label', description: 'Name · price · QR code', width: 40, height: 30, fields: { showKhrPrice: true }, fontScale: 'md', align: 'center', barHeight: 12, codeType: 'qr', codeAlign: 'center' },
   { id: 'price', name: 'Price Tag', description: 'Big price, compact barcode', width: 40, height: 30, fields: { showKhrPrice: true }, fontScale: 'lg', align: 'center', barHeight: 8, codeType: 'barcode', codeAlign: 'center' },
   { id: 'compact', name: 'Compact', description: 'Name + barcode for small items', width: 38, height: 25, fields: { price: false, showKhrPrice: false }, fontScale: 'sm', align: 'center', barHeight: 9, codeType: 'barcode', codeAlign: 'center' },
   { id: 'fresh', name: 'Fresh', description: 'With made-on & best-before dates', width: 50, height: 40, fields: { storeName: true, madeOn: true, bestBefore: true, showKhrPrice: true }, barHeight: 10, codeType: 'barcode', codeAlign: 'center' },
@@ -82,7 +82,7 @@ export const LABEL_TEMPLATES: LabelTemplate[] = [
 ];
 
 export const DEFAULT_SETTINGS: LabelSettings = {
-  templateId: 'classic',
+  templateId: 'qr_clean',
   width: 50,
   height: 30,
   paper: 'roll',
@@ -96,9 +96,9 @@ export const DEFAULT_SETTINGS: LabelSettings = {
   align: 'left',
   border: false,
   boldPrice: true,
-  codeType: 'barcode',
-  codeAlign: 'center',
-  barHeight: 10,
+  codeType: 'qr',
+  codeAlign: 'right',
+  barHeight: 14.5,
   bestBeforeDays: 2,
   note: 'Keep refrigerated',
   currency: '$',
@@ -116,8 +116,8 @@ export function applyTemplate(current: LabelSettings, t: LabelTemplate): LabelSe
     fontScale: t.fontScale ?? 'md',
     fontSizes: {},
     barHeight: t.barHeight ?? 10,
-    codeType: t.codeType ?? current.codeType ?? 'barcode',
-    codeAlign: t.codeAlign ?? current.codeAlign ?? 'center',
+    codeType: t.codeType ?? current.codeType ?? 'qr',
+    codeAlign: t.codeAlign ?? current.codeAlign ?? 'right',
   };
 }
 
@@ -127,23 +127,41 @@ export const SHEET_PRESETS = [
   { label: 'A4 · 5×13 (37×20)', cols: 5, rows: 13, width: 37, height: 20, margin: 8, gap: 1.5 },
 ];
 
-const STORAGE_KEY = (storeId?: string) => `label-settings:${storeId || 'default'}`;
+const STORAGE_KEY_V5 = (storeId?: string) => `label-settings-v5:${storeId || 'default'}`;
+const STORAGE_KEY_V4 = (storeId?: string) => `label-settings-v4:${storeId || 'default'}`;
+const STORAGE_KEY_V3 = (storeId?: string) => `label-settings-v3:${storeId || 'default'}`;
+const STORAGE_KEY_V2 = (storeId?: string) => `label-settings-v2:${storeId || 'default'}`;
+const STORAGE_KEY_LEGACY = (storeId?: string) => `label-settings:${storeId || 'default'}`;
 
 export function loadSettings(storeId?: string, defaultExchangeRate: number = 4100): LabelSettings {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY(storeId));
+    let raw = localStorage.getItem(STORAGE_KEY_V5(storeId));
+    if (!raw) {
+      const v4Raw = localStorage.getItem(STORAGE_KEY_V4(storeId));
+      if (v4Raw) {
+        const v4Parsed = JSON.parse(v4Raw);
+        if (v4Parsed.templateId !== 'qr_clean' || v4Parsed.codeAlign !== 'center') {
+          raw = v4Raw;
+        }
+      }
+    }
     if (raw) {
       const parsed = JSON.parse(raw);
+      if (parsed.templateId === 'qr_clean') {
+        parsed.align = 'left';
+        parsed.codeAlign = 'right';
+      }
       return { 
         ...DEFAULT_SETTINGS, 
         exchangeRate: defaultExchangeRate,
         ...parsed, 
-        codeType: parsed.codeType || 'barcode',
-        codeAlign: parsed.codeAlign || 'center',
+        codeType: parsed.codeType || 'qr',
+        codeAlign: parsed.codeAlign || 'right',
         fontSizes: parsed.fontSizes || {},
         fields: { 
           ...DEFAULT_SETTINGS.fields, 
           ...parsed.fields,
+          storeName: parsed.fields?.storeName ?? true,
           showKhrPrice: parsed.fields?.showKhrPrice ?? true,
         } 
       };
@@ -153,7 +171,7 @@ export function loadSettings(storeId?: string, defaultExchangeRate: number = 410
 }
 
 export function saveSettings(storeId: string | undefined, s: LabelSettings) {
-  try { localStorage.setItem(STORAGE_KEY(storeId), JSON.stringify(s)); } catch { /* ignore */ }
+  try { localStorage.setItem(STORAGE_KEY_V5(storeId), JSON.stringify(s)); } catch { /* ignore */ }
 }
 
 /** Valid 12-digit UPC-A (numeric with correct check digit)? */

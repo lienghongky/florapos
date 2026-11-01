@@ -13,7 +13,7 @@ import { useAuthStore } from '@/app/store/auth-store';
 import { AnimatedModal } from '@/app/components/motion/AnimatedPage';
 import { Label, LabelProduct } from './Label';
 import {
-  LABEL_TEMPLATES, LabelSettings, LabelFields, LabelFontSizes, SHEET_PRESETS, applyTemplate, loadSettings, saveSettings,
+  LABEL_TEMPLATES, DEFAULT_SETTINGS, LabelSettings, LabelFields, LabelFontSizes, SHEET_PRESETS, applyTemplate, loadSettings, saveSettings,
 } from './label-templates';
 
 interface Props {
@@ -409,7 +409,16 @@ export function PrintLabelsModal({
                   {/* Settings panel */}
                   <div className="space-y-6 overflow-y-auto border-r border-border p-5">
                     <section>
-                      <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Template</h3>
+                      <div className="mb-2.5 flex items-center justify-between">
+                        <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Template</h3>
+                        <button
+                          type="button"
+                          onClick={() => setSettings({ ...DEFAULT_SETTINGS, exchangeRate: storeExchangeRate })}
+                          className="text-[10px] text-brand-primary hover:underline font-semibold"
+                        >
+                          Reset to default
+                        </button>
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         {LABEL_TEMPLATES.map(t => (
                           <button
@@ -509,7 +518,7 @@ export function PrintLabelsModal({
                           />
                         )}
                         <Segmented label="Overall scale" value={settings.fontScale} options={[['sm', 'S'], ['md', 'M'], ['lg', 'L']]} onChange={v => update({ fontScale: v as any })} />
-                        <Segmented label="Text align" value={settings.align} options={[['left', 'Left'], ['center', 'Center']]} onChange={v => update({ align: v as any })} />
+                        <Segmented label="Text align" value={settings.align} options={[['left', 'Left'], ['center', 'Center'], ['right', 'Right']]} onChange={v => update({ align: v as any })} />
                         <div>
                           <div className="mb-1 flex justify-between text-xs text-muted-foreground">
                             <span>{settings.codeType === 'qr' ? 'QR size' : 'Barcode height'}</span>
